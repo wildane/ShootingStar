@@ -48,4 +48,5 @@ func _process(_delta: float) -> void:
 	else:
 		var tenaga_semasa: int = max(int(round(tenaga.tenaga)), 0)
 		var tenaga_maks: int = max(int(round(tenaga.max_energy)), 1)
-		_bar_tenaga.tetapkan(float(tenaga_semasa) / float(tenaga_maks), "%d/%d" % [tenaga_semasa, tenaga_maks])
+		var kadar: float = tenaga.pulih_sesaat if ("pulih_sesaat" in tenaga) else 0.0
+		_bar_tenaga.tetapkan(float(tenaga_semasa) / float(tenaga_maks), "%d/%d" % [tenaga_semasa, tenaga_maks], "%.1f/s" % kadar)
