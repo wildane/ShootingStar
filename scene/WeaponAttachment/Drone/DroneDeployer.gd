@@ -4,6 +4,10 @@ extends Button
 # Senarai jenis dron yang boleh dipilih (3 jenis)
 @export var drone_scenes: Array[PackedScene] = []
 @export var drone_names: Array[String] = []
+# ID item dalam beg yang membuka setiap jenis dron (selari dengan drone_scenes).
+# Jenis hanya boleh dipilih selepas dron itu dibuat di Fabricator.
+# Biarkan kosong untuk jenis yang sentiasa terbuka.
+@export var drone_item_ids: Array[String] = []
 @export var spawn_icon: Texture2D
 
 # --- KEADAAN ---
@@ -12,7 +16,7 @@ var active_drone: Node2D = null
 var active_index: int = -1
 
 var _opsi: HBoxContainer
-var _butang_jenis: Array[Button] = []
+var _butang_jenis: Dictionary = {} # indeks dron -> Button
 var _kumpulan: ButtonGroup
 
 # Warna ikon setiap jenis (sama dengan warna dron dalam game)
@@ -31,6 +35,7 @@ func _ready() -> void:
 	# _ready() boleh berlaku semasa induk masih menyediakan anak-anak,
 	# jadi bina baris pilihan secara deferred supaya add_child() tak gagal.
 	_bina_pemilih.call_deferred()
+	_sambung_inventori.call_deferred()
 
 
 func _induk_ui() -> Node:
@@ -40,6 +45,49 @@ func _induk_ui() -> Node:
 			return n
 		n = n.get_parent()
 	return get_tree().current_scene
+
+
+func _inventori():
+	return get_node_or_null("/root/InventoryManager")
+
+
+# Dron hanya muncul dalam senarai bila item dron itu ada dalam beg
+func _sambung_inventori() -> void:
+	var inv = _inventori()
+	if inv and inv.has_signal("inventory_dikemaskini"):
+		if not inv.inventory_dikemaskini.is_connected(_on_inventori_berubah):
+			inv.inventory_dikemaskini.connect(_on_inventori_berubah)
+
+
+func _on_inventori_berubah() -> void:
+	_isi_butang_jenis()
+	# Dron yang sedang aktif hilang kebenaran (cth. item dibuang) -> matikan
+	if active_index >= 0 and not _butang_jenis.has(active_index):
+		_matikan_drone()
+	_susun_tanda_aktif()
+
+
+func _ada_dalam_beg(id_item: String) -> bool:
+	var inv = _inventori()
+	if inv == null:
+		return false
+	for barang in inv.senarai_barang:
+		if barang.get("id") == id_item and int(barang.get("kuantiti", 0)) > 0:
+			return true
+	return false
+
+
+# Senarai indeks jenis dron yang sudah dibuat oleh player
+func _jenis_terbuka() -> Array:
+	var hasil: Array = []
+	for i in drone_scenes.size():
+		if drone_scenes[i] == null:
+			continue
+		var id_item: String = drone_item_ids[i] if i < drone_item_ids.size() else ""
+		if id_item != "" and not _ada_dalam_beg(id_item):
+			continue
+		hasil.append(i)
+	return hasil
 
 
 func _nama_jenis(i: int) -> String:
@@ -61,9 +109,6 @@ func _bina_pemilih() -> void:
 	if induk == null or drone_scenes.is_empty():
 		return
 
-	_kumpulan = ButtonGroup.new()
-	_kumpulan.allow_unpress = true # tekan jenis yang sama = matikan dron
-
 	_opsi = HBoxContainer.new()
 	_opsi.visible = false
 	_opsi.modulate.a = 0.0
@@ -71,7 +116,29 @@ func _bina_pemilih() -> void:
 	_opsi.z_index = 100
 	_opsi.add_theme_constant_override("separation", 2)
 
-	for i in drone_scenes.size():
+	induk.add_child(_opsi)
+	_isi_butang_jenis()
+
+	# Kemas kini baris bila dron baru siap dibuat di Fabricator
+	_sambung_inventori()
+	_susun_tanda_aktif()
+	print("Pemilih dron dibina: ", _jenis_terbuka().size(), " jenis terbuka")
+
+
+# Isi semula baris dengan jenis dron yang sudah dibuat sahaja
+func _isi_butang_jenis() -> void:
+	if _opsi == null:
+		return
+
+	for anak in _opsi.get_children():
+		_opsi.remove_child(anak)
+		anak.queue_free()
+	_butang_jenis.clear()
+
+	_kumpulan = ButtonGroup.new()
+	_kumpulan.allow_unpress = true # tekan jenis yang sama = matikan dron
+
+	for i in _jenis_terbuka():
 		var b := Button.new()
 		b.toggle_mode = true
 		b.button_group = _kumpulan
@@ -81,18 +148,15 @@ func _bina_pemilih() -> void:
 		b.expand_icon = true # ikon 409x437 dikecilkan ke 32x32
 		b.icon = spawn_icon
 		b.self_modulate = _warna_jenis(i)
+		b.tooltip_text = _nama_jenis(i)
 		b.toggled.connect(_on_jenis_ditukar.bind(i))
 		_opsi.add_child(b)
-		_butang_jenis.append(b)
-
-	induk.add_child(_opsi)
-	_susun_tanda_aktif()
-	print("Pemilih dron dibina: ", drone_scenes.size(), " jenis")
+		_butang_jenis[i] = b
 
 
 # Butang utama:
-# - Dron aktif  -> tekan = matikan dron (ikon jadi hitam semula)
-# - Dron OFF    -> tekan = buka baris pilihan jenis dron
+# - Dron aktif  -> tekan = matikan dron (ikon jadi kelabu semula)
+# - Dron OFF    -> tekan = buka baris pilihan jenis dron yang sudah dibuat
 func _on_self_pressed() -> void:
 	if active_index >= 0:
 		_matikan_drone()
@@ -100,12 +164,20 @@ func _on_self_pressed() -> void:
 		return
 
 	if _opsi == null:
-		_aktifkan(0)
+		return
+
+	if _jenis_terbuka().is_empty():
+		tutup_menu()
+		_tunjuk_hint("Buat dron di Fabricator dahulu")
 		return
 
 	if _opsi.visible:
 		tutup_menu()
 		return
+
+	# Segarkan senarai setiap kali menu dibuka (dron baru mungkin baru siap)
+	_isi_butang_jenis()
+	_susun_tanda_aktif()
 
 	# Letak baris tepat di kanan butang ini
 	_opsi.position = global_position + Vector2(size.x + 2.0, 0.0)
@@ -135,6 +207,10 @@ func _on_jenis_ditukar(ditekan: bool, i: int) -> void:
 func _aktifkan(i: int) -> void:
 	if i < 0 or i >= drone_scenes.size() or drone_scenes[i] == null:
 		print("Gagal: Dron pada slot %d tiada di Inspector butang!" % i)
+		return
+
+	if not _butang_jenis.has(i):
+		_tunjuk_hint(_nama_jenis(i) + " belum dibuat di Fabricator")
 		return
 
 	_kosongkan_drone()
@@ -170,15 +246,31 @@ func _kosongkan_drone() -> void:
 
 # Kemas kini ikon butang utama + tanda jenis yang sedang aktif
 func _susun_tanda_aktif() -> void:
-	for i in _butang_jenis.size():
-		_butang_jenis[i].set_pressed_no_signal(i == active_index)
-		_butang_jenis[i].modulate = Color.WHITE if i == active_index else Color(0.55, 0.55, 0.55, 0.85)
+	for i in _butang_jenis.keys():
+		var b: Button = _butang_jenis[i]
+		b.set_pressed_no_signal(i == active_index)
+		b.modulate = Color.WHITE if i == active_index else Color(0.55, 0.55, 0.55, 0.85)
 
 	# Butang utama ikut jenis dron yang sedang aktif; OFF = kelabu
-	if active_index >= 0 and active_index < _butang_jenis.size():
+	if active_index >= 0 and _butang_jenis.has(active_index):
 		icon = _butang_jenis[active_index].icon
 		self_modulate = _warna_jenis(active_index)
 	else:
 		if spawn_icon:
 			icon = spawn_icon
 		self_modulate = WARNA_OFF
+
+
+# Mesej pendek pada panel info (tutup sendiri selepas 2 saat)
+func _tunjuk_hint(teks: String) -> void:
+	print("Dron: ", teks)
+	var adegan := get_tree().current_scene
+	if adegan == null:
+		return
+	var lbl := adegan.find_child("InfoText", true, false) as Label
+	if lbl == null:
+		return
+	lbl.text = teks
+	await get_tree().create_timer(2.0).timeout
+	if is_instance_valid(lbl) and lbl.text == teks:
+		lbl.text = ""

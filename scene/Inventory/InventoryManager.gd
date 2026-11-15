@@ -7,6 +7,13 @@ signal inventory_dikemaskini
 
 var senarai_barang : Array = []
 
+# Kira berapa banyak satu item ada dalam beg (0 jika tiada)
+func bilangan_item(id_barang: String) -> int:
+	for barang in senarai_barang:
+		if barang.get("id") == id_barang:
+			return int(barang.get("kuantiti", 0))
+	return 0
+
 func tambah_item(data_barang: Dictionary) -> bool:
 	# 1. SEMAK JIKA BARANG SUDAH WUJUD
 	for barang in senarai_barang:
