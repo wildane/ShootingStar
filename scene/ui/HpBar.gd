@@ -1,7 +1,7 @@
 class_name HpBar
 extends Control
 
-## Bar HP bergaya: kotak gelap bulat + isian berwarna + teks "3/5".
+## Bar HP bergaya: kotak gelap bulat + ikon hati merah + isian berwarna + teks "3/5".
 ## Dipakai oleh HUD pemain (atas skrin) dan penunjuk HP musuh (atas musuh).
 
 const SAIZ_PEMAIN: Vector2 = Vector2(104.0, 17.0)
@@ -14,6 +14,40 @@ const WARNA_SEDERHANA: Color = Color(1.0, 0.78, 0.28)
 const WARNA_KRITIKAL: Color = Color(1.0, 0.32, 0.32)
 const WARNA_LATAR: Color = Color(0.05, 0.07, 0.12, 0.72)
 const WARNA_JIDAR: Color = Color(0.55, 0.78, 0.95, 0.55)
+const WARNA_HATI: Color = Color(1.0, 0.24, 0.32)
+
+
+## Ikon hati dilukis dengan kod supaya tak bergantung pada glyph fon.
+class IkonHati:
+	extends Control
+
+	var warna: Color = WARNA_HATI
+
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		resized.connect(queue_redraw)
+
+	func _lengkung_hati(pusat: Vector2, skala: float) -> PackedVector2Array:
+		var titik := PackedVector2Array()
+		var langkah := 40
+		for i in langkah:
+			var t := TAU * float(i) / float(langkah)
+			var x := 16.0 * pow(sin(t), 3.0)
+			var y := 13.0 * cos(t) - 5.0 * cos(2.0 * t) - 2.0 * cos(3.0 * t) - cos(4.0 * t)
+			titik.append(pusat + Vector2(x, -y) * skala)
+		return titik
+
+	func _draw() -> void:
+		var s := minf(size.x, size.y)
+		if s <= 0.0:
+			return
+		var pusat := size * 0.5
+		var skala := s / 34.0
+
+		# Jidar gelap supaya hati jelas atas bar berwarna
+		draw_colored_polygon(_lengkung_hati(pusat, skala * 1.25), Color(0.08, 0.02, 0.03, 0.9))
+		draw_colored_polygon(_lengkung_hati(pusat, skala), warna)
+
 
 var saiz_bar: Vector2 = SAIZ_PEMAIN
 var saiz_fon: int = FON_PEMAIN
@@ -22,6 +56,8 @@ var jidar: float = 3.5
 var _panel: Panel
 var _bar: ProgressBar
 var _teks: Label
+var _ikon: IkonHati
+var _lebar_ikon: float = 0.0
 var _nisbah_semasa: float = -1.0
 var _tween_bar: Tween = null
 var _tween_kilat: Tween = null
@@ -48,6 +84,16 @@ func _bina() -> void:
 	_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(_panel)
 
+	# Ikon hati di sebelah kiri dalam kotak
+	_lebar_ikon = maxf(5.0, saiz_bar.y * 0.62)
+	var tinggi_ikon := maxf(5.0, saiz_bar.y - jidar * 2.0)
+	_ikon = IkonHati.new()
+	_ikon.size = Vector2(_lebar_ikon, tinggi_ikon)
+	_ikon.position = Vector2(jidar + 1.0, (saiz_bar.y - tinggi_ikon) * 0.5)
+	_panel.add_child(_ikon)
+
+	var kiri_kandungan := _ikon.position.x + _lebar_ikon + 2.0
+
 	_bar = ProgressBar.new()
 	_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_bar.show_percentage = false
@@ -58,7 +104,7 @@ func _bina() -> void:
 	_bar.add_theme_stylebox_override("background", _gaya_trek())
 	_bar.add_theme_stylebox_override("fill", _gaya_isian(WARNA_SIHAT))
 	_bar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_bar.offset_left = jidar
+	_bar.offset_left = kiri_kandungan
 	_bar.offset_top = jidar - 1.0
 	_bar.offset_right = -jidar
 	_bar.offset_bottom = -jidar + 1.0
@@ -74,6 +120,7 @@ func _bina() -> void:
 	_teks.add_theme_constant_override("outline_size", 3)
 	_teks.text = "--/--"
 	_teks.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_teks.offset_left = kiri_kandungan
 	_panel.add_child(_teks)
 
 func _gaya_panel() -> StyleBoxFlat:
