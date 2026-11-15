@@ -35,7 +35,7 @@ var resipi_dron: Array[Dictionary] = [
 		"item": "res://scene/WeaponAttachment/Drone/item/DroneRinganItem.tscn",
 		"warna": Color(0.45, 0.95, 1.0),
 		"keterangan": "Tembakan pantas, jarak dekat. Sesuai kawal musuh kecil.",
-		"bahan": [{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 5}],
+		"bahan": [{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 5, "ikon": "res://scene/Item/0001BasicIronOre/Image_959.png"}],
 	},
 	{
 		"id": "drone_sederhana",
@@ -44,8 +44,8 @@ var resipi_dron: Array[Dictionary] = [
 		"warna": Color.WHITE,
 		"keterangan": "Tembakan seimbang, jarak sederhana. Pilihan selamat.",
 		"bahan": [
-			{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 8},
-			{"id": "item_0003", "nama": "Raw Silica", "kuantiti": 3},
+			{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 8, "ikon": "res://scene/Item/0001BasicIronOre/Image_959.png"},
+			{"id": "item_0003", "nama": "Raw Silica", "kuantiti": 3, "ikon": "res://scene/Item/0003RawSilica/Image_495.png"},
 		],
 	},
 	{
@@ -55,9 +55,9 @@ var resipi_dron: Array[Dictionary] = [
 		"warna": Color(1.0, 0.65, 0.25),
 		"keterangan": "Tembakan kuat dan jauh, tapi makan tenaga lebih.",
 		"bahan": [
-			{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 12},
-			{"id": "item_0003", "nama": "Raw Silica", "kuantiti": 5},
-			{"id": "item_0004", "nama": "Rock Anomaly (Geode)", "kuantiti": 2},
+			{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 12, "ikon": "res://scene/Item/0001BasicIronOre/Image_959.png"},
+			{"id": "item_0003", "nama": "Raw Silica", "kuantiti": 5, "ikon": "res://scene/Item/0003RawSilica/Image_495.png"},
+			{"id": "item_0004", "nama": "Rock Anomaly (Geode)", "kuantiti": 2, "ikon": "res://scene/Item/0004Geode/Image_129.png"},
 		],
 	},
 ]
@@ -72,7 +72,7 @@ var _kotak_craft: VBoxContainer = null
 var _grid_dron: GridContainer = null
 var _slot_dron: Array[PanelContainer] = []
 var _label_nama: Label = null
-var _label_harga: Label = null
+var _bekas_harga: VBoxContainer = null
 var _label_keterangan: RichTextLabel = null
 var _butang_craft: Button = null
 var _pilihan_craft: int = 0
@@ -329,32 +329,38 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 	margin.add_theme_constant_override("margin_bottom", 3)
 	kotak_info.add_child(margin)
 
-	# Satu scroll untuk seluruh isi kotak: nama, harga, keterangan dan butang
-	# craft bergerak sekali. Scroll mendatar dimatikan supaya teks sentiasa
-	# ditulis melintang ikut lebar kotak, bukan menegak satu huruf satu baris.
+	var info := VBoxContainer.new()
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	info.add_theme_constant_override("separation", 2)
+	margin.add_child(info)
+
+	# Scroll untuk nama, harga dan keterangan sahaja. Scroll mendatar dimatikan
+	# supaya teks ditulis melintang ikut lebar kotak, bukan menegak satu huruf.
 	var skrol_info := ScrollContainer.new()
 	skrol_info.name = "SkrolInfo"
 	skrol_info.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	skrol_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	skrol_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	margin.add_child(skrol_info)
+	info.add_child(skrol_info)
 
-	var info := VBoxContainer.new()
-	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info.add_theme_constant_override("separation", 2)
-	skrol_info.add_child(info)
+	var isi_info := VBoxContainer.new()
+	isi_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	isi_info.add_theme_constant_override("separation", 2)
+	skrol_info.add_child(isi_info)
 
 	_label_nama = Label.new()
 	_label_nama.add_theme_font_size_override("font_size", 8)
 	_label_nama.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_label_nama.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info.add_child(_label_nama)
+	isi_info.add_child(_label_nama)
 
-	_label_harga = Label.new()
-	_label_harga.add_theme_font_size_override("font_size", 7)
-	_label_harga.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_label_harga.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info.add_child(_label_harga)
+	# Senarai harga bahan (baris ikon + nama + kiraan), dibina semula setiap kali
+	_bekas_harga = VBoxContainer.new()
+	_bekas_harga.name = "HargaBahan"
+	_bekas_harga.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_bekas_harga.add_theme_constant_override("separation", 1)
+	isi_info.add_child(_bekas_harga)
 
 	_label_keterangan = RichTextLabel.new()
 	_label_keterangan.name = "KeteranganDron"
@@ -364,12 +370,13 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 	_label_keterangan.fit_content = true
 	_label_keterangan.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_label_keterangan.add_theme_font_size_override("normal_font_size", 7)
-	info.add_child(_label_keterangan)
+	isi_info.add_child(_label_keterangan)
 
 	_butang_craft = Button.new()
 	_butang_craft.name = "ButangCraft"
 	_butang_craft.custom_minimum_size = Vector2(0, 16)
 	_butang_craft.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_butang_craft.size_flags_vertical = Control.SIZE_SHRINK_END # sentiasa di bawah kotak
 	_butang_craft.add_theme_font_size_override("font_size", 8)
 	_butang_craft.pressed.connect(_on_butang_craft_pressed)
 	info.add_child(_butang_craft)
@@ -462,15 +469,7 @@ func _kemas_kini_craft() -> void:
 	var sudah := _sudah_punya(resipi["id"])
 
 	_label_nama.text = str(resipi["nama"])
-
-	var teks_harga: String = ""
-	for bahan in resipi["bahan"]:
-		var ada := _bilangan_dalam_beg(bahan["id"])
-		var perlu := int(bahan["kuantiti"])
-		var tanda: String = "" if ada >= perlu else " (kurang)"
-		teks_harga += str(bahan["nama"]) + " " + str(ada) + "/" + str(perlu) + tanda + "\n"
-	_label_harga.text = teks_harga.strip_edges()
-	_label_harga.modulate = Color(1.0, 0.55, 0.55) if not _bahan_cukup(resipi) and not sudah else Color.WHITE
+	_kemas_kini_harga(resipi)
 
 	_label_keterangan.text = str(resipi["keterangan"])
 
@@ -483,6 +482,38 @@ func _kemas_kini_craft() -> void:
 	else:
 		_butang_craft.text = "Bahan tak cukup"
 		_butang_craft.disabled = true
+
+
+# Bina baris harga: ikon bahan + nama + kiraan yang ada/perlu
+func _kemas_kini_harga(resipi: Dictionary) -> void:
+	if _bekas_harga == null:
+		return
+	for anak in _bekas_harga.get_children():
+		_bekas_harga.remove_child(anak)
+		anak.queue_free()
+
+	for bahan in resipi["bahan"]:
+		var ada := _bilangan_dalam_beg(bahan["id"])
+		var perlu := int(bahan["kuantiti"])
+
+		var baris := HBoxContainer.new()
+		baris.add_theme_constant_override("separation", 3)
+		_bekas_harga.add_child(baris)
+
+		var ikon := TextureRect.new()
+		ikon.custom_minimum_size = Vector2(12, 12)
+		ikon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ikon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		var laluan_ikon: String = str(bahan.get("ikon", ""))
+		if laluan_ikon != "" and ResourceLoader.exists(laluan_ikon):
+			ikon.texture = load(laluan_ikon)
+		baris.add_child(ikon)
+
+		var lbl := Label.new()
+		lbl.add_theme_font_size_override("font_size", 7)
+		lbl.text = str(bahan["nama"]) + " " + str(ada) + "/" + str(perlu)
+		lbl.modulate = Color.WHITE if ada >= perlu else Color(1.0, 0.55, 0.55)
+		baris.add_child(lbl)
 
 
 func _on_butang_craft_pressed() -> void:
