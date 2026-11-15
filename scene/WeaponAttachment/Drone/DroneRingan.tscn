@@ -9,6 +9,7 @@ orbit_radius = 22.0
 detection_range = 180.0
 bullet_scene = ExtResource("2_bullet")
 shoot_cooldown = 0.35
+kos_tenaga_tembakan = 0.2
 layers_for_enemies = 0
 
 [node name="Sprite2D" parent="." index="0"]

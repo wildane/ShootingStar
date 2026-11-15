@@ -8,6 +8,7 @@ extends Node2D
 # === 🔥 EXPORT COOLDOWN TIMER (Boleh ubah terus dari Inspector) ===
 @export_group("Weapon Settings")
 @export var shoot_cooldown: float = 2.0    # Set 2.0 untuk 2 saat, 0.5 untuk setengah saat
+@export var kos_tenaga_tembakan: float = 6.0  # tenaga player dipakai setiap tembakan
 
 # === LAYER CONFIGURATION ===
 @export_group("Collision Layers Setup")
@@ -115,7 +116,7 @@ func shoot_bullet():
 		# Tembakan memakai tenaga player
 		if is_instance_valid(target_player):
 			var tenaga = target_player.get_node_or_null("EnergyComponent")
-			if tenaga and not tenaga.guna_tembakan():
+			if tenaga and not tenaga.guna_tembakan(kos_tenaga_tembakan):
 				return
 
 		var bullet = bullet_scene.instantiate()

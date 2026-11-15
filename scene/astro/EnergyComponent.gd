@@ -6,12 +6,12 @@ extends Node
 @export var max_energy: float = 100.0
 
 @export_group("Penggunaan")
-@export var kos_gerak_sesaat: float = 8.0   # tenaga dipakai setiap saat bergerak
-@export var kos_tembakan: float = 6.0       # tenaga dipakai setiap tembakan drone
+@export var kos_gerak_sesaat: float = 0.5   # tenaga dipakai setiap saat bergerak (sangat jimat)
+@export var kos_tembakan: float = 6.0       # kos lalai jika drone tak tetapkan kos sendiri
 
-@export_group("Pemulihan")
-@export var pulih_sesaat: float = 14.0      # tenaga dipulihkan setiap saat
-@export var masa_rehat: float = 0.7         # tunggu sebelum mula pulih
+@export_group("Pemulihan (Guna Solar)")
+@export var pulih_sesaat: float = 2.0       # cas perlahan, macam panel solar
+@export var masa_rehat: float = 1.0         # tunggu sebelum mula cas
 
 var tenaga: float = 100.0
 var _baki_rehat: float = 0.0
@@ -43,10 +43,11 @@ func guna_gerak(delta: float) -> void:
 	_baki_rehat = masa_rehat
 
 ## Cuba bayar kos tembakan. Pulangkan true jika tembakan dibenarkan.
-func guna_tembakan() -> bool:
-	if tenaga < kos_tembakan:
+func guna_tembakan(kos: float = -1.0) -> bool:
+	var kos_sebenar: float = kos_tembakan if kos < 0.0 else kos
+	if tenaga < kos_sebenar:
 		return false
-	tenaga -= kos_tembakan
+	tenaga -= kos_sebenar
 	_baki_rehat = masa_rehat
 	return true
 
