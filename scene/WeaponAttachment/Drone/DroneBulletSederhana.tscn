@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" uid="uid://vpblwftamog3" path="res://scene/WeaponAttachment/Drone/DroneBullet.tscn" id="1_bullet"]
+
+[node name="DroneBulletSederhana" instance=ExtResource("1_bullet")]
+speed = 380.0
+damage = 2.0
+
+[node name="Sprite2D" parent="." index="0"]
+scale = Vector2(0.16, 0.16)
