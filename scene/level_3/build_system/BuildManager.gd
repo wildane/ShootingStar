@@ -17,6 +17,12 @@ var guna_mouse: bool = not DisplayServer.is_touchscreen_available()
 var boleh_terima_sentuhan: bool = false
 var posisi_jari_terakhir: Vector2 = Vector2.ZERO
 
+# Sentuhan: jari yang sedang mengheret preview, dan jumlah jarak heretekan
+# untuk bezakan "heret" (gerak) dengan "tap" (sahkan bina).
+var jari_bina: int = -1
+var jarak_heretan: float = 0.0
+const JARAK_TAP_MAKS: float = 14.0
+
 # ==========================================================
 # 🏗️ CONSTRUCTION INITIALIZATION
 # ==========================================================
@@ -61,17 +67,23 @@ func mulakan_pembinaan(laluan_preview: String, laluan_actual: String, _nama_grou
 		pusat_kamera = get_tree().current_scene.get_global_transform().affine_inverse() * (saiz_viewport / 2)
 		
 	if hologram_aktif:
-		# Desktop/mouse: terus letak preview bawah kursor mouse (kalau ada)
-		var pos_mouse = get_viewport().get_mouse_position()
-		if get_viewport().get_visible_rect().has_point(pos_mouse):
-			hologram_aktif.global_position = _skrin_ke_dunia(pos_mouse)
-		else:
+		if not guna_mouse:
+			# Telefon: preview mula di tengah skrin, pemain heret untuk pindah
 			hologram_aktif.global_position = pusat_kamera
+		else:
+			# Desktop/mouse: terus letak preview bawah kursor mouse (kalau ada)
+			var pos_mouse = get_viewport().get_mouse_position()
+			if get_viewport().get_visible_rect().has_point(pos_mouse):
+				hologram_aktif.global_position = _skrin_ke_dunia(pos_mouse)
+			else:
+				hologram_aktif.global_position = pusat_kamera
 		
 	# Versi mouse: tak perlu butang ✓/✗ (klik = bina, klik kanan = batal)
 	sembunyi_butang_hologram()
 
 	posisi_jari_terakhir = get_viewport().get_mouse_position()
+	jari_bina = -1
+	jarak_heretan = 0.0
 	
 	mod_pembinaan = true
 	
@@ -83,8 +95,11 @@ func mulakan_pembinaan(laluan_preview: String, laluan_actual: String, _nama_grou
 # 🎮 SCREEN INPUT DRAG & TOUCH (Kekal Ikut Logik Asal)
 # ==========================================================
 func _input(event: InputEvent):
-	# Kesan input terakhir: mouse atau sentuhan
+	# Pada telefon, sentuhan turut menjana event mouse maya. Abaikan mouse maya
+	# itu supaya kawalan sentuhan (heret preview + tap sahkan) yang digunakan.
 	if event is InputEventMouseMotion or event is InputEventMouseButton:
+		if DisplayServer.is_touchscreen_available() and Input.is_emulating_mouse_from_touch():
+			return
 		guna_mouse = true
 	elif event is InputEventScreenTouch or event is InputEventScreenDrag:
 		guna_mouse = false
@@ -123,6 +138,27 @@ func _input(event: InputEvent):
 		
 		hologram_aktif.global_position += jarak_dunia
 		posisi_jari_terakhir = event.position
+		jarak_heretan += jarak_skrin.length()
+
+# --- VERSI SENTUHAN: heret = gerakkan preview, tap = sahkan bina ---
+# Guna _unhandled_input supaya tap pada butang/panel UI tidak membina bangunan.
+func _unhandled_input(event: InputEvent) -> void:
+	if not mod_pembinaan or not is_instance_valid(hologram_aktif) or not boleh_terima_sentuhan:
+		return
+
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			if jari_bina != -1:
+				return
+			jari_bina = event.index
+			posisi_jari_terakhir = event.position
+			jarak_heretan = 0.0
+		elif event.index == jari_bina:
+			jari_bina = -1
+			# Tap ringkas (bukan heret) = letak bangunan di posisi preview
+			if jarak_heretan < JARAK_TAP_MAKS:
+				cuba_bina()
+		return
 
 # Sembunyi butang ✓/✗ pada hologram (kekalkan senarai bahan)
 func sembunyi_butang_hologram() -> void:
@@ -188,6 +224,8 @@ func tamatkan_pembinaan():
 	mod_pembinaan = false
 	boleh_terima_sentuhan = false
 	laluan_preview_semasa = ""
+	jari_bina = -1
+	jarak_heretan = 0.0
 	
 	# Padam hologram preview jika ia masih aktif di dalam babak
 	if is_instance_valid(hologram_aktif):
