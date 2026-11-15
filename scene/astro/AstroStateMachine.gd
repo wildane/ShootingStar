@@ -20,7 +20,9 @@ func _ready() -> void:
 		if get_child_count() > 0:
 			tukar_state(get_child(0))
 
-func _input(event: InputEvent) -> void:
+# Guna _unhandled_input supaya sentuhan/klik pada UI (CanvasLayer/Control) tidak
+# mencetuskan gerakan pemain (input UI diproses dahulu oleh fasa GUI).
+func _unhandled_input(event: InputEvent) -> void:
 	if not state_sekarang:
 		return
 
@@ -28,23 +30,21 @@ func _input(event: InputEvent) -> void:
 	# Klik kiri + heret mouse ditukar jadi sentuhan maya (jari 0),
 	# jadi joystick sentuh sedia ada terus berfungsi tanpa ubah state lain.
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if _mouse_di_atas_ui():
-			return
 		var sentuhan := InputEventScreenTouch.new()
 		sentuhan.index = 0
 		sentuhan.position = event.position
 		sentuhan.pressed = event.pressed
 		state_sekarang.kendalikan_input(sentuhan)
+		get_viewport().set_input_as_handled()
 		return
 
 	if event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
-		if _mouse_di_atas_ui():
-			return
 		var heret := InputEventScreenDrag.new()
 		heret.index = 0
 		heret.position = event.position
 		heret.relative = event.relative
 		state_sekarang.kendalikan_input(heret)
+		get_viewport().set_input_as_handled()
 		return
 
 	state_sekarang.kendalikan_input(event)
