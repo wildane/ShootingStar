@@ -168,7 +168,7 @@ func _on_self_pressed() -> void:
 
 	if _jenis_terbuka().is_empty():
 		tutup_menu()
-		_tunjuk_hint("Buat dron di Fabricator dahulu")
+		_tunjuk_hint("Craft a drone at the Fabricator first")
 		return
 
 	if _opsi.visible:
@@ -210,7 +210,7 @@ func _aktifkan(i: int) -> void:
 		return
 
 	if not _butang_jenis.has(i):
-		_tunjuk_hint(_nama_jenis(i) + " belum dibuat di Fabricator")
+		_tunjuk_hint(_nama_jenis(i) + " has not been crafted yet")
 		return
 
 	_kosongkan_drone()

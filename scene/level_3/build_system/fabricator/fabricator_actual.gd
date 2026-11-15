@@ -31,19 +31,19 @@ const IKON_DRON: String = "res://scene/WeaponAttachment/Drone/Image_836.png"
 var resipi_dron: Array[Dictionary] = [
 	{
 		"id": "drone_ringan",
-		"nama": "Drone Ringan",
+		"nama": "Light Drone",
 		"item": "res://scene/WeaponAttachment/Drone/item/DroneRinganItem.tscn",
 		"warna": Color(0.45, 0.95, 1.0),
-		"keterangan": "Tembakan pantas, jarak dekat. Sesuai kawal musuh kecil.",
+		"keterangan": "Fast fire rate, short range. Good for clearing small swarms.",
 		"statistik": {"range": 180, "dmg": 1, "tenaga": 0.2, "cooldown": 0.35},
 		"bahan": [{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 5, "ikon": "res://scene/Item/0001BasicIronOre/Image_959.png"}],
 	},
 	{
 		"id": "drone_sederhana",
-		"nama": "Drone Sederhana",
+		"nama": "Medium Drone",
 		"item": "res://scene/WeaponAttachment/Drone/item/DroneSederhanaItem.tscn",
 		"warna": Color.WHITE,
-		"keterangan": "Tembakan seimbang, jarak sederhana. Pilihan selamat.",
+		"keterangan": "Balanced damage and range. A safe all-round pick.",
 		"statistik": {"range": 130, "dmg": 2, "tenaga": 6, "cooldown": 1.4},
 		"bahan": [
 			{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 8, "ikon": "res://scene/Item/0001BasicIronOre/Image_959.png"},
@@ -52,10 +52,10 @@ var resipi_dron: Array[Dictionary] = [
 	},
 	{
 		"id": "drone_berat",
-		"nama": "Drone Berat",
+		"nama": "Heavy Drone",
 		"item": "res://scene/WeaponAttachment/Drone/item/DroneBeratItem.tscn",
 		"warna": Color(1.0, 0.65, 0.25),
-		"keterangan": "Tembakan kuat dan jauh, tapi makan tenaga lebih.",
+		"keterangan": "Long range and heavy damage, but drains more energy.",
 		"statistik": {"range": 320, "dmg": 3, "tenaga": 6, "cooldown": 3.0},
 		"bahan": [
 			{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 12, "ikon": "res://scene/Item/0001BasicIronOre/Image_959.png"},
@@ -224,7 +224,7 @@ func _bina_ui_craft() -> void:
 	_butang_dron.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_butang_dron.icon = load(IKON_DRON)
 	_butang_dron.self_modulate = Color(0.62, 0.66, 0.72, 0.95)
-	_butang_dron.tooltip_text = "Buat dron"
+	_butang_dron.tooltip_text = "Craft drone"
 	_butang_dron.pressed.connect(_buka_craft)
 	slot_dron.add_child(_butang_dron)
 
@@ -268,7 +268,7 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 	header.add_child(butang_back)
 
 	var tajuk := Label.new()
-	tajuk.text = "Buat Dron"
+	tajuk.text = "Craft Drone"
 	tajuk.add_theme_font_size_override("font_size", 9)
 	tajuk.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tajuk.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -491,13 +491,13 @@ func _kemas_kini_craft() -> void:
 	_label_keterangan.text = str(resipi["keterangan"])
 
 	if sudah:
-		_butang_craft.text = "Dah dibuat"
+		_butang_craft.text = "Already crafted"
 		_butang_craft.disabled = true
 	elif _bahan_cukup(resipi):
-		_butang_craft.text = "Buat"
+		_butang_craft.text = "Craft"
 		_butang_craft.disabled = false
 	else:
-		_butang_craft.text = "Bahan tak cukup"
+		_butang_craft.text = "Not enough materials"
 		_butang_craft.disabled = true
 
 
@@ -540,11 +540,11 @@ func _on_butang_craft_pressed() -> void:
 	var resipi: Dictionary = resipi_dron[_pilihan_craft]
 
 	if _sudah_punya(resipi["id"]):
-		_tulis_info(str(resipi["nama"]) + " sudah dibuat")
+		_tulis_info(str(resipi["nama"]) + " is already crafted")
 		return
 
 	if not _bahan_cukup(resipi):
-		_tulis_info("Bahan tidak cukup untuk " + str(resipi["nama"]))
+		_tulis_info("Not enough materials for " + str(resipi["nama"]))
 		return
 
 	var inv = get_node_or_null("/root/InventoryManager")
@@ -565,7 +565,7 @@ func _on_butang_craft_pressed() -> void:
 	})
 
 	_kemas_kini_craft()
-	_tulis_info(str(resipi["nama"]) + " siap! Boleh dipilih pada butang dron.")
+	_tulis_info(str(resipi["nama"]) + " crafted! Select it from the drone button.")
 	print("Fabricator: ", resipi["nama"], " selesai dibuat")
 
 

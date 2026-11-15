@@ -79,7 +79,7 @@ text = "Close"
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
-text = "demolish"
+text = "Demolish"
 
 [node name="SaveComponent" type="Node2D" parent="." unique_id=1860049268]
 script = ExtResource("3_xtilw")

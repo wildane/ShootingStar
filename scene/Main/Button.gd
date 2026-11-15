@@ -29,7 +29,7 @@ func _kemaskini_nama_butang() -> void:
 		# Set teks pada butang
 		text = nama_bersih
 	else:
-		text = "Pilih Scene (Kosong)"
+		text = "Select Scene (Empty)"
 
 # 3. Fungsi yang akan berjalan apabila butang ini diklik oleh pemain
 func _on_button_pressed() -> void:
