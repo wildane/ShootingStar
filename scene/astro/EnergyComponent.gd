@@ -10,7 +10,7 @@ extends Node
 @export var kos_tembakan: float = 6.0       # kos lalai jika drone tak tetapkan kos sendiri
 
 @export_group("Pemulihan (Guna Solar)")
-@export var pulih_sesaat: float = 2.0       # cas perlahan, macam panel solar
+@export var pulih_sesaat: float = 0.1       # cas perlahan, macam panel solar
 @export var masa_rehat: float = 1.0         # tunggu sebelum mula cas
 
 var tenaga: float = 100.0
