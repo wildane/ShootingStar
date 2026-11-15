@@ -108,16 +108,11 @@ func _bina() -> void:
 	_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(_panel)
 
-	# Ikon di sebelah kiri dalam kotak
+	# Saiz & posisi ikon (dibuat selepas bar supaya dilukis di atasnya)
 	_lebar_ikon = maxf(5.0, saiz_bar.y * 0.62)
 	var tinggi_ikon := maxf(5.0, saiz_bar.y - jidar * 2.0)
-	_ikon = IkonBar.new()
-	_ikon.jenis = jenis
-	_ikon.size = Vector2(_lebar_ikon, tinggi_ikon)
-	_ikon.position = Vector2(jidar + 1.0, (saiz_bar.y - tinggi_ikon) * 0.5)
-	_panel.add_child(_ikon)
-
-	_kiri_kandungan = _ikon.position.x + _lebar_ikon + 2.0
+	var posisi_ikon := Vector2(jidar + 1.0, (saiz_bar.y - tinggi_ikon) * 0.5)
+	_kiri_kandungan = posisi_ikon.x + _lebar_ikon + 2.0
 
 	_bar = ProgressBar.new()
 	_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -128,12 +123,20 @@ func _bina() -> void:
 	_bar.value = 1.0
 	_bar.add_theme_stylebox_override("background", _gaya_trek())
 	_bar.add_theme_stylebox_override("fill", _gaya_isian(_warna_untuk(1.0)))
+	# Bar warna penuhkan seluruh kotak (di belakang ikon & teks)
 	_bar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_bar.offset_left = _kiri_kandungan
+	_bar.offset_left = jidar
 	_bar.offset_top = jidar - 1.0
 	_bar.offset_right = -jidar
 	_bar.offset_bottom = -jidar + 1.0
 	_panel.add_child(_bar)
+
+	# Ikon di sebelah kiri, di atas bar berwarna
+	_ikon = IkonBar.new()
+	_ikon.jenis = jenis
+	_ikon.size = Vector2(_lebar_ikon, tinggi_ikon)
+	_ikon.position = posisi_ikon
+	_panel.add_child(_ikon)
 
 	_teks = Label.new()
 	_teks.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -222,8 +225,8 @@ func tetapkan(nisbah: float, teks: String, kanan: String = "") -> void:
 		_teks_kanan.text = kanan
 		_teks_kanan.visible = kanan != ""
 		var simpanan := _lebar_teks_kanan(kanan)
-		_bar.offset_right = -jidar - simpanan
-		_teks.offset_right = -simpanan
+		# Hanya teks yang dibuat ruang; bar kekal penuh di belakang
+		_teks.offset_right = -jidar - simpanan
 
 	var nisbah_baru := clampf(nisbah, 0.0, 1.0)
 	if is_equal_approx(nisbah_baru, _nisbah_semasa):
