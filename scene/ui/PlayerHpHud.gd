@@ -8,15 +8,16 @@ var _bar_tenaga: HpBar
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	var tengah := CenterContainer.new()
-	tengah.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tengah.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(tengah)
-
+	# Bar diletak di bawah kanan skrin supaya tak bertindih dengan UI build
 	var susunan := VBoxContainer.new()
 	susunan.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	susunan.add_theme_constant_override("separation", 3)
-	tengah.add_child(susunan)
+	susunan.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	susunan.offset_left = -(HpBar.SAIZ_PEMAIN.x + 6.0)
+	susunan.offset_top = -(HpBar.SAIZ_PEMAIN.y * 2.0 + 3.0 + 6.0)
+	susunan.offset_right = -6.0
+	susunan.offset_bottom = -6.0
+	add_child(susunan)
 
 	_bar_hp = HpBar.cipta(HpBar.SAIZ_PEMAIN, HpBar.FON_PEMAIN, "hp")
 	susunan.add_child(_bar_hp)

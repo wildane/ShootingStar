@@ -30,12 +30,12 @@ func _bina_hud_hp_pemain() -> void:
 	hud.name = "PlayerHpHud"
 	hud.set_script(load("res://scene/ui/PlayerHpHud.gd"))
 	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# Letak di bahagian atas skrin (tengah), kekal di HUD
-	hud.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	# Letak full rect; kedudukan sebenar bar diurus dalam PlayerHpHud (bawah kanan)
+	hud.set_anchors_preset(Control.PRESET_FULL_RECT)
 	hud.offset_left = 0
 	hud.offset_right = 0
-	hud.offset_top = 3
-	hud.offset_bottom = 45
+	hud.offset_top = 0
+	hud.offset_bottom = 0
 	canvas.add_child(hud)
 
 # Membina lapisan hitam pekat di awal game
