@@ -3,8 +3,9 @@ extends Control
 
 ## Bar status bergaya: kotak gelap bulat + ikon + isian berwarna + teks "3/5".
 ## Jenis: "hp" (ikon hati merah) dan "energi" (ikon kilat kuning, bar biru).
+## Boleh papar teks tambahan di sebelah kanan dalam kotak (cth: "0.1/s").
 
-const SAIZ_PEMAIN: Vector2 = Vector2(104.0, 17.0)
+const SAIZ_PEMAIN: Vector2 = Vector2(120.0, 17.0)
 const FON_PEMAIN: int = 8
 const SAIZ_MUSUH: Vector2 = Vector2(62.0, 12.0)
 const FON_MUSUH: int = 6
@@ -57,7 +58,6 @@ class IkonBar:
 		var skala := s / 26.0
 
 		if jenis == "energi":
-			# Jidar gelap + isi kuning
 			var luar := PackedVector2Array()
 			for p in _lengkung_kilat(pusat, skala * 1.18):
 				luar.append(pusat + (p - pusat) * 1.18)
@@ -76,8 +76,11 @@ var jidar: float = 3.5
 var _panel: Panel
 var _bar: ProgressBar
 var _teks: Label
+var _teks_kanan: Label
 var _ikon: IkonBar
 var _lebar_ikon: float = 0.0
+var _kiri_kandungan: float = 0.0
+var _kanan_semasa: String = ""
 var _nisbah_semasa: float = -1.0
 var _tween_bar: Tween = null
 var _tween_kilat: Tween = null
@@ -114,7 +117,7 @@ func _bina() -> void:
 	_ikon.position = Vector2(jidar + 1.0, (saiz_bar.y - tinggi_ikon) * 0.5)
 	_panel.add_child(_ikon)
 
-	var kiri_kandungan := _ikon.position.x + _lebar_ikon + 2.0
+	_kiri_kandungan = _ikon.position.x + _lebar_ikon + 2.0
 
 	_bar = ProgressBar.new()
 	_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -126,7 +129,7 @@ func _bina() -> void:
 	_bar.add_theme_stylebox_override("background", _gaya_trek())
 	_bar.add_theme_stylebox_override("fill", _gaya_isian(_warna_untuk(1.0)))
 	_bar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_bar.offset_left = kiri_kandungan
+	_bar.offset_left = _kiri_kandungan
 	_bar.offset_top = jidar - 1.0
 	_bar.offset_right = -jidar
 	_bar.offset_bottom = -jidar + 1.0
@@ -142,8 +145,24 @@ func _bina() -> void:
 	_teks.add_theme_constant_override("outline_size", 3)
 	_teks.text = "--/--"
 	_teks.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_teks.offset_left = kiri_kandungan
+	_teks.offset_left = _kiri_kandungan
 	_panel.add_child(_teks)
+
+	# Teks tambahan di sebelah kanan (cth kadar cas)
+	_teks_kanan = Label.new()
+	_teks_kanan.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_teks_kanan.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_teks_kanan.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_teks_kanan.add_theme_font_size_override("font_size", maxi(6, saiz_fon - 1))
+	_teks_kanan.add_theme_color_override("font_color", Color(0.75, 0.92, 1.0, 1.0))
+	_teks_kanan.add_theme_color_override("font_outline_color", Color(0.02, 0.03, 0.06, 1))
+	_teks_kanan.add_theme_constant_override("outline_size", 3)
+	_teks_kanan.text = ""
+	_teks_kanan.visible = false
+	_teks_kanan.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_teks_kanan.offset_right = -jidar - 1.0
+	_teks_kanan.offset_left = _kiri_kandungan
+	_panel.add_child(_teks_kanan)
 
 func _gaya_panel() -> StyleBoxFlat:
 	var gaya := StyleBoxFlat.new()
@@ -179,15 +198,34 @@ func _warna_untuk(nisbah: float) -> Color:
 		return WARNA_SEDERHANA
 	return WARNA_KRITIKAL
 
-## Kemas kini paparan bar. Bila nilai turun, kotak berkilat sekejap.
-func tetapkan(nisbah: float, teks: String) -> void:
+func _lebar_teks_kanan(teks: String) -> float:
+	if teks == "":
+		return 0.0
+	var fon := _teks_kanan.get_theme_font("font")
+	var saiz := _teks_kanan.get_theme_font_size("font_size")
+	if fon == null:
+		return 16.0
+	return fon.get_string_size(teks, HORIZONTAL_ALIGNMENT_LEFT, -1, saiz).x + 3.0
+
+## Kemas kini paparan bar. `kanan` (pilihan) ialah teks kecil di sebelah kanan.
+func tetapkan(nisbah: float, teks: String, kanan: String = "") -> void:
+	if _panel == null:
+		_bina()
 	if _teks == null:
 		return
 
-	var nisbah_baru := clampf(nisbah, 0.0, 1.0)
 	if teks != _teks.text:
 		_teks.text = teks
 
+	if kanan != _kanan_semasa:
+		_kanan_semasa = kanan
+		_teks_kanan.text = kanan
+		_teks_kanan.visible = kanan != ""
+		var simpanan := _lebar_teks_kanan(kanan)
+		_bar.offset_right = -jidar - simpanan
+		_teks.offset_right = -simpanan
+
+	var nisbah_baru := clampf(nisbah, 0.0, 1.0)
 	if is_equal_approx(nisbah_baru, _nisbah_semasa):
 		return
 
