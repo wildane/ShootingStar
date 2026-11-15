@@ -18,10 +18,9 @@ func take_damage(amount: float) -> void:
 	hp -= int(amount)
 	print("PLAYER HP -> Hits left: ", hp, " / ", max_hp)
 
-	# Nombor damage terapung + paparan HP di atas player (sama seperti musuh)
+	# Nombor damage terapung di atas player (HP kekal dipaparkan di HUD skrin)
 	if is_instance_valid(player):
 		DamageNumber.tunjuk(player, player.global_position, amount)
-		DamageNumber.tunjuk_hp(player, hp, max_hp)
 	
 	if hp <= 0:
 		play_player_death_sequence()
