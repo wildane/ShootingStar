@@ -159,6 +159,15 @@ func kemas_kini_fizik(delta: float) -> void:
 	# 1. HADKAN PANJANG VEKTOR JOYSTICK (Maksimum 1.0 supaya penjuru tidak melimpah laju)
 	var input_terhad = arah.limit_length(1.0)
 
+	# TENAGA: bergerak memakai tenaga, habis tenaga = tak boleh bergerak
+	var komponen_tenaga = astro.get_node_or_null("EnergyComponent")
+	if komponen_tenaga:
+		if input_terhad.length() > 0.0:
+			if komponen_tenaga.ada_tenaga():
+				komponen_tenaga.guna_gerak(delta)
+			else:
+				input_terhad = Vector2.ZERO
+
 	# 2. LOGIK KELAJUAN UNDUR (REVERSE SPEED)
 	if input_terhad.length() > 0:
 		if lock_on_comp and lock_on_comp.is_locked and is_instance_valid(lock_on_comp.target_mob):
