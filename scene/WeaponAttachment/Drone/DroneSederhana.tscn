@@ -1,11 +1,13 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="PackedScene" uid="uid://dnvavhk04pdup" path="res://scene/WeaponAttachment/Drone/Drone.tscn" id="1_drone"]
+[ext_resource type="PackedScene" path="res://scene/WeaponAttachment/Drone/DroneBulletSederhana.tscn" id="2_bullet"]
 
 [node name="DroneSederhana" instance=ExtResource("1_drone")]
 rotation_speed = 1.4
 orbit_radius = 14.0
 detection_range = 130.0
+bullet_scene = ExtResource("2_bullet")
 shoot_cooldown = 1.4
 layers_for_enemies = 0
 

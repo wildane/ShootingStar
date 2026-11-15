@@ -44,7 +44,7 @@ var resipi_dron: Array[Dictionary] = [
 		"item": "res://scene/WeaponAttachment/Drone/item/DroneSederhanaItem.tscn",
 		"warna": Color.WHITE,
 		"keterangan": "Tembakan seimbang, jarak sederhana. Pilihan selamat.",
-		"statistik": {"range": 130, "dmg": 0, "tenaga": 6},
+		"statistik": {"range": 130, "dmg": 2, "tenaga": 6},
 		"bahan": [
 			{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 8, "ikon": "res://scene/Item/0001BasicIronOre/Image_959.png"},
 			{"id": "item_0003", "nama": "Raw Silica", "kuantiti": 3, "ikon": "res://scene/Item/0003RawSilica/Image_495.png"},
