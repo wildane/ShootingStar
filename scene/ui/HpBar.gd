@@ -225,10 +225,12 @@ func tetapkan(nisbah: float, teks: String, kanan: String = "") -> void:
 		_teks_kanan.text = kanan
 		_teks_kanan.visible = kanan != ""
 
-	# Teks utama kekal di tengah bar (beri ruang jika ada label kanan)
-	var simpanan := _lebar_teks_kanan(_kanan_semasa)
+	# Teks utama (HP/tenaga) kekal di tengah penuh bar
 	_teks.offset_left = jidar
-	_teks.offset_right = -jidar - simpanan
+	_teks.offset_right = -jidar
+
+	# Kekalkan lebar label kanan dikira (untuk rujukan), tetapi jangan anjak teks utama
+	var _simpan_kanan := _lebar_teks_kanan(_kanan_semasa)
 
 	var nisbah_baru := clampf(nisbah, 0.0, 1.0)
 	if is_equal_approx(nisbah_baru, _nisbah_semasa):
