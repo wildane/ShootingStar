@@ -26,16 +26,16 @@ func _bina_hud_hp_pemain() -> void:
 	# Elak duplikasi jika fungsi dipanggil semula
 	if canvas.has_node("PlayerHpHud"):
 		return
-	var hud := Label.new()
+	var hud := Control.new()
 	hud.name = "PlayerHpHud"
 	hud.set_script(load("res://scene/ui/PlayerHpHud.gd"))
+	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# Letak di bahagian atas skrin (tengah), kekal di HUD
 	hud.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	hud.offset_left = 0
 	hud.offset_right = 0
-	hud.offset_top = 2
-	hud.offset_bottom = 18
-	hud.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hud.offset_top = 3
+	hud.offset_bottom = 29
 	canvas.add_child(hud)
 
 # Membina lapisan hitam pekat di awal game
