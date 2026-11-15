@@ -264,7 +264,7 @@ func _kemas_kini_info_binaan() -> void:
 	if has_node("/root/InventoryManager"):
 		inv_list = get_node("/root/InventoryManager").senarai_barang
 
-	var teks: String = "Nama: " + _nama_bangunan_untuk_ui() + "\n"
+	var teks: String = "Name: " + _nama_bangunan_untuk_ui() + "\n"
 	for data in data_mats_terekstrak:
 		var ada: int = 0
 		for barang in inv_list:
@@ -274,11 +274,11 @@ func _kemas_kini_info_binaan() -> void:
 		teks += str(data["nama"]) + " " + str(ada) + "/" + str(int(data["diperlukan"])) + "\n"
 
 	if not ada_cukup_bahan:
-		teks += "Bahan tidak cukup"
+		teks += "Not enough materials"
 	elif boleh_pasang:
-		teks += "Boleh dibina"
+		teks += "Can build here"
 	else:
-		teks += "Tidak boleh dibina di sini"
+		teks += "Can't build here"
 
 	if teks != label_info.text:
 		label_info.text = teks

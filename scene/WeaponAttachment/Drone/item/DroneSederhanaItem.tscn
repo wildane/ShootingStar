@@ -10,9 +10,9 @@ size = Vector2(325.00018, 328.1252)
 scale = Vector2(0.05, 0.05)
 script = ExtResource("1_drone")
 id_barang = "drone_sederhana"
-nama_barang = "Drone Sederhana"
+nama_barang = "Medium Drone"
 category = "Drone"
-description = "Dron serdahana dengan tembakan seimbang. Pilih pada butang dron di HUD."
+description = "A balanced medium drone. Select it from the drone button in the HUD."
 ikon_barang = ExtResource("2_ikon")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]

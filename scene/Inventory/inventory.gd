@@ -156,16 +156,16 @@ func _on_slot_berisi_diklik(event: InputEvent, barang_dipilih: Dictionary):
 	if event is InputEventScreenTouch or (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT):
 		if event.pressed:
 			accept_event()
-			var nama_item = barang_dipilih.get("nama", "Tiada Nama")
+			var nama_item = barang_dipilih.get("nama", "Unnamed")
 			var id_item = barang_dipilih.get("id", "Unknown")
 			var kuantiti_item = int(barang_dipilih.get("kuantiti", 1)) # 🔥 Paksa int di panel tepi juga
 			
 			print("Sentuh slot carian: ", nama_item)
 			
 			if info_label != null:
-				var teks_info : String = "Nama: " + str(nama_item) + "\n"
+				var teks_info : String = "Name: " + str(nama_item) + "\n"
 				teks_info += "ID: " + str(id_item) + "\n"
-				teks_info += "Jumlah: " + str(kuantiti_item) + " unit"
+				teks_info += "Amount: " + str(kuantiti_item) + " units"
 				info_label.text = teks_info
 
 func _on_slot_kosong_diklik(event: InputEvent):

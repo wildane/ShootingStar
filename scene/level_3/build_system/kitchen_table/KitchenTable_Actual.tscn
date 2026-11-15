@@ -78,7 +78,7 @@ text = "Close"
 [node name="ButtonDemolish" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer/HBoxContainer" unique_id=2002607130]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "demolish"
+text = "Demolish"
 
 [node name="SaveComponent" type="Node2D" parent="." unique_id=1707572707]
 script = ExtResource("3_0qnxc")
