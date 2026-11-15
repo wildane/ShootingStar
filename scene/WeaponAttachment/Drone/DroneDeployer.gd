@@ -17,14 +17,17 @@ var _kumpulan: ButtonGroup
 
 # Warna ikon setiap jenis (sama dengan warna dron dalam game)
 const WARNA_JENIS: Array[Color] = [Color(0.45, 0.95, 1.0), Color.WHITE, Color(1.0, 0.65, 0.25)]
+# Warna ikon semasa dron OFF: kelabu pertengahan supaya nampak atas
+# background gelap (hitam) dan juga background cerah
+const WARNA_OFF: Color = Color(0.62, 0.66, 0.72, 0.95)
 
 
 func _ready() -> void:
 	pressed.connect(_on_self_pressed)
 	if spawn_icon:
 		icon = spawn_icon
-	# Belum ada dron dipilih: ikon butang utama jadi hitam (OFF)
-	self_modulate = Color.BLACK
+	# Belum ada dron dipilih: ikon butang utama jadi kelabu (OFF)
+	self_modulate = WARNA_OFF
 	# _ready() boleh berlaku semasa induk masih menyediakan anak-anak,
 	# jadi bina baris pilihan secara deferred supaya add_child() tak gagal.
 	_bina_pemilih.call_deferred()
@@ -171,11 +174,11 @@ func _susun_tanda_aktif() -> void:
 		_butang_jenis[i].set_pressed_no_signal(i == active_index)
 		_butang_jenis[i].modulate = Color.WHITE if i == active_index else Color(0.55, 0.55, 0.55, 0.85)
 
-	# Butang utama ikut jenis dron yang sedang aktif; OFF = hitam
+	# Butang utama ikut jenis dron yang sedang aktif; OFF = kelabu
 	if active_index >= 0 and active_index < _butang_jenis.size():
 		icon = _butang_jenis[active_index].icon
 		self_modulate = _warna_jenis(active_index)
 	else:
 		if spawn_icon:
 			icon = spawn_icon
-		self_modulate = Color.BLACK
+		self_modulate = WARNA_OFF
