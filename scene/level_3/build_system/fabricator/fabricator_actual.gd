@@ -64,6 +64,7 @@ var resipi_dron: Array[Dictionary] = [
 
 # UI craft dron (semua di dalam menu Fabricator, tiada panel bertindih)
 var _butang_dron: Button = null
+var _grid_kraf: GridContainer = null
 var _tajuk_menu: Control = null
 var _baris_menu: Control = null
 var _kotak_craft: VBoxContainer = null
@@ -190,9 +191,24 @@ func _bina_ui_craft() -> void:
 	_tajuk_menu = vbox.get_child(0)
 	_baris_menu = vbox.get_node_or_null("HBoxContainer")
 
+	# Grid kraft di atas kiri menu: setiap item yang boleh dibuat dapat satu
+	# slot kotak. Sekarang hanya dron; nanti senang tambah slot lain sebelahnya.
+	_grid_kraf = GridContainer.new()
+	_grid_kraf.name = "GridKraf"
+	_grid_kraf.columns = 4
+	_grid_kraf.add_theme_constant_override("h_separation", 2)
+	_grid_kraf.add_theme_constant_override("v_separation", 2)
+	vbox.add_child(_grid_kraf)
+	vbox.move_child(_grid_kraf, 0) # paling atas
+
+	var slot_dron := PanelContainer.new()
+	slot_dron.name = "SlotDron"
+	slot_dron.custom_minimum_size = Vector2(26, 26)
+	slot_dron.add_theme_stylebox_override("panel", _gaya_slot(false, false))
+	_grid_kraf.add_child(slot_dron)
+
 	_butang_dron = Button.new()
 	_butang_dron.name = "ButangDron"
-	_butang_dron.custom_minimum_size = Vector2(32, 32)
 	_butang_dron.flat = true
 	_butang_dron.expand_icon = true
 	_butang_dron.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -200,8 +216,7 @@ func _bina_ui_craft() -> void:
 	_butang_dron.self_modulate = Color(0.62, 0.66, 0.72, 0.95)
 	_butang_dron.tooltip_text = "Buat dron"
 	_butang_dron.pressed.connect(_buka_craft)
-	vbox.add_child(_butang_dron)
-	vbox.move_child(_butang_dron, 1) # bawah tajuk, atas butang Close/Demolish
+	slot_dron.add_child(_butang_dron)
 
 	_bina_kandungan_craft(vbox)
 
@@ -251,10 +266,18 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 	header.add_child(butang_tutup_menu)
 
 	# --- BADAN: grid kiri, kotak info kanan ---
+	# Kandungan boleh scroll kalau terlebih (butang craft tetap boleh dicapai)
+	var skrol := ScrollContainer.new()
+	skrol.name = "SkrolCraft"
+	skrol.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	skrol.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_kotak_craft.add_child(skrol)
+
 	var badan := HBoxContainer.new()
+	badan.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	badan.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	badan.add_theme_constant_override("separation", 6)
-	_kotak_craft.add_child(badan)
+	skrol.add_child(badan)
 
 	_grid_dron = GridContainer.new()
 	_grid_dron.name = "GridDron"
@@ -287,7 +310,7 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 	var kotak_info := PanelContainer.new()
 	kotak_info.name = "KotakInfo"
 	kotak_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	kotak_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	kotak_info.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	kotak_info.add_theme_stylebox_override("panel", _gaya_slot(false, false))
 	badan.add_child(kotak_info)
 
@@ -310,23 +333,22 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 	_label_harga.add_theme_font_size_override("font_size", 7)
 	info.add_child(_label_harga)
 
-	# RichTextLabel dengan fit_content = false: tak paksa tinggi minimum,
-	# jadi butang craft di bawah sentiasa dapat ruang walaupun teks panjang.
+	# Keterangan penuh dipaparkan (fit_content), dan kalau terlebih panjang
+	# ScrollContainer di atas akan benarkan player scroll ke butang craft.
 	_label_keterangan = RichTextLabel.new()
 	_label_keterangan.name = "KeteranganDron"
 	_label_keterangan.bbcode_enabled = false
-	_label_keterangan.fit_content = false
 	_label_keterangan.scroll_active = false
 	_label_keterangan.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_label_keterangan.custom_minimum_size = Vector2(0, 26)
-	_label_keterangan.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_label_keterangan.fit_content = true
+	_label_keterangan.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	_label_keterangan.add_theme_font_size_override("normal_font_size", 7)
 	info.add_child(_label_keterangan)
 
 	_butang_craft = Button.new()
 	_butang_craft.name = "ButangCraft"
 	_butang_craft.custom_minimum_size = Vector2(0, 16)
-	_butang_craft.size_flags_vertical = Control.SIZE_SHRINK_END # lekat di bawah kotak info
+	_butang_craft.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	_butang_craft.add_theme_font_size_override("font_size", 8)
 	_butang_craft.pressed.connect(_on_butang_craft_pressed)
 	info.add_child(_butang_craft)
@@ -354,7 +376,7 @@ func _buka_craft() -> void:
 		return
 	if _tajuk_menu: _tajuk_menu.visible = false
 	if _baris_menu: _baris_menu.visible = false
-	if _butang_dron: _butang_dron.visible = false
+	if _grid_kraf: _grid_kraf.visible = false
 	_kotak_craft.visible = true
 	# Saiz menu kekal macam asal - semua kandungan mesti muat dalam kotak sedia ada
 	_kemas_kini_craft()
@@ -366,7 +388,7 @@ func _tutup_craft() -> void:
 	_kotak_craft.visible = false
 	if _tajuk_menu: _tajuk_menu.visible = true
 	if _baris_menu: _baris_menu.visible = true
-	if _butang_dron: _butang_dron.visible = true
+	if _grid_kraf: _grid_kraf.visible = true
 
 
 # Pilih satu dron dalam grid -> kotak info di kanan bertukar
