@@ -71,7 +71,7 @@ var _grid_dron: GridContainer = null
 var _slot_dron: Array[PanelContainer] = []
 var _label_nama: Label = null
 var _label_harga: Label = null
-var _label_keterangan: Label = null
+var _label_keterangan: RichTextLabel = null
 var _butang_craft: Button = null
 var _pilihan_craft: int = 0
 
@@ -310,15 +310,23 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 	_label_harga.add_theme_font_size_override("font_size", 7)
 	info.add_child(_label_harga)
 
-	_label_keterangan = Label.new()
-	_label_keterangan.add_theme_font_size_override("font_size", 7)
+	# RichTextLabel dengan fit_content = false: tak paksa tinggi minimum,
+	# jadi butang craft di bawah sentiasa dapat ruang walaupun teks panjang.
+	_label_keterangan = RichTextLabel.new()
+	_label_keterangan.name = "KeteranganDron"
+	_label_keterangan.bbcode_enabled = false
+	_label_keterangan.fit_content = false
+	_label_keterangan.scroll_active = false
 	_label_keterangan.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_label_keterangan.custom_minimum_size = Vector2(0, 26)
 	_label_keterangan.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_label_keterangan.add_theme_font_size_override("normal_font_size", 7)
 	info.add_child(_label_keterangan)
 
 	_butang_craft = Button.new()
 	_butang_craft.name = "ButangCraft"
 	_butang_craft.custom_minimum_size = Vector2(0, 16)
+	_butang_craft.size_flags_vertical = Control.SIZE_SHRINK_END # lekat di bawah kotak info
 	_butang_craft.add_theme_font_size_override("font_size", 8)
 	_butang_craft.pressed.connect(_on_butang_craft_pressed)
 	info.add_child(_butang_craft)
