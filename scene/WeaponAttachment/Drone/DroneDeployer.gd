@@ -5,7 +5,6 @@ extends Button
 @export var drone_scenes: Array[PackedScene] = []
 @export var drone_names: Array[String] = []
 @export var spawn_icon: Texture2D
-@export var remove_icon: Texture2D
 
 # --- KEADAAN ---
 # Hanya SATU dron boleh aktif pada satu masa
@@ -24,6 +23,8 @@ func _ready() -> void:
 	pressed.connect(_on_self_pressed)
 	if spawn_icon:
 		icon = spawn_icon
+	# Belum ada dron dipilih: ikon butang utama jadi hitam (OFF)
+	self_modulate = Color.BLACK
 	# _ready() boleh berlaku semasa induk masih menyediakan anak-anak,
 	# jadi bina baris pilihan secara deferred supaya add_child() tak gagal.
 	_bina_pemilih.call_deferred()
@@ -86,13 +87,17 @@ func _bina_pemilih() -> void:
 	print("Pemilih dron dibina: ", drone_scenes.size(), " jenis")
 
 
-# Butang utama: buka/tutup baris pilihan (expand ke kanan, macam menu build)
+# Butang utama:
+# - Dron aktif  -> tekan = matikan dron (ikon jadi hitam semula)
+# - Dron OFF    -> tekan = buka baris pilihan jenis dron
 func _on_self_pressed() -> void:
+	if active_index >= 0:
+		_matikan_drone()
+		tutup_menu()
+		return
+
 	if _opsi == null:
-		if active_index >= 0:
-			_matikan_drone()
-		else:
-			_aktifkan(0)
+		_aktifkan(0)
 		return
 
 	if _opsi.visible:
@@ -166,10 +171,11 @@ func _susun_tanda_aktif() -> void:
 		_butang_jenis[i].set_pressed_no_signal(i == active_index)
 		_butang_jenis[i].modulate = Color.WHITE if i == active_index else Color(0.55, 0.55, 0.55, 0.85)
 
-	if active_index >= 0 and remove_icon:
-		icon = remove_icon
-		self_modulate = Color.RED
+	# Butang utama ikut jenis dron yang sedang aktif; OFF = hitam
+	if active_index >= 0 and active_index < _butang_jenis.size():
+		icon = _butang_jenis[active_index].icon
+		self_modulate = _warna_jenis(active_index)
 	else:
 		if spawn_icon:
 			icon = spawn_icon
-		self_modulate = Color.WHITE
+		self_modulate = Color.BLACK
