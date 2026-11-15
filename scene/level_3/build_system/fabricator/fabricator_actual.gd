@@ -35,7 +35,7 @@ var resipi_dron: Array[Dictionary] = [
 		"item": "res://scene/WeaponAttachment/Drone/item/DroneRinganItem.tscn",
 		"warna": Color(0.45, 0.95, 1.0),
 		"keterangan": "Tembakan pantas, jarak dekat. Sesuai kawal musuh kecil.",
-		"statistik": {"range": 180, "dmg": 1, "tenaga": 0.2},
+		"statistik": {"range": 180, "dmg": 1, "tenaga": 0.2, "cooldown": 0.35},
 		"bahan": [{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 5, "ikon": "res://scene/Item/0001BasicIronOre/Image_959.png"}],
 	},
 	{
@@ -44,7 +44,7 @@ var resipi_dron: Array[Dictionary] = [
 		"item": "res://scene/WeaponAttachment/Drone/item/DroneSederhanaItem.tscn",
 		"warna": Color.WHITE,
 		"keterangan": "Tembakan seimbang, jarak sederhana. Pilihan selamat.",
-		"statistik": {"range": 130, "dmg": 2, "tenaga": 6},
+		"statistik": {"range": 130, "dmg": 2, "tenaga": 6, "cooldown": 1.4},
 		"bahan": [
 			{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 8, "ikon": "res://scene/Item/0001BasicIronOre/Image_959.png"},
 			{"id": "item_0003", "nama": "Raw Silica", "kuantiti": 3, "ikon": "res://scene/Item/0003RawSilica/Image_495.png"},
@@ -56,7 +56,7 @@ var resipi_dron: Array[Dictionary] = [
 		"item": "res://scene/WeaponAttachment/Drone/item/DroneBeratItem.tscn",
 		"warna": Color(1.0, 0.65, 0.25),
 		"keterangan": "Tembakan kuat dan jauh, tapi makan tenaga lebih.",
-		"statistik": {"range": 320, "dmg": 3, "tenaga": 6},
+		"statistik": {"range": 320, "dmg": 3, "tenaga": 6, "cooldown": 3.0},
 		"bahan": [
 			{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 12, "ikon": "res://scene/Item/0001BasicIronOre/Image_959.png"},
 			{"id": "item_0003", "nama": "Raw Silica", "kuantiti": 5, "ikon": "res://scene/Item/0003RawSilica/Image_495.png"},
@@ -484,7 +484,7 @@ func _kemas_kini_craft() -> void:
 
 	var stat: Dictionary = resipi.get("statistik", {})
 	var dmg: String = str(int(stat.get("dmg", 0))) if int(stat.get("dmg", 0)) > 0 else "-"
-	_label_statistik.text = "Range " + str(int(stat.get("range", 0))) + "\nDMG " + dmg + "  ·  Energy " + str(stat.get("tenaga", 0))
+	_label_statistik.text = "Range " + str(int(stat.get("range", 0))) + "\nDMG " + dmg + "  ·  Energy " + str(stat.get("tenaga", 0)) + "\nCooldown " + str(stat.get("cooldown", 0)) + "s"
 
 	_kemas_kini_harga(resipi)
 
@@ -529,7 +529,8 @@ func _kemas_kini_harga(resipi: Dictionary) -> void:
 		var lbl := Label.new()
 		lbl.add_theme_font_size_override("font_size", 7)
 		lbl.text = str(bahan["nama"]) + " " + str(ada) + "/" + str(perlu)
-		lbl.modulate = Color.WHITE if ada >= perlu else Color(1.0, 0.55, 0.55)
+		# Hijau bila bahan cukup, merah bila tak cukup
+		lbl.modulate = Color(0.4, 1.0, 0.45) if ada >= perlu else Color(1.0, 0.4, 0.4)
 		baris.add_child(lbl)
 
 
