@@ -11,7 +11,7 @@ const SAIZ_KOTAK: Vector2 = Vector2(30, 14)
 const MASA_HP_KELIHATAN: float = 1.5
 const MASA_HP_PUDAR: float = 0.35
 const NAMA_NODE_HP: String = "DamageHpLabel"
-const OFSET_HP: Vector2 = Vector2(0.0, -24.0)
+const OFSET_HP: Vector2 = Vector2(0.0, -20.0)
 
 var _ikut_musuh: Node2D = null
 var _ofset_ikut: Vector2 = Vector2.ZERO
@@ -84,29 +84,19 @@ static func tunjuk_hp(musuh: Node, hp_sekarang: int, hp_maks: int) -> void:
 		penunjuk.z_as_relative = false
 		penunjuk.set_as_top_level(true)
 
-		var teks := Label.new()
-		teks.name = "TeksHp"
-		teks.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		teks.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		var saiz_hp := Vector2(36, SAIZ_KOTAK.y)
-		teks.size = saiz_hp
-		teks.position = -saiz_hp * 0.5
+		# Bar HP bergaya sama dengan HUD player; saiz tetap untuk semua musuh
+		var bar := HpBar.cipta(HpBar.SAIZ_MUSUH, HpBar.FON_MUSUH)
+		bar.name = "BarHp"
+		bar.position = -HpBar.SAIZ_MUSUH * 0.5
+		penunjuk.add_child(bar)
 
-		var gaya := LabelSettings.new()
-		gaya.font_size = SAIZ_FON
-		gaya.font_color = Color(1.0, 1.0, 1.0, 1.0)
-		gaya.outline_size = 3
-		gaya.outline_color = Color(0.05, 0.02, 0.0, 1.0)
-		teks.label_settings = gaya
-
-		penunjuk.add_child(teks)
 		musuh.add_child(penunjuk)
 		penunjuk._ikut_musuh = musuh as Node2D
 		penunjuk._ofset_ikut = OFSET_HP
 
-	var teks_hp: Label = penunjuk.get_node_or_null("TeksHp")
-	if teks_hp:
-		teks_hp.text = str(max(hp_sekarang, 0)) + "/" + str(hp_maks)
+	var bar_hp: HpBar = penunjuk.get_node_or_null("BarHp")
+	if bar_hp:
+		bar_hp.tetapkan(float(hp_sekarang) / float(hp_maks), "%d/%d" % [max(hp_sekarang, 0), hp_maks])
 	penunjuk.modulate = Color(1, 1, 1, 1)
 	penunjuk.visible = true
 
