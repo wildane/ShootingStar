@@ -111,7 +111,7 @@ func _bina() -> void:
 	# Saiz & posisi ikon (dibuat selepas bar supaya dilukis di atasnya)
 	_lebar_ikon = maxf(4.0, saiz_bar.y * 0.40)
 	var tinggi_ikon := maxf(4.0, (saiz_bar.y - jidar * 2.0) * 0.64)
-	var posisi_ikon := Vector2(jidar + 1.0, (saiz_bar.y - tinggi_ikon) * 0.5)
+	var posisi_ikon := Vector2(jidar + 3.0, (saiz_bar.y - tinggi_ikon) * 0.5)
 	_kiri_kandungan = posisi_ikon.x + _lebar_ikon + 2.0
 
 	_bar = ProgressBar.new()
