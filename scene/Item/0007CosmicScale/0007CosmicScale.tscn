@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://cdy4iqwhp16pb"]
+
+[ext_resource type="Script" uid="uid://crer5nkkgo3n5" path="res://scene/Item/item.gd" id="1_0aeqa"]
+[ext_resource type="Texture2D" uid="uid://bhk61glin4xq1" path="res://scene/Item/0007CosmicScale/Image_176.png" id="2_0aeqa"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_a4krb"]
+size = Vector2(362.5003, 385.06396)
+
+[node name="Barang" type="Area2D" unique_id=739297200]
+scale = Vector2(0.05, 0.05)
+script = ExtResource("1_0aeqa")
+id_barang = "item_0007"
+nama_barang = "Cosmic Scale"
+category = "Uncommon"
+description = "Hard reflective scale. Used to craft early-game Space Suit shield upgrades."
+ikon_barang = ExtResource("2_0aeqa")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=101817010]
+texture = ExtResource("2_0aeqa")
+metadata/_edit_group_ = true
+metadata/_edit_lock_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=682296957]
+position = Vector2(1.9073483e-06, 12.531726)
+scale = Vector2(0.99999857, 0.99999857)
+shape = SubResource("RectangleShape2D_a4krb")

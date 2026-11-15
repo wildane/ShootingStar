@@ -1,0 +1,83 @@
+[gd_scene format=3 uid="uid://bb27homypxltt"]
+
+[ext_resource type="Script" uid="uid://i7d5awykg5dy" path="res://scene/level_3/build_system/research_table/ResearchTable_Actual.gd" id="1_in2yv"]
+[ext_resource type="Texture2D" uid="uid://c7rrkyppteq5a" path="res://scene/level_3/build_system/research_table/Image_334.png" id="1_ouk82"]
+[ext_resource type="Script" uid="uid://cm6wr4ttq07l0" path="res://scene/level_3/build_system/SaveComponent.gd" id="3_56oek"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_in2yv"]
+size = Vector2(20, 12.5)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ouk82"]
+size = Vector2(20, 16.25)
+
+[node name="StaticBody2D" type="StaticBody2D" unique_id=45276609 groups=["Furniture"]]
+y_sort_enabled = true
+collision_layer = 3
+collision_mask = 0
+script = ExtResource("1_in2yv")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1753983842]
+position = Vector2(0, -7.9999995)
+scale = Vector2(0.05, 0.05)
+texture = ExtResource("1_ouk82")
+metadata/_edit_lock_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1328174897]
+position = Vector2(0, -8)
+shape = SubResource("RectangleShape2D_in2yv")
+metadata/_edit_lock_ = true
+
+[node name="Area2D" type="Area2D" parent="." unique_id=910240112]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=1798848395]
+position = Vector2(0, -8)
+shape = SubResource("RectangleShape2D_ouk82")
+metadata/_edit_lock_ = true
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=556105407]
+layer = 10
+
+[node name="MenuUI" type="PanelContainer" parent="CanvasLayer" unique_id=708870154]
+clip_contents = true
+custom_minimum_size = Vector2(150, 130)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -100.0
+offset_top = -65.0
+offset_right = 100.0
+offset_bottom = 65.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 6
+size_flags_vertical = 6
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/MenuUI" unique_id=473264431]
+layout_mode = 2
+alignment = 1
+
+[node name="Research Table" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer" unique_id=1675986307]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Research Table"
+horizontal_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/MenuUI/VBoxContainer" unique_id=1106754589]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="ButtonTutup" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer/HBoxContainer" unique_id=1087460265]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+text = "Close"
+
+[node name="ButtonDemolish" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer/HBoxContainer" unique_id=736575091]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "demolish"
+
+[node name="SaveComponent" type="Node2D" parent="." unique_id=595081623]
+script = ExtResource("3_56oek")

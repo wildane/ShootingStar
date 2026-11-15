@@ -1,0 +1,23 @@
+# Godot 4+ specific ignores
+.godot/
+
+# Export / build output
+/build/
+/export/
+*.apk
+*.aab
+*.ipa
+*.pck
+*.dmg
+*.exe
+
+# Local MCP / agent tooling (private, contains a local token)
+.agents/
+.funplay/
+
+# Editor / OS junk
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.tmp

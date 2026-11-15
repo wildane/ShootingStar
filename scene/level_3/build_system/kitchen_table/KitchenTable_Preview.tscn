@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://blrsa6s3fqk8d"]
+
+[ext_resource type="Script" uid="uid://dmompw4vwhfqr" path="res://scene/level_3/build_system/BuildPreview.gd" id="1_yfgyh"]
+[ext_resource type="Texture2D" uid="uid://dp5rylhi7h16m" path="res://scene/level_3/build_system/kitchen_table/Image_423.png" id="2_n7wd6"]
+[ext_resource type="Texture2D" uid="uid://fpkdh8qrkkjl" path="res://scene/level_3/build_system/Image_98.png" id="2_vuovr"]
+[ext_resource type="Texture2D" uid="uid://m2fv4yfswxfe" path="res://scene/level_3/build_system/Image_810.png" id="3_5uwv1"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kvd7x"]
+
+[node name="Node2D" type="Node2D" unique_id=1500497207]
+script = ExtResource("1_yfgyh")
+fail_mats_4 = "res://scene/Item/0002MeteoriteIce/MeteoriteIce.tscn"
+fail_mats_5 = "res://scene/Item/0001BasicIronOre/0001BasicIronOre.tscn"
+kuantiti_5 = 3
+fail_bangunan_sebenar_tscn = "res://scene/level_3/build_system/kitchen_table/KitchenTable_Actual.tscn"
+nama_bangunan = "Kitchen Table"
+ikon_confirm = ExtResource("2_vuovr")
+ikon_cancel = ExtResource("3_5uwv1")
+saiz_butang = Vector2(32, 32)
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=681761430]
+position = Vector2(0, -7.9999995)
+scale = Vector2(0.05, 0.05)
+texture = ExtResource("2_n7wd6")
+
+[node name="Area2D" type="Area2D" parent="." unique_id=835502161]
+collision_layer = 0
+collision_mask = 15
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=929865313]
+position = Vector2(0, -9)
+shape = SubResource("RectangleShape2D_kvd7x")

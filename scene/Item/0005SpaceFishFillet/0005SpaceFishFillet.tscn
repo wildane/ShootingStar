@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://dh24exe0ct35l"]
+
+[ext_resource type="Script" uid="uid://lighaviyd36e" path="res://scene/Item/0005SpaceFishFillet/0005SpaceFishFillet.gd" id="1_xks8l"]
+[ext_resource type="Texture2D" uid="uid://b63svqpjwgma7" path="res://scene/Item/0005SpaceFishFillet/Image_596.png" id="2_xks8l"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_a4krb"]
+size = Vector2(325.00018, 282.03146)
+
+[node name="Barang" type="Area2D" unique_id=739297200]
+scale = Vector2(0.05, 0.05)
+script = ExtResource("1_xks8l")
+ikon_barang = ExtResource("2_xks8l")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=101817010]
+texture = ExtResource("2_xks8l")
+metadata/_edit_group_ = true
+metadata/_edit_lock_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=682296957]
+position = Vector2(0, -1.1920929e-07)
+scale = Vector2(0.99999905, 0.99999905)
+shape = SubResource("RectangleShape2D_a4krb")

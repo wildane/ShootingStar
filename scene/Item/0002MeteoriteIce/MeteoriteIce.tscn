@@ -1,0 +1,23 @@
+[gd_scene load_steps=4 format=3 uid="uid://b3cj8p80hxayv"]
+
+[ext_resource type="Script" uid="uid://otg0rbdu6yk" path="res://scene/Item/0002MeteoriteIce/MeteoriteIce.gd" id="1_coqih"]
+[ext_resource type="Texture2D" uid="uid://bes46485utgsh" path="res://scene/Item/0002MeteoriteIce/Image_393.png" id="2_coqih"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_a4krb"]
+size = Vector2(325.00018, 328.1252)
+
+[node name="Barang" type="Area2D"]
+scale = Vector2(0.05, 0.05)
+script = ExtResource("1_coqih")
+ikon_barang = ExtResource("2_coqih")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_coqih")
+metadata/_edit_group_ = true
+metadata/_edit_lock_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -4.0624804)
+scale = Vector2(0.99999917, 0.99999917)
+shape = SubResource("RectangleShape2D_a4krb")
+metadata/_edit_lock_ = true

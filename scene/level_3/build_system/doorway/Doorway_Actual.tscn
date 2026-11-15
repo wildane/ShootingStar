@@ -1,0 +1,86 @@
+[gd_scene format=3 uid="uid://b84yge1ac2jsl"]
+
+[ext_resource type="Script" uid="uid://dtop86xhga0dr" path="res://scene/level_3/build_system/doorway/doorway_actual.gd" id="1_672r4"]
+[ext_resource type="Texture2D" uid="uid://k0dpcw4sl2q6" path="res://scene/level_3/build_system/doorway/Image_225.png" id="2_672r4"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_in2yv"]
+size = Vector2(20, 12.5)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ouk82"]
+size = Vector2(20, 21.125)
+
+[node name="StaticBody2D" type="StaticBody2D" unique_id=1506983512]
+y_sort_enabled = true
+position = Vector2(0, 8)
+collision_layer = 3
+collision_mask = 0
+input_pickable = true
+constant_angular_velocity = 0.014075378
+script = ExtResource("1_672r4")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=720505026]
+position = Vector2(0, -7.9999995)
+scale = Vector2(0.05, 0.05)
+texture = ExtResource("2_672r4")
+metadata/_edit_lock_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1333367823]
+position = Vector2(0, -8)
+shape = SubResource("RectangleShape2D_in2yv")
+metadata/_edit_lock_ = true
+
+[node name="Area2D" type="Area2D" parent="." unique_id=1936144680]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=1486883456]
+position = Vector2(0, -8)
+shape = SubResource("RectangleShape2D_ouk82")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="Area2D" unique_id=1518779900]
+position = Vector2(0, -29)
+shape = SubResource("RectangleShape2D_ouk82")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=2036360155]
+layer = 10
+
+[node name="MenuUI" type="PanelContainer" parent="CanvasLayer" unique_id=1937053434]
+visible = false
+clip_contents = true
+custom_minimum_size = Vector2(150, 130)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -140.0
+offset_top = -240.0
+offset_right = 60.0
+offset_bottom = 67.0
+grow_horizontal = 2
+grow_vertical = 2
+metadata/_edit_lock_ = true
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/MenuUI" unique_id=76852655]
+layout_mode = 2
+metadata/_edit_lock_ = true
+
+[node name="Doorway" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer" unique_id=1031200698]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+text = "Doorway"
+horizontal_alignment = 1
+
+[node name="Button" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer" unique_id=279550150]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 6
+text = "level_1"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/MenuUI/VBoxContainer" unique_id=1728537045]
+layout_mode = 2
+
+[node name="ButtonTutup" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer/HBoxContainer" unique_id=1752888650]
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+text = "Close"

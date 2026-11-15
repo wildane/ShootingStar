@@ -1,0 +1,89 @@
+[gd_scene format=3 uid="uid://bne6ipdwrxscn"]
+
+[ext_resource type="Script" uid="uid://bnb7j0j7c0iu7" path="res://scene/level_3/build_system/PowerInverter/PowerInverterActual.gd" id="1_i5fg1"]
+[ext_resource type="Texture2D" uid="uid://b63du44vwlasy" path="res://scene/level_3/build_system/PowerInverter/Image_127.png" id="2_i5fg1"]
+[ext_resource type="Script" uid="uid://cm6wr4ttq07l0" path="res://scene/level_3/build_system/SaveComponent.gd" id="3_8axlb"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_in2yv"]
+size = Vector2(14, 23)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ouk82"]
+size = Vector2(18, 26.125)
+
+[node name="StaticBody2D" type="StaticBody2D" unique_id=277584206]
+y_sort_enabled = true
+collision_layer = 3
+collision_mask = 0
+constant_angular_velocity = 0.014075378
+script = ExtResource("1_i5fg1")
+ketinggian_teks = -43.0
+font_size = 3
+line_spacing = -8
+warna_selamat = Color(-2.7120514e-06, 0.38039201, 0.99607855, 1)
+warna_kosong = Color(1.0004386, 0.22760794, 0.18670154, 1)
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1446977538]
+scale = Vector2(0.05, 0.05)
+texture = ExtResource("2_i5fg1")
+metadata/_edit_lock_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=752443855]
+position = Vector2(0, 0.5)
+shape = SubResource("RectangleShape2D_in2yv")
+
+[node name="Area2D" type="Area2D" parent="." unique_id=436121735]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=923219293]
+position = Vector2(0, -0.0625)
+shape = SubResource("RectangleShape2D_ouk82")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1280654019]
+layer = 10
+
+[node name="MenuUI" type="PanelContainer" parent="CanvasLayer" unique_id=1490237193]
+clip_contents = true
+custom_minimum_size = Vector2(150, 130)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -100.0
+offset_top = -65.0
+offset_right = 100.0
+offset_bottom = 65.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 6
+size_flags_vertical = 6
+size_flags_stretch_ratio = 0.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/MenuUI" unique_id=1184355564]
+layout_mode = 2
+alignment = 1
+
+[node name="Research Table" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer" unique_id=1529253413]
+layout_mode = 2
+size_flags_vertical = 2
+text = "Power Inverter"
+horizontal_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/MenuUI/VBoxContainer" unique_id=1726655405]
+layout_mode = 2
+size_flags_vertical = 10
+alignment = 1
+
+[node name="ButtonTutup" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer/HBoxContainer" unique_id=2071175190]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 8
+text = "Close"
+
+[node name="ButtonDemolish" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer/HBoxContainer" unique_id=1807121952]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 8
+text = "demolish"
+
+[node name="SaveComponent" type="Node2D" parent="." unique_id=309799134]
+script = ExtResource("3_8axlb")
