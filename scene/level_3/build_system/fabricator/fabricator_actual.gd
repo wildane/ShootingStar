@@ -35,6 +35,7 @@ var resipi_dron: Array[Dictionary] = [
 		"item": "res://scene/WeaponAttachment/Drone/item/DroneRinganItem.tscn",
 		"warna": Color(0.45, 0.95, 1.0),
 		"keterangan": "Tembakan pantas, jarak dekat. Sesuai kawal musuh kecil.",
+		"statistik": {"range": 180, "dmg": 1, "tenaga": 0.2},
 		"bahan": [{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 5, "ikon": "res://scene/Item/0001BasicIronOre/Image_959.png"}],
 	},
 	{
@@ -43,6 +44,7 @@ var resipi_dron: Array[Dictionary] = [
 		"item": "res://scene/WeaponAttachment/Drone/item/DroneSederhanaItem.tscn",
 		"warna": Color.WHITE,
 		"keterangan": "Tembakan seimbang, jarak sederhana. Pilihan selamat.",
+		"statistik": {"range": 130, "dmg": 0, "tenaga": 6},
 		"bahan": [
 			{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 8, "ikon": "res://scene/Item/0001BasicIronOre/Image_959.png"},
 			{"id": "item_0003", "nama": "Raw Silica", "kuantiti": 3, "ikon": "res://scene/Item/0003RawSilica/Image_495.png"},
@@ -54,6 +56,7 @@ var resipi_dron: Array[Dictionary] = [
 		"item": "res://scene/WeaponAttachment/Drone/item/DroneBeratItem.tscn",
 		"warna": Color(1.0, 0.65, 0.25),
 		"keterangan": "Tembakan kuat dan jauh, tapi makan tenaga lebih.",
+		"statistik": {"range": 320, "dmg": 3, "tenaga": 6},
 		"bahan": [
 			{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 12, "ikon": "res://scene/Item/0001BasicIronOre/Image_959.png"},
 			{"id": "item_0003", "nama": "Raw Silica", "kuantiti": 5, "ikon": "res://scene/Item/0003RawSilica/Image_495.png"},
@@ -72,6 +75,7 @@ var _kotak_craft: VBoxContainer = null
 var _grid_dron: GridContainer = null
 var _slot_dron: Array[PanelContainer] = []
 var _label_nama: Label = null
+var _label_statistik: Label = null
 var _bekas_harga: VBoxContainer = null
 var _label_keterangan: RichTextLabel = null
 var _butang_craft: Button = null
@@ -355,6 +359,14 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 	_label_nama.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	isi_info.add_child(_label_nama)
 
+	# Range / DMG / tenaga setiap dron
+	_label_statistik = Label.new()
+	_label_statistik.add_theme_font_size_override("font_size", 7)
+	_label_statistik.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_label_statistik.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_label_statistik.modulate = Color(0.75, 0.85, 1.0)
+	isi_info.add_child(_label_statistik)
+
 	# Senarai harga bahan (baris ikon + nama + kiraan), dibina semula setiap kali
 	_bekas_harga = VBoxContainer.new()
 	_bekas_harga.name = "HargaBahan"
@@ -469,6 +481,11 @@ func _kemas_kini_craft() -> void:
 	var sudah := _sudah_punya(resipi["id"])
 
 	_label_nama.text = str(resipi["nama"])
+
+	var stat: Dictionary = resipi.get("statistik", {})
+	var dmg: String = str(int(stat.get("dmg", 0))) if int(stat.get("dmg", 0)) > 0 else "-"
+	_label_statistik.text = "Range " + str(int(stat.get("range", 0))) + "\nDMG " + dmg + "  ·  Energy " + str(stat.get("tenaga", 0))
+
 	_kemas_kini_harga(resipi)
 
 	_label_keterangan.text = str(resipi["keterangan"])
