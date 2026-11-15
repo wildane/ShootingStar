@@ -329,24 +329,32 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 	margin.add_theme_constant_override("margin_bottom", 3)
 	kotak_info.add_child(margin)
 
+	# Satu scroll untuk seluruh isi kotak: nama, harga, keterangan dan butang
+	# craft bergerak sekali. Scroll mendatar dimatikan supaya teks sentiasa
+	# ditulis melintang ikut lebar kotak, bukan menegak satu huruf satu baris.
+	var skrol_info := ScrollContainer.new()
+	skrol_info.name = "SkrolInfo"
+	skrol_info.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	skrol_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	skrol_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	margin.add_child(skrol_info)
+
 	var info := VBoxContainer.new()
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info.add_theme_constant_override("separation", 2)
-	margin.add_child(info)
+	skrol_info.add_child(info)
 
 	_label_nama = Label.new()
 	_label_nama.add_theme_font_size_override("font_size", 8)
+	_label_nama.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_label_nama.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info.add_child(_label_nama)
 
 	_label_harga = Label.new()
 	_label_harga.add_theme_font_size_override("font_size", 7)
+	_label_harga.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_label_harga.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info.add_child(_label_harga)
-
-	# Kawasan keterangan: saiz tetap, teks panjang boleh di-scroll ke bawah
-	var skrol_teks := ScrollContainer.new()
-	skrol_teks.name = "SkrolKeterangan"
-	skrol_teks.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	skrol_teks.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	info.add_child(skrol_teks)
 
 	_label_keterangan = RichTextLabel.new()
 	_label_keterangan.name = "KeteranganDron"
@@ -354,14 +362,14 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 	_label_keterangan.scroll_active = false
 	_label_keterangan.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_label_keterangan.fit_content = true
-	_label_keterangan.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	_label_keterangan.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_label_keterangan.add_theme_font_size_override("normal_font_size", 7)
-	skrol_teks.add_child(_label_keterangan)
+	info.add_child(_label_keterangan)
 
 	_butang_craft = Button.new()
 	_butang_craft.name = "ButangCraft"
 	_butang_craft.custom_minimum_size = Vector2(0, 16)
-	_butang_craft.size_flags_vertical = Control.SIZE_SHRINK_END # sentiasa di bawah kotak
+	_butang_craft.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_butang_craft.add_theme_font_size_override("font_size", 8)
 	_butang_craft.pressed.connect(_on_butang_craft_pressed)
 	info.add_child(_butang_craft)
