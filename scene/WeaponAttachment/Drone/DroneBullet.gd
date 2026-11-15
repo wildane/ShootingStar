@@ -44,13 +44,27 @@ func _on_body_entered(object):
 		
 	if actual_enemy.is_in_group("enemy"):
 		# Mencarikan komponen nyawa yang telah diasingkan
+		var sumber_hp: Node = actual_enemy
 		if actual_enemy.has_node("HealthComponent"):
-			actual_enemy.get_node("HealthComponent").take_damage(damage)
+			var hc = actual_enemy.get_node("HealthComponent")
+			hc.take_damage(damage)
+			sumber_hp = hc
 		elif actual_enemy.has_method("take_damage"):
 			actual_enemy.take_damage(damage)
 
-		# Nombor damage terapung di atas musuh yang terkena
+		# Nombor damage terapung + paparan HP (cth: 3/4) di atas musuh
 		DamageNumber.tunjuk(actual_enemy, actual_enemy.global_position, damage)
+
+		var hp_sekarang: int = -1
+		var hp_maks: int = -1
+		if "hp" in sumber_hp and "max_hp" in sumber_hp:
+			hp_sekarang = int(sumber_hp.hp)
+			hp_maks = int(sumber_hp.max_hp)
+		elif "hp" in actual_enemy and "max_hp" in actual_enemy:
+			hp_sekarang = int(actual_enemy.hp)
+			hp_maks = int(actual_enemy.max_hp)
+		if hp_maks > 0:
+			DamageNumber.tunjuk_hp(actual_enemy, hp_sekarang, hp_maks)
 			
 		print("Peluru tepat mengenai musuh: ", actual_enemy.name)
 		queue_free()
