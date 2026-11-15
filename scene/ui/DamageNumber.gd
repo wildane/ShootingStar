@@ -13,6 +13,18 @@ const MASA_HP_PUDAR: float = 0.35
 const NAMA_NODE_HP: String = "DamageHpLabel"
 const OFSET_HP: Vector2 = Vector2(0.0, -24.0)
 
+var _ikut_musuh: Node2D = null
+var _ofset_ikut: Vector2 = Vector2.ZERO
+
+func _process(_delta: float) -> void:
+	if _ikut_musuh == null:
+		return
+	if not is_instance_valid(_ikut_musuh):
+		queue_free()
+		return
+	global_position = _ikut_musuh.global_position + _ofset_ikut
+	global_rotation = 0.0
+
 ## Papar nombor damage pada posisi dunia (contoh: atas kepala musuh).
 static func tunjuk(dari_node: Node, pos_dunia: Vector2, jumlah: float) -> void:
 	if not is_instance_valid(dari_node):
@@ -64,41 +76,56 @@ static func tunjuk_hp(musuh: Node, hp_sekarang: int, hp_maks: int) -> void:
 	if hp_maks <= 0:
 		return
 
-	var label_hp: Label = musuh.get_node_or_null(NAMA_NODE_HP)
-	if label_hp == null:
-		label_hp = Label.new()
-		label_hp.name = NAMA_NODE_HP
-		label_hp.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		label_hp.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		label_hp.size = Vector2(40, 14)
-		label_hp.position = OFSET_HP - label_hp.size * 0.5
-		label_hp.z_index = 99
-		label_hp.z_as_relative = false
+	var penunjuk: DamageNumber = musuh.get_node_or_null(NAMA_NODE_HP)
+	if penunjuk == null:
+		penunjuk = DamageNumber.new()
+		penunjuk.name = NAMA_NODE_HP
+		penunjuk.z_index = 100
+		penunjuk.z_as_relative = false
+		penunjuk.set_as_top_level(true)
+
+		var teks := Label.new()
+		teks.name = "TeksHp"
+		teks.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		teks.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		var saiz_hp := Vector2(36, SAIZ_KOTAK.y)
+		teks.size = saiz_hp
+		teks.position = -saiz_hp * 0.5
 
 		var gaya := LabelSettings.new()
-		gaya.font_size = 9
+		gaya.font_size = SAIZ_FON
 		gaya.font_color = Color(1.0, 1.0, 1.0, 1.0)
 		gaya.outline_size = 3
-		gaya.outline_color = Color(0.0, 0.0, 0.0, 1.0)
-		label_hp.label_settings = gaya
+		gaya.outline_color = Color(0.05, 0.02, 0.0, 1.0)
+		teks.label_settings = gaya
 
-		musuh.add_child(label_hp)
+		penunjuk.add_child(teks)
+		musuh.add_child(penunjuk)
+		penunjuk._ikut_musuh = musuh as Node2D
+		penunjuk._ofset_ikut = OFSET_HP
 
-	label_hp.text = str(max(hp_sekarang, 0)) + "/" + str(hp_maks)
-	label_hp.modulate = Color(1, 1, 1, 1)
-	label_hp.visible = true
+	var teks_hp: Label = penunjuk.get_node_or_null("TeksHp")
+	if teks_hp:
+		teks_hp.text = str(max(hp_sekarang, 0)) + "/" + str(hp_maks)
+	penunjuk.modulate = Color(1, 1, 1, 1)
+	penunjuk.visible = true
+
+	# Pastikan ikut musuh dan kekal tegak
+	penunjuk._ikut_musuh = musuh as Node2D
+	penunjuk._ofset_ikut = OFSET_HP
+	penunjuk.global_rotation = 0.0
 
 	# Reset pemasa hilang: tween lama dibuang, tween baru bermula
-	if label_hp.has_meta("tween_hp"):
-		var tw_lama = label_hp.get_meta("tween_hp")
+	if penunjuk.has_meta("tween_hp"):
+		var tw_lama = penunjuk.get_meta("tween_hp")
 		if tw_lama is Tween and is_instance_valid(tw_lama):
 			tw_lama.kill()
 
-	var tw := label_hp.create_tween()
+	var tw := penunjuk.create_tween()
 	tw.tween_interval(MASA_HP_KELIHATAN)
-	tw.tween_property(label_hp, "modulate", Color(1, 1, 1, 0), MASA_HP_PUDAR)
+	tw.tween_property(penunjuk, "modulate", Color(1, 1, 1, 0), MASA_HP_PUDAR)
 	tw.tween_callback(func():
-		if is_instance_valid(label_hp):
-			label_hp.visible = false
+		if is_instance_valid(penunjuk):
+			penunjuk.visible = false
 	)
-	label_hp.set_meta("tween_hp", tw)
+	penunjuk.set_meta("tween_hp", tw)
