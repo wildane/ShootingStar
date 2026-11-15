@@ -62,16 +62,19 @@ var resipi_dron: Array[Dictionary] = [
 	},
 ]
 
-# UI craft dron
+# UI craft dron (semua di dalam menu Fabricator, tiada panel bertindih)
 var _butang_dron: Button = null
-var _panel_craft: PanelContainer = null
+var _tajuk_menu: Control = null
+var _baris_menu: Control = null
+var _kotak_craft: VBoxContainer = null
 var _grid_dron: GridContainer = null
-var _butang_grid: Array[Button] = []
+var _slot_dron: Array[PanelContainer] = []
 var _label_nama: Label = null
 var _label_harga: Label = null
 var _label_keterangan: Label = null
 var _butang_craft: Button = null
 var _pilihan_craft: int = 0
+var _offset_asli: Rect2 = Rect2()
 
 
 func _ready():
@@ -167,6 +170,7 @@ func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int):
 			if menu_ui.visible:
 				_tutup_menu()
 			else:
+				_tutup_craft() # sentiasa mula dari menu utama
 				menu_ui.visible = true
 				_kemas_kini_craft()
 		get_viewport().set_input_as_handled()
@@ -174,14 +178,20 @@ func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int):
 # ==========================================================
 # 🛠️ SISTEM CRAFT DRON
 # ==========================================================
-# Satu ikon dron dalam menu Fabricator. Tekan ikon itu = keluar panel craft
-# (grid dron di kiri, info + butang craft di kanan).
+# Menu utama: tajuk + satu ikon dron + butang Close/Demolish.
+# Tekan ikon dron = kandungan menu bertukar jadi grid 3 dron (kiri)
+# dan kotak keterangan + butang craft (kanan). Tak ada panel bertindih.
 func _bina_ui_craft() -> void:
 	if menu_ui == null or _butang_dron != null:
 		return
 	var vbox = menu_ui.get_node_or_null("VBoxContainer")
 	if vbox == null:
 		return
+
+	_offset_asli = Rect2(menu_ui.offset_left, menu_ui.offset_top, menu_ui.offset_right, menu_ui.offset_bottom)
+
+	_tajuk_menu = vbox.get_child(0)
+	_baris_menu = vbox.get_node_or_null("HBoxContainer")
 
 	_butang_dron = Button.new()
 	_butang_dron.name = "ButangDron"
@@ -192,11 +202,11 @@ func _bina_ui_craft() -> void:
 	_butang_dron.icon = load(IKON_DRON)
 	_butang_dron.self_modulate = Color(0.62, 0.66, 0.72, 0.95)
 	_butang_dron.tooltip_text = "Buat dron"
-	_butang_dron.pressed.connect(_on_butang_dron_pressed)
+	_butang_dron.pressed.connect(_buka_craft)
 	vbox.add_child(_butang_dron)
 	vbox.move_child(_butang_dron, 1) # bawah tajuk, atas butang Close/Demolish
 
-	_bina_panel_craft()
+	_bina_kandungan_craft(vbox)
 
 	var inv = get_node_or_null("/root/InventoryManager")
 	if inv and inv.has_signal("inventory_dikemaskini"):
@@ -206,69 +216,97 @@ func _bina_ui_craft() -> void:
 	print("Fabricator: Butang craft dron sedia (", resipi_dron.size(), " resipi)")
 
 
-# Panel craft: kiri = grid 3 dron, kanan = nama + harga + keterangan + butang craft
-func _bina_panel_craft() -> void:
-	var kanvas = menu_ui.get_parent()
-	if kanvas == null:
-		return
+# Kandungan craft: header (back + tajuk + tutup), grid slot dron, kotak info
+func _bina_kandungan_craft(vbox: Node) -> void:
+	_kotak_craft = VBoxContainer.new()
+	_kotak_craft.name = "KandunganCraftDron"
+	_kotak_craft.visible = false
+	_kotak_craft.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_kotak_craft.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_kotak_craft.add_theme_constant_override("separation", 2)
+	vbox.add_child(_kotak_craft)
 
-	_panel_craft = PanelContainer.new()
-	_panel_craft.name = "PanelCraftDron"
-	_panel_craft.visible = false
-	_panel_craft.z_index = 20
-	_panel_craft.anchor_left = 0.5
-	_panel_craft.anchor_top = 0.5
-	_panel_craft.anchor_right = 0.5
-	_panel_craft.anchor_bottom = 0.5
-	_panel_craft.offset_left = -130.0
-	_panel_craft.offset_top = -80.0
-	_panel_craft.offset_right = 130.0
-	_panel_craft.offset_bottom = 80.0
-	kanvas.add_child(_panel_craft)
+	# --- HEADER ---
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 4)
+	_kotak_craft.add_child(header)
 
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 6)
-	margin.add_theme_constant_override("margin_top", 6)
-	margin.add_theme_constant_override("margin_right", 6)
-	margin.add_theme_constant_override("margin_bottom", 6)
-	_panel_craft.add_child(margin)
+	var butang_back := Button.new()
+	butang_back.text = "<"
+	butang_back.add_theme_font_size_override("font_size", 10)
+	butang_back.custom_minimum_size = Vector2(20, 18)
+	butang_back.pressed.connect(_tutup_craft)
+	header.add_child(butang_back)
 
-	var baris := HBoxContainer.new()
-	baris.add_theme_constant_override("separation", 8)
-	margin.add_child(baris)
+	var tajuk := Label.new()
+	tajuk.text = "Buat Dron"
+	tajuk.add_theme_font_size_override("font_size", 11)
+	tajuk.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tajuk.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tajuk.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	header.add_child(tajuk)
 
-	# --- KIRI: GRID DRON ---
+	var butang_tutup_menu := Button.new()
+	butang_tutup_menu.text = "X"
+	butang_tutup_menu.add_theme_font_size_override("font_size", 9)
+	butang_tutup_menu.custom_minimum_size = Vector2(20, 18)
+	butang_tutup_menu.pressed.connect(_on_butang_tutup_pressed)
+	header.add_child(butang_tutup_menu)
+
+	# --- BADAN: grid kiri, kotak info kanan ---
+	var badan := HBoxContainer.new()
+	badan.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	badan.add_theme_constant_override("separation", 6)
+	_kotak_craft.add_child(badan)
+
 	_grid_dron = GridContainer.new()
 	_grid_dron.name = "GridDron"
 	_grid_dron.columns = 2
 	_grid_dron.add_theme_constant_override("h_separation", 4)
 	_grid_dron.add_theme_constant_override("v_separation", 4)
 	_grid_dron.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	baris.add_child(_grid_dron)
+	badan.add_child(_grid_dron)
 
+	# Slot kotak (sama macam grid inventory): PanelContainer + butang ikon
 	for i in resipi_dron.size():
+		var slot := PanelContainer.new()
+		slot.custom_minimum_size = Vector2(38, 38)
+		slot.add_theme_stylebox_override("panel", _gaya_slot(false, false))
+		_grid_dron.add_child(slot)
+
 		var b := Button.new()
-		b.toggle_mode = true
-		b.custom_minimum_size = Vector2(36, 36)
 		b.flat = true
+		b.icon = load(IKON_DRON)
 		b.expand_icon = true
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		b.icon = load(IKON_DRON)
 		b.self_modulate = resipi_dron[i]["warna"]
 		b.tooltip_text = str(resipi_dron[i]["nama"])
 		b.pressed.connect(_pilih_craft.bind(i))
-		_grid_dron.add_child(b)
-		_butang_grid.append(b)
+		slot.add_child(b)
 
-	# --- KANAN: INFO + BUTANG CRAFT ---
+		_slot_dron.append(slot)
+
+	# Kotak info kanan: nama, harga, keterangan, butang craft
+	var kotak_info := PanelContainer.new()
+	kotak_info.name = "KotakInfo"
+	kotak_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	kotak_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	kotak_info.add_theme_stylebox_override("panel", _gaya_slot(false, false))
+	badan.add_child(kotak_info)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 4)
+	margin.add_theme_constant_override("margin_top", 4)
+	margin.add_theme_constant_override("margin_right", 4)
+	margin.add_theme_constant_override("margin_bottom", 4)
+	kotak_info.add_child(margin)
+
 	var info := VBoxContainer.new()
-	info.name = "InfoDron"
-	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info.add_theme_constant_override("separation", 2)
-	baris.add_child(info)
+	margin.add_child(info)
 
 	_label_nama = Label.new()
-	_label_nama.add_theme_font_size_override("font_size", 11)
+	_label_nama.add_theme_font_size_override("font_size", 10)
 	info.add_child(_label_nama)
 
 	_label_harga = Label.new()
@@ -281,37 +319,59 @@ func _bina_panel_craft() -> void:
 	_label_keterangan.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	info.add_child(_label_keterangan)
 
-	var baris_butang := HBoxContainer.new()
-	baris_butang.add_theme_constant_override("separation", 4)
-	info.add_child(baris_butang)
-
 	_butang_craft = Button.new()
 	_butang_craft.name = "ButangCraft"
 	_butang_craft.add_theme_font_size_override("font_size", 10)
-	_butang_craft.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_butang_craft.pressed.connect(_on_butang_craft_pressed)
-	baris_butang.add_child(_butang_craft)
-
-	var butang_tutup_craft := Button.new()
-	butang_tutup_craft.name = "TutupCraft"
-	butang_tutup_craft.text = "X"
-	butang_tutup_craft.add_theme_font_size_override("font_size", 9)
-	butang_tutup_craft.custom_minimum_size = Vector2(24, 0)
-	butang_tutup_craft.pressed.connect(_on_butang_dron_pressed)
-	baris_butang.add_child(butang_tutup_craft)
+	info.add_child(_butang_craft)
 
 	_pilih_craft(0)
 
 
-func _on_butang_dron_pressed() -> void:
-	if _panel_craft == null:
+# Kotak slot: bingkai nipis macam slot inventory
+func _gaya_slot(terpilih: bool, sudah: bool) -> StyleBoxFlat:
+	var gaya := StyleBoxFlat.new()
+	gaya.bg_color = Color(0.10, 0.12, 0.16, 0.9)
+	gaya.set_corner_radius_all(3)
+	gaya.set_border_width_all(1)
+	if sudah:
+		gaya.border_color = Color(0.35, 1.0, 0.45)
+	elif terpilih:
+		gaya.border_color = Color.WHITE
+	else:
+		gaya.border_color = Color(0.35, 0.38, 0.45)
+	return gaya
+
+
+func _buka_craft() -> void:
+	if _kotak_craft == null:
 		return
-	_panel_craft.visible = not _panel_craft.visible
-	if _panel_craft.visible:
-		_kemas_kini_craft()
+	if _tajuk_menu: _tajuk_menu.visible = false
+	if _baris_menu: _baris_menu.visible = false
+	if _butang_dron: _butang_dron.visible = false
+	_kotak_craft.visible = true
+	# Besarkan menu sikit (masih dalam skrin 280 lebar) untuk grid + kotak info
+	menu_ui.offset_left = -128.0
+	menu_ui.offset_right = 128.0
+	menu_ui.offset_top = -88.0
+	menu_ui.offset_bottom = 88.0
+	_kemas_kini_craft()
 
 
-# Pilih satu dron dalam grid -> info di kanan bertukar
+func _tutup_craft() -> void:
+	if _kotak_craft == null:
+		return
+	_kotak_craft.visible = false
+	if _tajuk_menu: _tajuk_menu.visible = true
+	if _baris_menu: _baris_menu.visible = true
+	if _butang_dron: _butang_dron.visible = true
+	menu_ui.offset_left = _offset_asli.position.x
+	menu_ui.offset_top = _offset_asli.position.y
+	menu_ui.offset_right = _offset_asli.size.x
+	menu_ui.offset_bottom = _offset_asli.size.y
+
+
+# Pilih satu dron dalam grid -> kotak info di kanan bertukar
 func _pilih_craft(i: int) -> void:
 	if i < 0 or i >= resipi_dron.size():
 		return
@@ -337,19 +397,21 @@ func _bahan_cukup(resipi: Dictionary) -> bool:
 	return true
 
 
-# Kemas kini grid, info kanan dan butang craft
+# Kemas kini bingkai grid, kotak info dan butang craft
 func _kemas_kini_craft() -> void:
-	if _panel_craft == null:
+	if _kotak_craft == null:
 		return
 
-	for i in _butang_grid.size():
-		var b: Button = _butang_grid[i]
-		if not is_instance_valid(b):
+	for i in _slot_dron.size():
+		var slot: PanelContainer = _slot_dron[i]
+		if not is_instance_valid(slot):
 			continue
-		b.set_pressed_no_signal(i == _pilihan_craft)
-		b.modulate = Color.WHITE if i == _pilihan_craft else Color(0.55, 0.55, 0.55, 0.85)
-		# Dron yang sudah dibuat ditanda hijau
-		b.self_modulate = Color(0.35, 1.0, 0.45) if _sudah_punya(resipi_dron[i]["id"]) else resipi_dron[i]["warna"]
+		var sudah := _sudah_punya(resipi_dron[i]["id"])
+		slot.add_theme_stylebox_override("panel", _gaya_slot(i == _pilihan_craft, sudah))
+		var isi := slot.get_child(0) as Button
+		if isi:
+			isi.self_modulate = Color(0.35, 1.0, 0.45) if sudah else resipi_dron[i]["warna"]
+			isi.modulate = Color.WHITE if i == _pilihan_craft else Color(0.6, 0.6, 0.6, 0.9)
 
 	if _pilihan_craft < 0 or _pilihan_craft >= resipi_dron.size():
 		return
@@ -362,8 +424,8 @@ func _kemas_kini_craft() -> void:
 	for bahan in resipi["bahan"]:
 		var ada := _bilangan_dalam_beg(bahan["id"])
 		var perlu := int(bahan["kuantiti"])
-		var tanda: String = "" if ada >= perlu else "  (kurang)"
-		teks_harga += str(bahan["nama"]) + "  " + str(ada) + "/" + str(perlu) + tanda + "\n"
+		var tanda: String = "" if ada >= perlu else " (kurang)"
+		teks_harga += str(bahan["nama"]) + " " + str(ada) + "/" + str(perlu) + tanda + "\n"
 	_label_harga.text = teks_harga.strip_edges()
 	_label_harga.modulate = Color(1.0, 0.55, 0.55) if not _bahan_cukup(resipi) and not sudah else Color.WHITE
 
@@ -376,7 +438,7 @@ func _kemas_kini_craft() -> void:
 		_butang_craft.text = "Buat"
 		_butang_craft.disabled = false
 	else:
-		_butang_craft.text = "Bahan tidak cukup"
+		_butang_craft.text = "Bahan tak cukup"
 		_butang_craft.disabled = true
 
 
@@ -430,8 +492,8 @@ func _tulis_info(teks: String) -> void:
 
 # 🔴 Pengurusan Butang UI
 func _tutup_menu() -> void:
+	_tutup_craft()
 	if menu_ui: menu_ui.hide()
-	if _panel_craft: _panel_craft.hide()
 
 func _on_butang_tutup_pressed(): 
 	_tutup_menu()
