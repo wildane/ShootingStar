@@ -10,6 +10,7 @@ var overlay_gelap: ColorRect
 func _ready() -> void:
 	# 1. Bina lapisan hitam pekat bersiap sedia di bawah lapisan menu (Alpha = 1.0)
 	bina_overlay_mula()
+	_bina_hud_hp_pemain()
 	
 	# 2. Hubungkan isyarat daripada JSON
 	if not SaveManager.semua_data_siap_di_load.is_connected(proses_selesai_load_json):
@@ -17,6 +18,25 @@ func _ready() -> void:
 	
 	# 3. Panggil fungsi load JSON untuk mula menyusun perabot
 	SaveManager.load_game()
+
+func _bina_hud_hp_pemain() -> void:
+	var canvas = get_node_or_null("CanvasLayer")
+	if canvas == null:
+		return
+	# Elak duplikasi jika fungsi dipanggil semula
+	if canvas.has_node("PlayerHpHud"):
+		return
+	var hud := Label.new()
+	hud.name = "PlayerHpHud"
+	hud.set_script(load("res://scene/ui/PlayerHpHud.gd"))
+	# Letak di bahagian atas skrin (tengah), kekal di HUD
+	hud.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	hud.offset_left = 0
+	hud.offset_right = 0
+	hud.offset_top = 2
+	hud.offset_bottom = 18
+	hud.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	canvas.add_child(hud)
 
 # Membina lapisan hitam pekat di awal game
 func bina_overlay_mula() -> void:
