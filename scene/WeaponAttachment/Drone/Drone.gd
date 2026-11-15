@@ -32,6 +32,14 @@ func _physics_process(delta):
 		if not p_nodes.is_empty():
 			target_player = p_nodes[0]
 		return
+
+	# Jika player mati, drone hilang dan berhenti berfungsi sehingga respawn
+	if target_player.has_node("HealthComponent"):
+		var hc = target_player.get_node("HealthComponent")
+		if hc.get("is_dead"):
+			visible = false
+			return
+	visible = true
 		
 	# 1. SET KEDUDUKAN ORBIT (Mengelilingi Player)
 	angle += rotation_speed * delta
