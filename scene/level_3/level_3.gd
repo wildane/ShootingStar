@@ -35,7 +35,7 @@ func _bina_hud_hp_pemain() -> void:
 	hud.offset_left = 0
 	hud.offset_right = 0
 	hud.offset_top = 3
-	hud.offset_bottom = 29
+	hud.offset_bottom = 45
 	canvas.add_child(hud)
 
 # Membina lapisan hitam pekat di awal game

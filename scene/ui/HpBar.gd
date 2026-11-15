@@ -1,8 +1,8 @@
 class_name HpBar
 extends Control
 
-## Bar HP bergaya: kotak gelap bulat + ikon hati merah + isian berwarna + teks "3/5".
-## Dipakai oleh HUD pemain (atas skrin) dan penunjuk HP musuh (atas musuh).
+## Bar status bergaya: kotak gelap bulat + ikon + isian berwarna + teks "3/5".
+## Jenis: "hp" (ikon hati merah) dan "energi" (ikon kilat kuning, bar biru).
 
 const SAIZ_PEMAIN: Vector2 = Vector2(104.0, 17.0)
 const FON_PEMAIN: int = 8
@@ -12,16 +12,18 @@ const FON_MUSUH: int = 6
 const WARNA_SIHAT: Color = Color(0.42, 0.93, 0.52)
 const WARNA_SEDERHANA: Color = Color(1.0, 0.78, 0.28)
 const WARNA_KRITIKAL: Color = Color(1.0, 0.32, 0.32)
+const WARNA_TENAGA_BAR: Color = Color(0.29, 0.62, 1.0)
 const WARNA_LATAR: Color = Color(0.05, 0.07, 0.12, 0.72)
 const WARNA_JIDAR: Color = Color(0.55, 0.78, 0.95, 0.55)
 const WARNA_HATI: Color = Color(1.0, 0.24, 0.32)
+const WARNA_KILAT: Color = Color(1.0, 0.85, 0.2)
 
 
-## Ikon hati dilukis dengan kod supaya tak bergantung pada glyph fon.
-class IkonHati:
+## Ikon dilukis dengan kod supaya tak bergantung pada glyph fon.
+class IkonBar:
 	extends Control
 
-	var warna: Color = WARNA_HATI
+	var jenis: String = "hp"
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -37,36 +39,55 @@ class IkonHati:
 			titik.append(pusat + Vector2(x, -y) * skala)
 		return titik
 
+	func _lengkung_kilat(pusat: Vector2, skala: float) -> PackedVector2Array:
+		var bentuk: Array[Vector2] = [
+			Vector2(13, 2), Vector2(4, 14), Vector2(11, 14),
+			Vector2(9, 22), Vector2(20, 10), Vector2(13, 10),
+		]
+		var titik := PackedVector2Array()
+		for b in bentuk:
+			titik.append(pusat + (b - Vector2(12, 12)) * skala)
+		return titik
+
 	func _draw() -> void:
 		var s := minf(size.x, size.y)
 		if s <= 0.0:
 			return
 		var pusat := size * 0.5
-		var skala := s / 34.0
+		var skala := s / 26.0
 
-		# Jidar gelap supaya hati jelas atas bar berwarna
-		draw_colored_polygon(_lengkung_hati(pusat, skala * 1.25), Color(0.08, 0.02, 0.03, 0.9))
-		draw_colored_polygon(_lengkung_hati(pusat, skala), warna)
+		if jenis == "energi":
+			# Jidar gelap + isi kuning
+			var luar := PackedVector2Array()
+			for p in _lengkung_kilat(pusat, skala * 1.18):
+				luar.append(pusat + (p - pusat) * 1.18)
+			draw_colored_polygon(luar, Color(0.06, 0.05, 0.01, 0.9))
+			draw_colored_polygon(_lengkung_kilat(pusat, skala), WARNA_KILAT)
+		else:
+			draw_colored_polygon(_lengkung_hati(pusat, skala * 1.25), Color(0.08, 0.02, 0.03, 0.9))
+			draw_colored_polygon(_lengkung_hati(pusat, skala), WARNA_HATI)
 
 
 var saiz_bar: Vector2 = SAIZ_PEMAIN
 var saiz_fon: int = FON_PEMAIN
+var jenis: String = "hp"
 var jidar: float = 3.5
 
 var _panel: Panel
 var _bar: ProgressBar
 var _teks: Label
-var _ikon: IkonHati
+var _ikon: IkonBar
 var _lebar_ikon: float = 0.0
 var _nisbah_semasa: float = -1.0
 var _tween_bar: Tween = null
 var _tween_kilat: Tween = null
 
-## Cipta bar dengan saiz yang ditetapkan (sebelum masuk tree).
-static func cipta(p_saiz: Vector2, p_fon: int) -> HpBar:
+## Cipta bar dengan saiz dan jenis yang ditetapkan (sebelum masuk tree).
+static func cipta(p_saiz: Vector2, p_fon: int, p_jenis: String = "hp") -> HpBar:
 	var b := HpBar.new()
 	b.saiz_bar = p_saiz
 	b.saiz_fon = p_fon
+	b.jenis = p_jenis
 	b.jidar = maxf(2.0, round(p_saiz.y * 0.2))
 	return b
 
@@ -84,10 +105,11 @@ func _bina() -> void:
 	_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(_panel)
 
-	# Ikon hati di sebelah kiri dalam kotak
+	# Ikon di sebelah kiri dalam kotak
 	_lebar_ikon = maxf(5.0, saiz_bar.y * 0.62)
 	var tinggi_ikon := maxf(5.0, saiz_bar.y - jidar * 2.0)
-	_ikon = IkonHati.new()
+	_ikon = IkonBar.new()
+	_ikon.jenis = jenis
 	_ikon.size = Vector2(_lebar_ikon, tinggi_ikon)
 	_ikon.position = Vector2(jidar + 1.0, (saiz_bar.y - tinggi_ikon) * 0.5)
 	_panel.add_child(_ikon)
@@ -102,7 +124,7 @@ func _bina() -> void:
 	_bar.step = 0.0
 	_bar.value = 1.0
 	_bar.add_theme_stylebox_override("background", _gaya_trek())
-	_bar.add_theme_stylebox_override("fill", _gaya_isian(WARNA_SIHAT))
+	_bar.add_theme_stylebox_override("fill", _gaya_isian(_warna_untuk(1.0)))
 	_bar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_bar.offset_left = kiri_kandungan
 	_bar.offset_top = jidar - 1.0
@@ -149,13 +171,15 @@ func _gaya_isian(warna: Color) -> StyleBoxFlat:
 	return gaya
 
 func _warna_untuk(nisbah: float) -> Color:
+	if jenis == "energi":
+		return WARNA_TENAGA_BAR
 	if nisbah > 0.6:
 		return WARNA_SIHAT
 	elif nisbah > 0.3:
 		return WARNA_SEDERHANA
 	return WARNA_KRITIKAL
 
-## Kemas kini paparan bar. Bila HP turun, kotak berkilat sekejap.
+## Kemas kini paparan bar. Bila nilai turun, kotak berkilat sekejap.
 func tetapkan(nisbah: float, teks: String) -> void:
 	if _teks == null:
 		return

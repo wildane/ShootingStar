@@ -112,6 +112,12 @@ func _is_line_of_sight_clear(enemy: Node2D) -> bool:
 
 func shoot_bullet():
 	if bullet_scene:
+		# Tembakan memakai tenaga player
+		if is_instance_valid(target_player):
+			var tenaga = target_player.get_node_or_null("EnergyComponent")
+			if tenaga and not tenaga.guna_tembakan():
+				return
+
 		var bullet = bullet_scene.instantiate()
 		get_tree().current_scene.add_child(bullet)
 		bullet.global_position = global_position
