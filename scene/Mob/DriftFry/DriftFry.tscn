@@ -1,0 +1,4 @@
+[gd_scene format=3 uid="uid://bw21wtqlymvj1"]
+
+[node name="DriftFry" type="Node2D" unique_id=1105511418]
+scale = Vector2(0.2, 0.2)

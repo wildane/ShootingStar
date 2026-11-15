@@ -1,0 +1,28 @@
+[gd_scene load_steps=2 format=3 uid="uid://dfc20lsad6k4m"]
+
+[ext_resource type="Script" uid="uid://bi5xrlelan7hp" path="res://scene/test_win/test_win.gd" id="1_2jpxy"]
+
+[node name="CanvasLayer" type="CanvasLayer"]
+script = ExtResource("1_2jpxy")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="Label" type="Label" parent="."]
+offset_left = 78.0
+offset_top = 223.0
+offset_right = 238.0
+offset_bottom = 294.0
+text = "YOU WIN"
+
+[node name="Button" type="Button" parent="."]
+offset_left = 79.0
+offset_top = 334.0
+offset_right = 141.0
+offset_bottom = 365.0
+text = "go back menu"

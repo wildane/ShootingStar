@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://drnj2n6g6njc1"]
+
+[ext_resource type="Texture2D" uid="uid://dmbvevx5i6cdf" path="res://scene/Area/TheAquaHusk/Image_140.png" id="1_4s2be"]
+
+[node name="TheAquaHusk" type="StaticBody2D" unique_id=369141896]
+collision_layer = 2
+metadata/_edit_lock_ = true
+metadata/_edit_vertical_guides_ = [656.0]
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=2032853955]
+position = Vector2(-128, -512)
+texture = ExtResource("1_4s2be")
+centered = false
+metadata/_edit_lock_ = true
+
+[node name="StaticBody2D2" type="StaticBody2D" parent="." unique_id=984274256]
+collision_layer = 2
+collision_mask = 65665
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D2" unique_id=422519977]
+polygon = PackedVector2Array(-8, 400, -64, 400, -64, 728, -8, 728, -8, 768, 192, 760, 184, 888, 232, 888, 224, 856, 224, 752, 184, 720, 152, 720, 8, 712, -32, 672, -32, 472, -16, 432, 24, 432, 64, 472, 152, 464, 160, 440, 168, 440, 168, 416, 160, 408, 136, 384, 136, 144, 136, -8, 160, -32, 152, -48, 152, -72, -40, -72, -48, -160, -48, -280, -16, -280, 8, -328, 200, -328, 288, -328, 440, -328, 536, -328, 568, -288, 576, -240, 592, -192, 592, -72, 544, -72, 440, -72, 400, -72, 400, -32, 416, -16, 416, 144, 408, 448, 520, 448, 544, 432, 576, 440, 584, 672, 528, 720, 336, 720, 320, 848, 304, 864, 304, 896, 360, 896, 360, 840, 352, 760, 560, 760, 560, 728, 616, 720, 616, 400, 560, 400, 560, -32, 616, -32, 624, -296, 584, -296, 584, -360, 376, -360, 288, -360, 184, -360, 120, -360, -24, -360, -24, -296, -64, -296, -64, -32, 0, -32)

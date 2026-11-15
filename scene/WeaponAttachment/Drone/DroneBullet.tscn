@@ -1,0 +1,24 @@
+[gd_scene format=3 uid="uid://vpblwftamog3"]
+
+[ext_resource type="Script" uid="uid://cdkk430gvxndl" path="res://scene/WeaponAttachment/Drone/DroneBullet.gd" id="1_75jml"]
+[ext_resource type="Texture2D" path="res://scene/WeaponAttachment/Drone/DroneBullet.png" id="2_glow"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_kyu6r"]
+radius = 2.0
+height = 4.0
+
+[node name="DroneBullet" type="Area2D" unique_id=1728929144]
+collision_layer = 65536
+collision_mask = 128
+script = ExtResource("1_75jml")
+speed = 200.0
+damage = 100.0
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=467310685]
+texture = ExtResource("2_glow")
+scale = Vector2(0.14, 0.14)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=781542926]
+shape = SubResource("CapsuleShape2D_kyu6r")
+
+[node name="VisibleOnScreenNotifier2D" type="VisibleOnScreenNotifier2D" parent="." unique_id=198302048]

@@ -1,0 +1,48 @@
+[gd_scene format=3 uid="uid://buexy726cul1a"]
+
+[ext_resource type="Texture2D" uid="uid://bmq0vu38wqv25" path="res://scene/space_fish/Image_865.png" id="1_issh5"]
+[ext_resource type="Script" uid="uid://dctuedyyj3afk" path="res://scene/GalaxyFish/GalaxyFish.gd" id="1_rmibn"]
+[ext_resource type="PackedScene" uid="uid://dh24exe0ct35l" path="res://scene/Item/0005SpaceFishFillet/0005SpaceFishFillet.tscn" id="2_kgotk"]
+[ext_resource type="PackedScene" uid="uid://cmevb5uuqjbbh" path="res://scene/Item/0006BioluminescentOil/0006BioluminescentOil.tscn" id="3_b0ixx"]
+[ext_resource type="Script" uid="uid://b26f6ge1qh7n2" path="res://scene/GalaxyFish/DetectionArea.gd" id="3_ew381"]
+[ext_resource type="PackedScene" uid="uid://cdy4iqwhp16pb" path="res://scene/Item/0007CosmicScale/0007CosmicScale.tscn" id="4_j3l65"]
+[ext_resource type="Script" uid="uid://dq8xh2v4xrros" path="res://scene/Mob/DropComponent.gd" id="6_pctx4"]
+[ext_resource type="Script" uid="uid://dtjmfboaeffm8" path="res://scene/GalaxyFish/HealthComponent.gd" id="8_yo3pr"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ogkhe"]
+height = 48.0
+
+[node name="Spacefish" type="CharacterBody2D" unique_id=586787864 groups=["enemy"]]
+scale = Vector2(0.5, 0.5)
+collision_layer = 128
+collision_mask = 65538
+input_pickable = true
+safe_margin = 10.0
+script = ExtResource("1_rmibn")
+detection_radius = 30.0
+max_radius = 600.0
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=727941863]
+position = Vector2(2.3601954e-13, -1.9073486e-06)
+rotation = 1.5707964
+scale = Vector2(0.1, 0.1)
+texture = ExtResource("1_issh5")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1919895784]
+rotation = 1.5707964
+shape = SubResource("CapsuleShape2D_ogkhe")
+
+[node name="DetectionArea" type="Area2D" parent="." unique_id=794466694]
+script = ExtResource("3_ew381")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DetectionArea" unique_id=1298580816]
+rotation = 1.5707964
+shape = SubResource("CapsuleShape2D_ogkhe")
+
+[node name="DropComponent" type="Node2D" parent="." unique_id=1146555015]
+script = ExtResource("6_pctx4")
+drop_scenes = Array[PackedScene]([ExtResource("2_kgotk"), ExtResource("3_b0ixx"), ExtResource("4_j3l65")])
+drop_percentages = Array[float]([60.0, 35.0, 5.0])
+
+[node name="HealthComponent" type="Node2D" parent="." unique_id=1991635099]
+script = ExtResource("8_yo3pr")

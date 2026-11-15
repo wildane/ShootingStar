@@ -1,0 +1,23 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scene/Mob/HuskLurker/HuskLurker.gd" id="1_husk"]
+[ext_resource type="Texture2D" path="res://scene/Mob/HuskLurker/Image_husk.png" id="2_img"]
+[ext_resource type="PackedScene" path="res://scene/Mob/HuskLurker/Lendir.tscn" id="3_lendir"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_husk"]
+radius = 9.0
+
+[node name="HuskLurker" type="CharacterBody2D" groups=["enemy", "enemies"]]
+collision_layer = 128
+collision_mask = 3
+safe_margin = 4.0
+script = ExtResource("1_husk")
+peluru_lendir = ExtResource("3_lendir")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.34, 0.34)
+texture = ExtResource("2_img")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+rotation = 1.5707964
+shape = SubResource("CircleShape2D_husk")

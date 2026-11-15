@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scene/Mob/AquaHuskMiniBoss/lendir_boss.gd" id="1_lendirboss"]
+[ext_resource type="Texture2D" path="res://scene/Mob/AquaHuskMiniBoss/LendirBoss.png" id="2_img"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_glow"]
+blend_mode = 1
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_lendirboss"]
+radius = 5.0
+
+[node name="LendirBoss" type="Area2D"]
+collision_layer = 0
+collision_mask = 3
+script = ExtResource("1_lendirboss")
+
+[node name="Glow" type="Sprite2D" parent="."]
+show_behind_parent = true
+material = SubResource("CanvasItemMaterial_glow")
+scale = Vector2(0.98, 0.98)
+modulate = Color(1, 0.3, 0.24, 0.45)
+texture = ExtResource("2_img")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.55, 0.55)
+texture = ExtResource("2_img")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_lendirboss")

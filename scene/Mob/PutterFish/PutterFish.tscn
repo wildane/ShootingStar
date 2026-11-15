@@ -1,0 +1,35 @@
+[gd_scene format=3 uid="uid://b454fkcpnpvuy"]
+
+[ext_resource type="Script" uid="uid://d3hkceaxdd7ug" path="res://scene/Mob/PutterFish/PutterFish.gd" id="1_8qpun"]
+[ext_resource type="Texture2D" uid="uid://bj36v7fjtwmvi" path="res://scene/Mob/PutterFish/Image_362.png" id="1_vr6me"]
+[ext_resource type="Script" uid="uid://bud0jf471x14a" path="res://scene/Mob/PutterFish/AttackComponent.gd" id="3_6q6gk"]
+[ext_resource type="Script" uid="uid://dlnb766ffu5or" path="res://scene/Mob/HealthComponent.gd" id="4_1tvxh"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_8qpun"]
+radius = 10.198039
+
+[node name="PutterFish" type="CharacterBody2D" unique_id=965554040 groups=["enemy"]]
+collision_layer = 128
+collision_mask = 65539
+script = ExtResource("1_8qpun")
+wander_speed = 10.0
+home_speed = 10.0
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1482182233]
+rotation = 1.5707964
+scale = Vector2(0.05, 0.05)
+texture = ExtResource("1_vr6me")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1044982450]
+shape = SubResource("CircleShape2D_8qpun")
+
+[node name="AttackComponent" type="Node2D" parent="." unique_id=1506956437]
+script = ExtResource("3_6q6gk")
+bite_damage = 1
+normal_scale = Vector2(0.05, 0.05)
+inflated_scale = Vector2(0.1, 0.1)
+inflate_animation_speed = 2.0
+deflate_animation_speed = 0.1
+
+[node name="HealthComponent" type="Node2D" parent="." unique_id=1265711497]
+script = ExtResource("4_1tvxh")

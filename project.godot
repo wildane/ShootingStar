@@ -1,0 +1,101 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[animation]
+
+compatibility/default_parent_skeleton_in_mesh_instance_3d=true
+
+[application]
+
+config/name="ShootingStar"
+run/main_scene="res://scene/main_menu/main_menu.tscn"
+config/features=PackedStringArray("4.7", "Mobile")
+config/icon="res://icon.svg"
+
+[autoload]
+
+BuildManager="*res://scene/level_3/build_system/BuildManager.gd"
+InventoryManager="*res://scene/Inventory/InventoryManager.gd"
+SceneTransition="*res://scene/tscn_transition/ SceneTransition.tscn"
+NetworkManager="*res://NetworkManager.gd"
+SaveManager="*res://SaveManager.gd"
+
+[display]
+
+window/size/viewport_width=280
+window/size/viewport_height=480
+window/size/mode=4
+window/size/resizable=false
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=1
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/funplay_mcp/plugin.cfg")
+
+[global_group]
+
+Player=""
+BuildableZone=""
+Furniture=""
+
+[input]
+
+move_right={
+"deadzone": 0.5,
+"events": Array[InputEvent]([Object(InputEventJoypadMotion,"resource_local_to_scene":false,"resource_name":"","device":-1,"axis":2,"axis_value":1.0,"script":null)
+])
+}
+move_left={
+"deadzone": 0.5,
+"events": Array[InputEvent]([Object(InputEventJoypadMotion,"resource_local_to_scene":false,"resource_name":"","device":-1,"axis":2,"axis_value":-1.0,"script":null)
+])
+}
+
+[input_devices]
+
+virtual_controller/ios/enable_left_thumbstick=false
+virtual_controller/ios/enable_button_a=false
+virtual_controller/ios/enable_button_b=false
+virtual_controller/ios/enable_button_x=false
+virtual_controller/ios/enable_button_y=false
+
+[layer_names]
+
+2d_physics/layer_1="player"
+2d_physics/layer_2="wall"
+2d_physics/layer_3="buildzone"
+2d_physics/layer_4="environment"
+2d_physics/layer_8="mob"
+2d_physics/layer_17="bullet"
+
+[rendering]
+
+renderer/rendering_method="mobile"
+
+[xogot]
+
+project/editorState=[]
+project/breakpoints={
+"res://scene/GalaxyFish/GalaxyFish.gd": PackedInt32Array(),
+"res://scene/Inventory/inventory.gd": PackedInt32Array(),
+"res://scene/bullet/bullet.gd": PackedInt32Array(10, 7),
+"res://scene/level_2/level_2.gd": PackedInt32Array(),
+"res://scene/level_3/level_3.gd": PackedInt32Array(),
+"res://scene/level_3_inventory.gd": PackedInt32Array(),
+"res://scene/meteorite/meteoritecluster.gd": PackedInt32Array(),
+"res://scene/mother_ship/mother_ship.gd": PackedInt32Array(),
+"res://scene/player/player_rocket.gd": PackedInt32Array(),
+"res://scene/space_fish/space_fish.gd": PackedInt32Array()
+}
+project/disabled_breakpoints={}
+project/xogot_game_id="4098_shootingstar"
+project/shaderEditorState=[]

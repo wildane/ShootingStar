@@ -1,0 +1,98 @@
+extends StaticBody2D
+
+@onready var sprite = get_node_or_null("Sprite2D")
+@onready var area_penderia = get_node_or_null("Area2D")
+
+# LALUAN YANG DIBAIKI: Ditambah HBoxContainer mengikut struktur Scene Tree anda
+@onready var menu_ui = get_node_or_null("CanvasLayer/MenuUI") 
+@onready var butang_tutup = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonTutup")
+@onready var butang_demolish = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonDemolish")
+
+# Mengekalkan saiz kegemaran anda (Lebar: 250, Tinggi: 130)
+var saiz_menu_kustom: Vector2 = Vector2(250, 130)
+
+var player_dekat: bool = false
+
+# PEMBOLEH UBAH BAHARU: Pemasa untuk menyekat pepijat input berganda pada telefon pintar
+var masa_ketikan_terakhir: float = 0.0
+const SELA_MASA_MINIMUM: float = 0.2  # Sekat input kedua jika berlaku dalam jarak 0.2 saat
+
+func _ready():
+	if area_penderia:
+		area_penderia.input_pickable = true
+		area_penderia.body_entered.connect(_on_body_entered)
+		area_penderia.body_exited.connect(_on_body_exited)
+		area_penderia.input_event.connect(_on_area_input_event)
+		
+	if menu_ui:
+		menu_ui.hide()
+		menu_ui.custom_minimum_size = saiz_menu_kustom
+		
+	if butang_tutup:
+		butang_tutup.pressed.connect(_on_butang_tutup_pressed)
+		
+	if butang_demolish:
+		butang_demolish.pressed.connect(_on_butang_demolish_pressed)
+
+func _on_body_entered(body: Node2D):
+	if body is CharacterBody2D:
+		player_dekat = true
+		if sprite:
+			sprite.modulate = Color(0.3, 1.0, 0.3, 1.0) # 🔴 FABRICATOR TUKAR HIJAU
+
+func _on_body_exited(body: Node2D):
+	if body is CharacterBody2D:
+		player_dekat = false
+		if sprite:
+			sprite.modulate = Color(1.0, 1.0, 1.0, 1.0) # WARNA ASAL
+		if menu_ui:
+			menu_ui.hide() 
+
+func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int):
+	# Semak jenis input sentuhan jari atau klik kiri tetikus
+	var ada_sentuhan = (event is InputEventScreenTouch and event.pressed) or (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed)
+	
+	if ada_sentuhan and player_dekat:
+		# KOD DIKEMAS KINI: Dapatkan masa semasa permainan berjalan (dalam saat)
+		var masa_sekarang = Time.get_ticks_msec() / 1000.0
+		
+		# JIKA JANGKA MASA KETIKAN TERLALU CEPAT, ABAIKAN INPUT KEDUA TERSEBUT
+		if masa_sekarang - masa_ketikan_terakhir < SELA_MASA_MINIMUM:
+			return
+			
+		# Kemas kini masa ketikan rasmi yang berjaya diterima
+		masa_ketikan_terakhir = masa_sekarang
+		
+		if menu_ui:
+			# Jalankan suis togol buka/tutup
+			menu_ui.visible = !menu_ui.visible
+			print("Sistem Khas: Fabricator ditekan! Status menu -> ", menu_ui.visible) # 🔴 LOG DIKEMAS KINI
+			
+			if menu_ui.visible:
+				var saiz_skrin = get_viewport_rect().size
+				
+				# Menghapuskan ralat skala global daripada StaticBody2D
+				var skala_fabricator = global_scale # 🔴 PEMBOLEH UBAH DIKEMAS KINI
+				menu_ui.scale = Vector2(1.0 / skala_fabricator.x, 1.0 / skala_fabricator.y) if skala_fabricator.x != 0 and skala_fabricator.y != 0 else Vector2(1, 1)
+				
+				# Kedudukan berpusat di tengah-tengah atas skrin (Y = 50)
+				var koordinat_x_tengah = (saiz_skrin.x / 2) - (saiz_menu_kustom.x / 2)
+				menu_ui.global_position = Vector2(koordinat_x_tengah, 50)
+				
+			get_viewport().set_input_as_handled()
+
+func _on_butang_tutup_pressed():
+	if menu_ui:
+		menu_ui.hide()
+
+# FUNGSI MEMADAM: Memadam objek Fabricator dari peta apabila butang demolish ditekan
+func _on_butang_demolish_pressed():
+	print("Sistem Khas: Fabricator telah dimusnahkan!") # 🔴 LOG DIKEMAS KINI
+	
+	# Set semula status logik sebelum objek dipadamkan dari memori
+	player_dekat = false
+	if sprite:
+		sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
+		
+	# Memadam keseluruhan StaticBody2D (Fabricator dan UI sekali) secara selamat dari memori
+	queue_free()

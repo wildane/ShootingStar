@@ -1,0 +1,33 @@
+[gd_scene format=3 uid="uid://bbgpakf514s0n"]
+
+[ext_resource type="Script" uid="uid://dmompw4vwhfqr" path="res://scene/level_3/build_system/BuildPreview.gd" id="1_prynp"]
+[ext_resource type="Texture2D" uid="uid://fpkdh8qrkkjl" path="res://scene/level_3/build_system/Image_98.png" id="2_a8pgp"]
+[ext_resource type="Texture2D" uid="uid://b63du44vwlasy" path="res://scene/level_3/build_system/PowerInverter/Image_127.png" id="2_tyln4"]
+[ext_resource type="Texture2D" uid="uid://m2fv4yfswxfe" path="res://scene/level_3/build_system/Image_810.png" id="3_yvgds"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kvd7x"]
+size = Vector2(18.5, 27.5)
+
+[node name="Node2D" type="Node2D" unique_id=1388660969]
+script = ExtResource("1_prynp")
+fail_mats_4 = "res://scene/Item/0002MeteoriteIce/MeteoriteIce.tscn"
+kuantiti_4 = 2
+fail_mats_5 = "res://scene/Item/0001BasicIronOre/0001BasicIronOre.tscn"
+kuantiti_5 = 3
+fail_bangunan_sebenar_tscn = "res://scene/level_3/build_system/PowerInverter/PowerInverterActual.tscn"
+nama_bangunan = "Power Inverter"
+ikon_confirm = ExtResource("2_a8pgp")
+ikon_cancel = ExtResource("3_yvgds")
+saiz_butang = Vector2(32, 32)
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=105350633]
+scale = Vector2(0.05, 0.05)
+texture = ExtResource("2_tyln4")
+
+[node name="Area2D" type="Area2D" parent="." unique_id=336562366]
+collision_layer = 0
+collision_mask = 15
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=1839426700]
+position = Vector2(0, -0.25)
+shape = SubResource("RectangleShape2D_kvd7x")

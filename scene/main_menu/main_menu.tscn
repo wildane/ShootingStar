@@ -1,0 +1,38 @@
+[gd_scene format=3 uid="uid://bblniyuy7m3ni"]
+
+[ext_resource type="Script" uid="uid://b32q8t4ti1fgw" path="res://scene/main_menu/main_menu.gd" id="1_o25w2"]
+[ext_resource type="PackedScene" uid="uid://j4y45hm8o5ek" path="res://scene/level_3/level_3.tscn" id="2_6836v"]
+[ext_resource type="Texture2D" uid="uid://c3p4i0i8trsk8" path="res://scene/main_menu/Image_92.jpeg" id="2_cds3d"]
+
+[node name="MainMenu" type="CanvasLayer" unique_id=1601740250]
+script = ExtResource("1_o25w2")
+scene_sasaran = ExtResource("2_6836v")
+tempoh_menunggu = 1.0
+tempoh_fade_in = 1.0
+
+[node name="TextureRect" type="TextureRect" parent="." unique_id=1093130925]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_cds3d")
+expand_mode = 1
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1116335654]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -21.0
+offset_top = -38.5
+offset_right = 21.0
+offset_bottom = 38.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="GameTitle" type="Label" parent="VBoxContainer" unique_id=1004811711]
+layout_mode = 2
+text = "Shooting Star"

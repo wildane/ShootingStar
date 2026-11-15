@@ -1,0 +1,565 @@
+[gd_scene format=3 uid="uid://j4y45hm8o5ek"]
+
+[ext_resource type="Script" uid="uid://bj52hrmqiderg" path="res://scene/level_3/level_3.gd" id="1_ia72d"]
+[ext_resource type="Texture2D" uid="uid://dllu1fykvlmds" path="res://scene/level_3/Image_443.jpeg" id="3_nov40"]
+[ext_resource type="Texture2D" uid="uid://b2vga6iw2glt" path="res://scene/level_3/build_system/Image_683.png" id="5_fs2q3"]
+[ext_resource type="Script" uid="uid://cisia6l0kcnuj" path="res://scene/level_3/build_system/BuildSystem.gd" id="5_q54y3"]
+[ext_resource type="Script" uid="uid://ciqvjhk7yt328" path="res://scene/level_3/level_3fps_label.gd" id="5_rnch0"]
+[ext_resource type="Texture2D" uid="uid://c7rrkyppteq5a" path="res://scene/level_3/build_system/research_table/Image_334.png" id="6_jvfsc"]
+[ext_resource type="Texture2D" uid="uid://bf4h32tlwg8s4" path="res://scene/level_3/build_system/fabricator/Image_873.png" id="7_jvfsc"]
+[ext_resource type="Texture2D" uid="uid://dp5rylhi7h16m" path="res://scene/level_3/build_system/kitchen_table/Image_423.png" id="8_c1o4k"]
+[ext_resource type="Script" uid="uid://biqomidybgy05" path="res://scene/level_3/build_system/research_table.gd" id="8_wqewp"]
+[ext_resource type="Texture2D" uid="uid://btx5fpya4brnc" path="res://scene/Inventory/Image_442.png" id="9_7002f"]
+[ext_resource type="Script" uid="uid://bn6oipj4071ld" path="res://scene/level_3/level_3_inventory.gd" id="9_hsw8h"]
+[ext_resource type="PackedScene" uid="uid://bocyiw32ulb6v" path="res://scene/Inventory/Inventory.tscn" id="9_jlgbs"]
+[ext_resource type="Script" uid="uid://sryhfu5tdj4i" path="res://scene/level_3/build_system/fabricator.gd" id="10_sed1p"]
+[ext_resource type="Script" uid="uid://beflntar2msst" path="res://scene/level_3/build_system/BuildButton.gd" id="14_rnch0"]
+[ext_resource type="Texture2D" uid="uid://ccrv5i42dn76h" path="res://scene/level_3/build_system/SolarModule/Image_43.png" id="15_ad8n0"]
+[ext_resource type="Texture2D" uid="uid://b63du44vwlasy" path="res://scene/level_3/build_system/PowerInverter/Image_127.png" id="16_2w3p3"]
+[ext_resource type="Texture2D" uid="uid://bg5enkd6gvggt" path="res://scene/WeaponAttachment/Drone/Image_836.png" id="16_hr2ua"]
+[ext_resource type="Script" uid="uid://buqleo35c8ejd" path="res://scene/WeaponAttachment/Drone/DroneDeployer.gd" id="18_6tocp"]
+[ext_resource type="PackedScene" path="res://scene/WeaponAttachment/Drone/DroneRingan.tscn" id="19_bkd2d"]
+[ext_resource type="PackedScene" uid="uid://dbya4w0m1j8on" path="res://scene/meteorite/ MeteoriteSpawner.tscn" id="20_6tocp"]
+[ext_resource type="PackedScene" path="res://scene/WeaponAttachment/Drone/DroneSederhana.tscn" id="20_dronx"]
+[ext_resource type="Script" uid="uid://cpmgupgkb5tuj" path="res://scene/level_3/SpawnDirection.gd" id="20_hbouw"]
+[ext_resource type="PackedScene" uid="uid://b84yge1ac2jsl" path="res://scene/level_3/build_system/doorway/Doorway_Actual.tscn" id="20_nw5os"]
+[ext_resource type="PackedScene" uid="uid://buexy726cul1a" path="res://scene/GalaxyFish/GalaxyFish.tscn" id="21_6tocp"]
+[ext_resource type="Texture2D" uid="uid://dn345cpux76ai" path="res://scene/level_3/Image_116.png" id="21_b70sg"]
+[ext_resource type="PackedScene" path="res://scene/WeaponAttachment/Drone/DroneBerat.tscn" id="21_dronx"]
+[ext_resource type="PackedScene" uid="uid://bqewjfmvlmqwj" path="res://scene/Mob/MobSpawner.tscn" id="24_hbouw"]
+[ext_resource type="Texture2D" uid="uid://dby5hyry2whm4" path="res://Image_248.png" id="25_hbouw"]
+[ext_resource type="PackedScene" uid="uid://c5nqu845wesbc" path="res://scene/Mob/Piranha/Piranha.tscn" id="30_ad8n0"]
+[ext_resource type="PackedScene" uid="uid://b454fkcpnpvuy" path="res://scene/Mob/PutterFish/PutterFish.tscn" id="31_2w3p3"]
+[ext_resource type="PackedScene" uid="uid://drnj2n6g6njc1" path="res://scene/Area/TheAquaHusk/TheAquaHusk.tscn" id="32_2381u"]
+[ext_resource type="PackedScene" path="res://scene/Mob/HuskLurker/HuskLurker.tscn" id="33_husk"]
+[ext_resource type="PackedScene" path="res://scene/Mob/AquaHuskMiniBoss/AquaHuskMiniBoss.tscn" id="34_boss"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_fs2q3"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_jvfsc"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_c1o4k"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_jlgbs"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_b70sg"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hsw8h"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_f8nwn"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_7002f"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_un6we"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_k4v7x"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_wqewp"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_sed1p"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ia72d"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_nw5os"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_6tocp"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_f2j47"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_bkd2d"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_frqjb"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_qo42x"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hbouw"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_6bfyd"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_2w3p3"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hr2ua"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_2381u"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_nfwom"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_mj1m0"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_wldfd"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_jgjp1"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_rnch0"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_2ojfx"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ad8n0"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_q54y3"]
+size = Vector2(94, 75)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_3ucjb"]
+size = Vector2(19, 200)
+
+[node name="Level3" type="Node2D" unique_id=758233922]
+script = ExtResource("1_ia72d")
+metadata/_edit_lock_ = true
+
+[node name="TheAquaHuskp" parent="." unique_id=294386807 instance=ExtResource("32_2381u")]
+position = Vector2(-312, -992)
+
+[node name="ParallaxBackground" type="ParallaxBackground" parent="." unique_id=909833168]
+scroll_ignore_camera_zoom = true
+
+[node name="ParallaxLayer1" type="ParallaxLayer" parent="ParallaxBackground" unique_id=216283537]
+position = Vector2(312, 120)
+motion_scale = Vector2(0.1, 0.1)
+motion_mirroring = Vector2(1774, 887)
+metadata/_edit_lock_ = true
+
+[node name="Sprite2D" type="Sprite2D" parent="ParallaxBackground/ParallaxLayer1" unique_id=1521809525]
+texture_repeat = 3
+position = Vector2(-1000, -344)
+texture = ExtResource("25_hbouw")
+centered = false
+metadata/_edit_lock_ = true
+
+[node name="SpaceShip" type="Sprite2D" parent="." unique_id=2137577088]
+position = Vector2(141, 223)
+scale = Vector2(0.16, 0.16)
+texture = ExtResource("3_nov40")
+metadata/_edit_lock_ = true
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1481689201]
+
+[node name="FPSLabel" type="Label" parent="CanvasLayer" unique_id=470365876]
+unique_name_in_owner = true
+offset_right = 40.0
+offset_bottom = 23.0
+text = "Label"
+script = ExtResource("5_rnch0")
+font_size = 6
+metadata/_edit_use_anchors_ = true
+metadata/_edit_lock_ = true
+
+[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer" unique_id=317507270]
+custom_minimum_size = Vector2(32, 32)
+offset_right = 52.0
+offset_bottom = 88.0
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+metadata/_edit_lock_ = true
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/MarginContainer" unique_id=410764402]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+metadata/_edit_lock_ = true
+
+[node name="BuildSystem" type="Control" parent="CanvasLayer/MarginContainer/VBoxContainer" unique_id=572235635]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_q54y3")
+metadata/_edit_lock_ = true
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/MarginContainer/VBoxContainer/BuildSystem" unique_id=1309917493]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 1
+offset_right = 140.0
+offset_bottom = 40.0
+metadata/_edit_lock_ = true
+
+[node name="BuildButton" type="Button" parent="CanvasLayer/MarginContainer/VBoxContainer/BuildSystem/HBoxContainer" unique_id=760424973]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_fs2q3")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_jvfsc")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_c1o4k")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_jlgbs")
+icon = ExtResource("5_fs2q3")
+flat = true
+expand_icon = true
+metadata/_edit_lock_ = true
+
+[node name="ItemsPanel" type="PanelContainer" parent="CanvasLayer/MarginContainer/VBoxContainer/BuildSystem/HBoxContainer" unique_id=1366853459]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_b70sg")
+metadata/_edit_lock_ = true
+
+[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/MarginContainer/VBoxContainer/BuildSystem/HBoxContainer/ItemsPanel" unique_id=357046209]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/MarginContainer/VBoxContainer/BuildSystem/HBoxContainer/ItemsPanel/MarginContainer" unique_id=93839309]
+layout_mode = 2
+
+[node name="ResearchTableButton" type="Button" parent="CanvasLayer/MarginContainer/VBoxContainer/BuildSystem/HBoxContainer/ItemsPanel/MarginContainer/HBoxContainer" unique_id=1676562034]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_hsw8h")
+theme_override_styles/normal_mirrored = SubResource("StyleBoxEmpty_f8nwn")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_7002f")
+theme_override_styles/pressed_mirrored = SubResource("StyleBoxEmpty_un6we")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_k4v7x")
+theme_override_styles/hover_mirrored = SubResource("StyleBoxEmpty_wqewp")
+theme_override_styles/hover_pressed = SubResource("StyleBoxEmpty_sed1p")
+theme_override_styles/hover_pressed_mirrored = SubResource("StyleBoxEmpty_ia72d")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_nw5os")
+theme_override_styles/disabled_mirrored = SubResource("StyleBoxEmpty_6tocp")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_f2j47")
+icon = ExtResource("6_jvfsc")
+flat = true
+icon_alignment = 1
+expand_icon = true
+script = ExtResource("8_wqewp")
+
+[node name="FabricatorButton" type="Button" parent="CanvasLayer/MarginContainer/VBoxContainer/BuildSystem/HBoxContainer/ItemsPanel/MarginContainer/HBoxContainer" unique_id=1630271305]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_bkd2d")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_frqjb")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_qo42x")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_hbouw")
+icon = ExtResource("7_jvfsc")
+flat = true
+icon_alignment = 1
+expand_icon = true
+script = ExtResource("10_sed1p")
+metadata/_edit_lock_ = true
+
+[node name="KitchenTableButton" type="Button" parent="CanvasLayer/MarginContainer/VBoxContainer/BuildSystem/HBoxContainer/ItemsPanel/MarginContainer/HBoxContainer" unique_id=535025963]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+icon = ExtResource("8_c1o4k")
+flat = true
+icon_alignment = 1
+expand_icon = true
+script = ExtResource("14_rnch0")
+
+[node name="SolarModuleButton" type="Button" parent="CanvasLayer/MarginContainer/VBoxContainer/BuildSystem/HBoxContainer/ItemsPanel/MarginContainer/HBoxContainer" unique_id=1374825332]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+icon = ExtResource("15_ad8n0")
+flat = true
+icon_alignment = 1
+expand_icon = true
+script = ExtResource("14_rnch0")
+PREVIEW = "res://scene/level_3/build_system/SolarModule/SolarModulePreview.tscn"
+ACTUAL = "res://scene/level_3/build_system/SolarModule/SolarModuleActual.tscn"
+
+[node name="PowerInverterButton" type="Button" parent="CanvasLayer/MarginContainer/VBoxContainer/BuildSystem/HBoxContainer/ItemsPanel/MarginContainer/HBoxContainer" unique_id=124103039]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+icon = ExtResource("16_2w3p3")
+flat = true
+icon_alignment = 1
+expand_icon = true
+script = ExtResource("14_rnch0")
+PREVIEW = "res://scene/level_3/build_system/PowerInverter/PowerInverterPreview.tscn"
+ACTUAL = "res://scene/level_3/build_system/PowerInverter/PowerInverterActual.tscn"
+
+[node name="InventoryButton" type="Button" parent="CanvasLayer/MarginContainer/VBoxContainer" unique_id=1263275639 node_paths=PackedStringArray("inventory_ui")]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_6bfyd")
+theme_override_styles/normal_mirrored = SubResource("StyleBoxEmpty_2w3p3")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_hr2ua")
+theme_override_styles/pressed_mirrored = SubResource("StyleBoxEmpty_2381u")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_nfwom")
+theme_override_styles/hover_mirrored = SubResource("StyleBoxEmpty_mj1m0")
+theme_override_styles/hover_pressed = SubResource("StyleBoxEmpty_wldfd")
+theme_override_styles/hover_pressed_mirrored = SubResource("StyleBoxEmpty_jgjp1")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_rnch0")
+theme_override_styles/disabled_mirrored = SubResource("StyleBoxEmpty_2ojfx")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_ad8n0")
+icon = ExtResource("9_7002f")
+flat = true
+icon_alignment = 1
+expand_icon = true
+script = ExtResource("9_hsw8h")
+inventory_ui = NodePath("../../../Inventory")
+metadata/_edit_lock_ = true
+
+[node name="WeaponAttachment" type="Button" parent="CanvasLayer/MarginContainer/VBoxContainer" unique_id=1712267002]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+icon = ExtResource("16_hr2ua")
+flat = true
+icon_alignment = 1
+expand_icon = true
+script = ExtResource("18_6tocp")
+drone_scenes = Array[PackedScene]([ExtResource("19_bkd2d"), ExtResource("20_dronx"), ExtResource("21_dronx")])
+drone_names = Array[String](["Drone Ringan", "Drone Sederhana", "Drone Berat"])
+spawn_icon = ExtResource("16_hr2ua")
+remove_icon = ExtResource("16_hr2ua")
+metadata/_edit_lock_ = true
+
+[node name="Inventory" parent="CanvasLayer" unique_id=1787922766 instance=ExtResource("9_jlgbs")]
+unique_name_in_owner = true
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+grow_horizontal = 2
+size_flags_vertical = 4
+metadata/_edit_lock_ = true
+
+[node name="InfoPanel" type="TextureRect" parent="CanvasLayer" unique_id=1910231538]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -133.0
+offset_right = 153.0
+grow_vertical = 0
+expand_mode = 1
+metadata/_edit_lock_ = true
+
+[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/InfoPanel" unique_id=567819539]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+theme_override_constants/margin_left = 25
+theme_override_constants/margin_top = 30
+metadata/_edit_lock_ = true
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/InfoPanel/MarginContainer" unique_id=435235994]
+layout_mode = 2
+metadata/_edit_lock_ = true
+
+[node name="InfoText" type="Label" parent="CanvasLayer/InfoPanel/MarginContainer/VBoxContainer" unique_id=421082212]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 70)
+layout_mode = 2
+theme_override_colors/font_color = Color(-0.5116421, 1.0182717, -0.3106214, 1)
+theme_override_font_sizes/font_size = 8
+text = "Info"
+autowrap_mode = 2
+
+[node name="MarginContainer2" type="MarginContainer" parent="CanvasLayer" unique_id=917925435]
+custom_minimum_size = Vector2(30, 30)
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -40.0
+offset_bottom = 40.0
+grow_horizontal = 0
+metadata/_edit_lock_ = true
+
+[node name="ArrowIndicator" type="Control" parent="CanvasLayer/MarginContainer2" unique_id=797007776]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+script = ExtResource("20_hbouw")
+metadata/_edit_lock_ = true
+
+[node name="ArrowSprite" type="Sprite2D" parent="CanvasLayer/MarginContainer2/ArrowIndicator" unique_id=58912512]
+scale = Vector2(0.02, 0.02)
+texture = ExtResource("21_b70sg")
+
+[node name="ZonBuildable" type="Area2D" parent="." unique_id=1693517243 groups=["BuildableZone"]]
+collision_layer = 4
+collision_mask = 7
+metadata/_edit_lock_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ZonBuildable" unique_id=2116187895]
+position = Vector2(141, 228)
+shape = SubResource("RectangleShape2D_q54y3")
+metadata/_edit_lock_ = true
+
+[node name="Y_Sort_Container" type="Node2D" parent="." unique_id=1595145890]
+y_sort_enabled = true
+metadata/_edit_lock_ = true
+
+[node name="wallkanan" type="StaticBody2D" parent="Y_Sort_Container" unique_id=1545785690]
+position = Vector2(202, 34)
+scale = Vector2(1.04251, 0.9076014)
+collision_layer = 3
+collision_mask = 0
+metadata/_edit_lock_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Y_Sort_Container/wallkanan" unique_id=1811801193]
+position = Vector2(-1.9184463, 209.343)
+shape = SubResource("RectangleShape2D_3ucjb")
+metadata/_edit_lock_ = true
+
+[node name="Area2D" type="Area2D" parent="Y_Sort_Container/wallkanan" unique_id=1985413674]
+metadata/_edit_lock_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Y_Sort_Container/wallkanan/Area2D" unique_id=1062158650]
+position = Vector2(-1.9184463, 209.343)
+shape = SubResource("RectangleShape2D_3ucjb")
+metadata/_edit_lock_ = true
+
+[node name="wallkiri" type="StaticBody2D" parent="Y_Sort_Container" unique_id=823605845]
+position = Vector2(79, 19)
+scale = Vector2(1.04251, 0.9076014)
+collision_layer = 3
+collision_mask = 0
+metadata/_edit_lock_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Y_Sort_Container/wallkiri" unique_id=800285174]
+position = Vector2(1, 225)
+shape = SubResource("RectangleShape2D_3ucjb")
+metadata/_edit_lock_ = true
+
+[node name="Area2D" type="Area2D" parent="Y_Sort_Container/wallkiri" unique_id=472016106]
+metadata/_edit_lock_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Y_Sort_Container/wallkiri/Area2D" unique_id=205153407]
+position = Vector2(1, 225)
+shape = SubResource("RectangleShape2D_3ucjb")
+metadata/_edit_lock_ = true
+
+[node name="wallatas" type="StaticBody2D" parent="Y_Sort_Container" unique_id=273135220]
+position = Vector2(446.00003, 178)
+rotation = 1.5707964
+scale = Vector2(1.04251, 0.9076014)
+collision_layer = 3
+collision_mask = 0
+metadata/_edit_lock_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Y_Sort_Container/wallatas" unique_id=1391860179]
+position = Vector2(-1.9184289, 332.7452)
+shape = SubResource("RectangleShape2D_3ucjb")
+metadata/_edit_lock_ = true
+
+[node name="Area2D" type="Area2D" parent="Y_Sort_Container/wallatas" unique_id=534622460]
+metadata/_edit_lock_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Y_Sort_Container/wallatas/Area2D" unique_id=1232744933]
+position = Vector2(-1.9184289, 332.7452)
+shape = SubResource("RectangleShape2D_3ucjb")
+metadata/_edit_lock_ = true
+
+[node name="wallbawah" type="StaticBody2D" parent="Y_Sort_Container" unique_id=777540264]
+position = Vector2(474.00003, 286)
+rotation = 1.5707964
+scale = Vector2(1.04251, 0.9076014)
+collision_layer = 3
+collision_mask = 0
+metadata/_edit_lock_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Y_Sort_Container/wallbawah" unique_id=1038027722]
+position = Vector2(-5.7553215, 363.59576)
+shape = SubResource("RectangleShape2D_3ucjb")
+metadata/_edit_lock_ = true
+
+[node name="Area2D" type="Area2D" parent="Y_Sort_Container/wallbawah" unique_id=303063277]
+metadata/_edit_lock_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Y_Sort_Container/wallbawah/Area2D" unique_id=368396855]
+position = Vector2(-5.7553215, 363.59576)
+shape = SubResource("RectangleShape2D_3ucjb")
+metadata/_edit_lock_ = true
+
+[node name="Doorway" parent="Y_Sort_Container" unique_id=433430658 instance=ExtResource("20_nw5os")]
+position = Vector2(141, 186)
+metadata/_edit_lock_ = true
+
+[node name="MeteoriteSpawnerContainer" type="Node2D" parent="." unique_id=723250565]
+y_sort_enabled = true
+metadata/_edit_lock_ = true
+
+[node name="MeteoriteSpawner2" parent="MeteoriteSpawnerContainer" unique_id=1293096516 instance=ExtResource("20_6tocp")]
+position = Vector2(672, 488)
+spawn_radius = 100.0
+metadata/_edit_lock_ = true
+
+[node name="MeteoriteSpawner3" parent="MeteoriteSpawnerContainer" unique_id=1876018589 instance=ExtResource("20_6tocp")]
+position = Vector2(728, -768)
+metadata/_edit_lock_ = true
+
+[node name="MeteoriteSpawner" parent="MeteoriteSpawnerContainer" unique_id=649650895 instance=ExtResource("20_6tocp")]
+position = Vector2(-112, 208)
+spawn_radius = 100.0
+metadata/_edit_lock_ = true
+
+[node name="MeteoriteSpawner4" parent="MeteoriteSpawnerContainer" unique_id=1835790202 instance=ExtResource("20_6tocp")]
+position = Vector2(144, 488)
+spawn_radius = 100.0
+metadata/_edit_lock_ = true
+
+[node name="MeteoriteSpawner5" parent="MeteoriteSpawnerContainer" unique_id=917516523 instance=ExtResource("20_6tocp")]
+position = Vector2(408, 320)
+spawn_radius = 100.0
+metadata/_edit_lock_ = true
+
+[node name="MeteoriteSpawner6" parent="MeteoriteSpawnerContainer" unique_id=358185028 instance=ExtResource("20_6tocp")]
+position = Vector2(144, -16)
+spawn_radius = 100.0
+metadata/_edit_lock_ = true
+
+[node name="MeteoriteSpawner7" parent="MeteoriteSpawnerContainer" unique_id=1061450594 instance=ExtResource("20_6tocp")]
+position = Vector2(336, 112)
+spawn_radius = 100.0
+metadata/_edit_lock_ = true
+
+[node name="MobSpawnerContainer" type="Node2D" parent="." unique_id=969728757]
+y_sort_enabled = true
+metadata/_edit_lock_ = true
+
+[node name="MobSpawner" parent="MobSpawnerContainer" unique_id=2077553909 instance=ExtResource("24_hbouw")]
+position = Vector2(192, -232)
+mob_scene = ExtResource("21_6tocp")
+spawn_radius = 300.0
+metadata/_edit_lock_ = true
+
+[node name="MobSpawner3" parent="MobSpawnerContainer" unique_id=483721954 instance=ExtResource("24_hbouw")]
+position = Vector2(144, -176)
+mob_scene = ExtResource("31_2w3p3")
+spawn_radius = 300.0
+respawn_time = 1.0
+metadata/_edit_lock_ = true
+
+[node name="MobSpawner4" parent="MobSpawnerContainer" unique_id=656173941 instance=ExtResource("24_hbouw")]
+position = Vector2(-88, 472)
+mob_scene = ExtResource("21_6tocp")
+spawn_radius = 200.0
+metadata/_edit_lock_ = true
+
+[node name="MobSpawner5" parent="MobSpawnerContainer" unique_id=1925824665 instance=ExtResource("24_hbouw")]
+position = Vector2(464, 248)
+mob_scene = ExtResource("21_6tocp")
+spawn_radius = 200.0
+metadata/_edit_lock_ = true
+
+[node name="MobSpawner2" parent="MobSpawnerContainer" unique_id=976432393 instance=ExtResource("24_hbouw")]
+position = Vector2(728, -776)
+mob_scene = ExtResource("30_ad8n0")
+respawn_time = 1.0
+metadata/_edit_lock_ = true
+
+[node name="HuskLurkerSpawner1" parent="MobSpawnerContainer" unique_id=1281094012 instance=ExtResource("24_hbouw")]
+position = Vector2(-40, -300)
+mob_scene = ExtResource("33_husk")
+spawn_radius = 60.0
+respawn_time = 25.0
+metadata/_edit_lock_ = true
+
+[node name="HuskLurkerSpawner2" parent="MobSpawnerContainer" unique_id=1577170642 instance=ExtResource("24_hbouw")]
+position = Vector2(-40, -700)
+mob_scene = ExtResource("33_husk")
+spawn_radius = 70.0
+respawn_time = 25.0
+metadata/_edit_lock_ = true
+
+[node name="AquaHuskMiniBoss" parent="MobSpawnerContainer" unique_id=2013353578 instance=ExtResource("34_boss")]
+position = Vector2(-40, -1200)
+jarak_jaga = 250.0
+jarak_lepas = 1100.0
+kelajuan_kejar = 30.0
+jarak_serang = 250.0
+max_hp = 50
+respawn_time = 30.0
+metadata/_edit_lock_ = true
+
+[node name="HuskLurkerSpawner3" parent="MobSpawnerContainer" unique_id=2013353577 instance=ExtResource("24_hbouw")]
+position = Vector2(-40, -1100)
+mob_scene = ExtResource("33_husk")
+spawn_radius = 60.0
+respawn_time = 25.0
+metadata/_edit_lock_ = true

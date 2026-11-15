@@ -1,0 +1,45 @@
+[gd_scene format=3 uid="uid://c5nqu845wesbc"]
+
+[ext_resource type="Texture2D" uid="uid://dcu2tmveg4drk" path="res://scene/Mob/Piranha/Image_388.png" id="1_ccwde"]
+[ext_resource type="Script" uid="uid://6hw12sfip2ow" path="res://scene/Mob/Piranha/Piranha.gd" id="1_nq4by"]
+[ext_resource type="Script" uid="uid://b0rpai3lw7s03" path="res://scene/Mob/Piranha/HealthComponent.gd" id="3_xp3ep"]
+[ext_resource type="Script" uid="uid://dq8xh2v4xrros" path="res://scene/Mob/DropComponent.gd" id="4_ld77o"]
+[ext_resource type="Script" uid="uid://dnty725v1mdnj" path="res://scene/Mob/Piranha/AttackComponent.gd" id="5_k24y1"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ogkhe"]
+height = 40.0
+
+[node name="Piranha" type="CharacterBody2D" unique_id=586787864 groups=["enemy"]]
+y_sort_enabled = true
+scale = Vector2(0.5, 0.5)
+collision_layer = 128
+collision_mask = 65538
+safe_margin = 10.0
+script = ExtResource("1_nq4by")
+chase_speed = 40.0
+home_speed = 100.0
+frenzy_speed_multiplier = 1.0
+detection_radius = 50.0
+bite_radius = 20.0
+max_radius = 400.0
+home_arrival_radius = 30.0
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=727941863]
+position = Vector2(2.3601954e-13, -1.9073486e-06)
+rotation = 1.5707964
+scale = Vector2(0.15, 0.15)
+texture = ExtResource("1_ccwde")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1919895784]
+rotation = 1.5707964
+shape = SubResource("CapsuleShape2D_ogkhe")
+
+[node name="DropComponent" type="Node2D" parent="." unique_id=1146555015]
+script = ExtResource("4_ld77o")
+
+[node name="HealthComponent" type="Node2D" parent="." unique_id=1991635099]
+script = ExtResource("3_xp3ep")
+
+[node name="AttackComponent" type="Node2D" parent="." unique_id=745836898]
+script = ExtResource("5_k24y1")
+bite_damage = 1

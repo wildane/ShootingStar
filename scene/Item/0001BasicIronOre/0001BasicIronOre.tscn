@@ -1,0 +1,23 @@
+[gd_scene format=3 uid="uid://bhnkyceij5y2e"]
+
+[ext_resource type="Script" uid="uid://bg84lm2sxwxs5" path="res://scene/Item/0001BasicIronOre/0001BasicIronOre.gd" id="1_fg30a"]
+[ext_resource type="Texture2D" uid="uid://bgvhu5kh0hkx" path="res://scene/Item/0001BasicIronOre/Image_959.png" id="2_ctjco"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_a4krb"]
+size = Vector2(325.00018, 328.1252)
+
+[node name="Barang" type="Area2D" unique_id=2139207184]
+scale = Vector2(0.05, 0.05)
+script = ExtResource("1_fg30a")
+ikon_barang = ExtResource("2_ctjco")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=899284434]
+texture = ExtResource("2_ctjco")
+metadata/_edit_group_ = true
+metadata/_edit_lock_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=281376291]
+position = Vector2(0, -4.0624804)
+scale = Vector2(0.99999917, 0.99999917)
+shape = SubResource("RectangleShape2D_a4krb")
+metadata/_edit_lock_ = true
