@@ -48,6 +48,9 @@ func _on_body_entered(object):
 			actual_enemy.get_node("HealthComponent").take_damage(damage)
 		elif actual_enemy.has_method("take_damage"):
 			actual_enemy.take_damage(damage)
+
+		# Nombor damage terapung di atas musuh yang terkena
+		DamageNumber.tunjuk(actual_enemy, actual_enemy.global_position, damage)
 			
 		print("Peluru tepat mengenai musuh: ", actual_enemy.name)
 		queue_free()
