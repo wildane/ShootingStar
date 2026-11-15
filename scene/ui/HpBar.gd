@@ -180,22 +180,8 @@ func _bina_menegak() -> void:
 	_kiri_kandungan = jidar
 	_lebar_ikon = maxf(8.0, saiz_bar.x * 0.42)
 
-	_bar = ProgressBar.new()
-	_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_bar.show_percentage = false
-	_bar.min_value = 0.0
-	_bar.max_value = 1.0
-	_bar.step = 0.0
-	_bar.value = 1.0
-	_bar.fill_mode = ProgressBar.FILL_BOTTOM_TO_TOP
-	_bar.add_theme_stylebox_override("background", _gaya_trek())
-	_bar.add_theme_stylebox_override("fill", _gaya_isian(_warna_untuk(1.0)))
-	_bar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_bar.offset_left = jidar
-	_bar.offset_top = jidar
-	_bar.offset_right = -jidar
-	_bar.offset_bottom = -jidar
-	_panel.add_child(_bar)
+	# Tiada kotak latar / isian warna: papar simbol + nombor sahaja
+	_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 
 	# Ikon di bahagian atas lajur
 	_ikon = IkonBar.new()
@@ -215,7 +201,7 @@ func _bina_menegak() -> void:
 	_teks.add_theme_constant_override("outline_size", 3)
 	_teks.text = "--/--"
 	_teks.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_teks.offset_top = saiz_bar.y * 0.40
+	_teks.offset_top = _lebar_ikon + jidar + 1.0
 	_teks.offset_bottom = -maxf(13.0, saiz_bar.y * 0.19)
 	_panel.add_child(_teks)
 
@@ -306,6 +292,8 @@ func tetapkan(nisbah: float, teks: String, kanan: String = "") -> void:
 		_kilat()
 
 	_nisbah_semasa = nisbah_baru
+	if _bar == null:
+		return
 	_bar.add_theme_stylebox_override("fill", _gaya_isian(_warna_untuk(nisbah_baru)))
 
 	if _tween_bar and _tween_bar.is_valid():
