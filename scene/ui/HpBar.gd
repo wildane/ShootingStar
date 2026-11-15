@@ -9,6 +9,8 @@ const SAIZ_PEMAIN: Vector2 = Vector2(120.0, 17.0)
 const FON_PEMAIN: int = 8
 const SAIZ_MUSUH: Vector2 = Vector2(62.0, 12.0)
 const FON_MUSUH: int = 6
+const SAIZ_MENEGAK: Vector2 = Vector2(34.0, 68.0)
+const FON_MENEGAK: int = 7
 
 const WARNA_SIHAT: Color = Color(0.42, 0.93, 0.52)
 const WARNA_SEDERHANA: Color = Color(1.0, 0.78, 0.28)
@@ -71,6 +73,7 @@ class IkonBar:
 var saiz_bar: Vector2 = SAIZ_PEMAIN
 var saiz_fon: int = FON_PEMAIN
 var jenis: String = "hp"
+var menegak: bool = false
 var jidar: float = 3.5
 
 var _panel: Panel
@@ -86,12 +89,13 @@ var _tween_bar: Tween = null
 var _tween_kilat: Tween = null
 
 ## Cipta bar dengan saiz dan jenis yang ditetapkan (sebelum masuk tree).
-static func cipta(p_saiz: Vector2, p_fon: int, p_jenis: String = "hp") -> HpBar:
+static func cipta(p_saiz: Vector2, p_fon: int, p_jenis: String = "hp", p_menegak: bool = false) -> HpBar:
 	var b := HpBar.new()
 	b.saiz_bar = p_saiz
 	b.saiz_fon = p_fon
 	b.jenis = p_jenis
-	b.jidar = maxf(2.0, round(p_saiz.y * 0.2))
+	b.menegak = p_menegak
+	b.jidar = maxf(2.0, round(p_saiz.x * 0.1)) if p_menegak else maxf(2.0, round(p_saiz.y * 0.2))
 	return b
 
 func _ready() -> void:
@@ -107,6 +111,10 @@ func _bina() -> void:
 	_panel.add_theme_stylebox_override("panel", _gaya_panel())
 	_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(_panel)
+
+	if menegak:
+		_bina_menegak()
+		return
 
 	# Saiz & posisi ikon (dibuat selepas bar supaya dilukis di atasnya)
 	_lebar_ikon = maxf(4.0, saiz_bar.y * 0.40)
@@ -167,10 +175,70 @@ func _bina() -> void:
 	_teks_kanan.offset_left = _kiri_kandungan
 	_panel.add_child(_teks_kanan)
 
+## Susun atur tegak: isian naik dari bawah, ikon di atas, nilai di tengah.
+func _bina_menegak() -> void:
+	_kiri_kandungan = jidar
+	_lebar_ikon = maxf(8.0, saiz_bar.x * 0.42)
+
+	_bar = ProgressBar.new()
+	_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_bar.show_percentage = false
+	_bar.min_value = 0.0
+	_bar.max_value = 1.0
+	_bar.step = 0.0
+	_bar.value = 1.0
+	_bar.fill_mode = ProgressBar.FILL_BOTTOM_TO_TOP
+	_bar.add_theme_stylebox_override("background", _gaya_trek())
+	_bar.add_theme_stylebox_override("fill", _gaya_isian(_warna_untuk(1.0)))
+	_bar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_bar.offset_left = jidar
+	_bar.offset_top = jidar
+	_bar.offset_right = -jidar
+	_bar.offset_bottom = -jidar
+	_panel.add_child(_bar)
+
+	# Ikon di bahagian atas lajur
+	_ikon = IkonBar.new()
+	_ikon.jenis = jenis
+	_ikon.size = Vector2(_lebar_ikon, _lebar_ikon)
+	_ikon.position = Vector2((saiz_bar.x - _lebar_ikon) * 0.5, jidar + 2.0)
+	_panel.add_child(_ikon)
+
+	# Nilai di tengah lajur
+	_teks = Label.new()
+	_teks.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_teks.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_teks.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_teks.add_theme_font_size_override("font_size", saiz_fon)
+	_teks.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	_teks.add_theme_color_override("font_outline_color", Color(0.02, 0.03, 0.06, 1))
+	_teks.add_theme_constant_override("outline_size", 3)
+	_teks.text = "--/--"
+	_teks.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_teks.offset_top = saiz_bar.y * 0.40
+	_teks.offset_bottom = -maxf(13.0, saiz_bar.y * 0.19)
+	_panel.add_child(_teks)
+
+	# Kadar cas di bawah sekali
+	_teks_kanan = Label.new()
+	_teks_kanan.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_teks_kanan.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_teks_kanan.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_teks_kanan.add_theme_font_size_override("font_size", maxi(6, saiz_fon - 1))
+	_teks_kanan.add_theme_color_override("font_color", Color(0.75, 0.92, 1.0, 1.0))
+	_teks_kanan.add_theme_color_override("font_outline_color", Color(0.02, 0.03, 0.06, 1))
+	_teks_kanan.add_theme_constant_override("outline_size", 3)
+	_teks_kanan.text = ""
+	_teks_kanan.visible = false
+	_teks_kanan.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_teks_kanan.offset_top = -maxf(13.0, saiz_bar.y * 0.19)
+	_teks_kanan.offset_bottom = -jidar
+	_panel.add_child(_teks_kanan)
+
 func _gaya_panel() -> StyleBoxFlat:
 	var gaya := StyleBoxFlat.new()
 	gaya.bg_color = WARNA_LATAR
-	gaya.set_corner_radius_all(int(maxf(4.0, saiz_bar.y * 0.32)))
+	gaya.set_corner_radius_all(int(6.0 if menegak else maxf(4.0, saiz_bar.y * 0.32)))
 	gaya.set_border_width_all(1)
 	gaya.border_color = WARNA_JIDAR
 	gaya.shadow_color = Color(0, 0, 0, 0.45)
@@ -181,14 +249,14 @@ func _gaya_panel() -> StyleBoxFlat:
 func _gaya_trek() -> StyleBoxFlat:
 	var gaya := StyleBoxFlat.new()
 	gaya.bg_color = Color(0.0, 0.0, 0.0, 0.55)
-	gaya.set_corner_radius_all(int(maxf(2.0, saiz_bar.y * 0.18)))
+	gaya.set_corner_radius_all(int(4.0 if menegak else maxf(2.0, saiz_bar.y * 0.18)))
 	return gaya
 
 func _gaya_isian(warna: Color) -> StyleBoxFlat:
 	var gaya := StyleBoxFlat.new()
 	gaya.bg_color = warna
-	gaya.set_corner_radius_all(int(maxf(2.0, saiz_bar.y * 0.18)))
-	gaya.border_width_top = 1
+	gaya.set_corner_radius_all(int(4.0 if menegak else maxf(2.0, saiz_bar.y * 0.18)))
+	gaya.border_width_top = 0 if menegak else 1
 	gaya.border_color = warna.lightened(0.35)
 	return gaya
 
@@ -226,11 +294,9 @@ func tetapkan(nisbah: float, teks: String, kanan: String = "") -> void:
 		_teks_kanan.visible = kanan != ""
 
 	# Teks utama (HP/tenaga) kekal di tengah penuh bar
-	_teks.offset_left = jidar
-	_teks.offset_right = -jidar
-
-	# Kekalkan lebar label kanan dikira (untuk rujukan), tetapi jangan anjak teks utama
-	var _simpan_kanan := _lebar_teks_kanan(_kanan_semasa)
+	if not menegak:
+		_teks.offset_left = jidar
+		_teks.offset_right = -jidar
 
 	var nisbah_baru := clampf(nisbah, 0.0, 1.0)
 	if is_equal_approx(nisbah_baru, _nisbah_semasa):
