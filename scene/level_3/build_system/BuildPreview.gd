@@ -310,9 +310,18 @@ func _on_butang_confirm_pressed() -> void:
 			bangunan_baru.global_position = global_position
 		
 		queue_free()
+		_beritahu_build_manager()
 
 func _on_butang_cancel_pressed() -> void:
 	queue_free()
+	_beritahu_build_manager()
+
+# Preview ini dihapuskan terus bila butang ✓/✗ terapung ditekan (sentuhan).
+# BuildManager kena ditamatkan juga, kalau tidak mod_pembinaan kekal true
+# dan player tak boleh gerak walaupun bangunan dah diletak atau dibatalkan.
+func _beritahu_build_manager() -> void:
+	if is_instance_valid(BuildManager):
+		BuildManager.tamatkan_pembinaan()
 
 func mod_pembinaan_aktif() -> bool:
 	return is_instance_valid(area_penderia)

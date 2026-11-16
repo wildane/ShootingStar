@@ -92,6 +92,16 @@ func mulakan_pembinaan(laluan_preview: String, laluan_actual: String, _nama_grou
 	get_tree().create_timer(0.2).timeout.connect(func(): boleh_terima_sentuhan = true)
 
 # ==========================================================
+# 🛡️ JARING KESELAMATAN
+# ==========================================================
+# Kalau preview hilang sendiri (butang ✓/✗ terapung, queue_free dari tempat
+# lain), jangan biar mod pembinaan tersangkut. Kalau tersangkut, player
+# terkunci tak boleh gerak sampai butang build ditekan.
+func _process(_delta: float) -> void:
+	if mod_pembinaan and not is_instance_valid(hologram_aktif):
+		tamatkan_pembinaan()
+
+# ==========================================================
 # 🎮 SCREEN INPUT DRAG & TOUCH (Kekal Ikut Logik Asal)
 # ==========================================================
 func _input(event: InputEvent):
