@@ -9,6 +9,7 @@ var bacaan_kuasa: Label = null
 @export_category("Sistem Had Kuasa Inverter")
 @export var radius_inverter_to_solar: float = 300.0
 @export var radius_inverter_to_furniture: float = 250.0
+@export var radius_inverter_to_player: float = 250.0
 @export var ketinggian_teks: float = -60.0
 @export var font_size: int = 16
 @export var font_offset_x: float = -150.0
@@ -24,6 +25,9 @@ var bacaan_kuasa: Label = null
 @export var total_power_supply: float = 0.0
 @export var total_power_requirement: float = 0.0
 @export var baki_tenaga: float = 0.0
+
+## EnergyComponent pemain yang sedang dapat bonus cas dari baki inverter ini.
+var _pemain_dicaj: Node = null
 
 var player_dekat: bool = false
 var masa_ketikan_terakhir: float = 0.0
@@ -64,6 +68,7 @@ func _physics_process(_delta: float) -> void:
 	if masa_sekarang - masa_semakan_terakhir >= SELA_MASA_SEMAKAN:
 		masa_semakan_terakhir = masa_sekarang
 		kira_grid_kuasa_lokal()
+		_kemas_kini_pencaj_pemain()
 
 func kira_grid_kuasa_lokal() -> void:
 	var semua_solar = get_tree().get_nodes_in_group("SolarModule")
@@ -152,6 +157,31 @@ func _kemas_kini_status_perabot_tiada_kuasa() -> void:
 	for perabot in get_tree().get_nodes_in_group("Furniture"):
 		if is_instance_valid(perabot) and perabot.inverter_pembekal == self and perabot.has_method("set_power_status"):
 			perabot.set_power_status(false, self)
+
+## Player dalam julat inverter ini dapat bonus cas dari baki load yang tak dipakai.
+func _kemas_kini_pencaj_pemain() -> void:
+	var pemain = get_tree().get_first_node_in_group("Player")
+	var tenaga: Node = null
+	var dalam_julat: bool = false
+	if is_instance_valid(pemain):
+		dalam_julat = global_position.distance_to(pemain.global_position) <= radius_inverter_to_player
+		if dalam_julat:
+			tenaga = pemain.get_node_or_null("EnergyComponent")
+	if tenaga != null and tenaga.has_method("daftar_inverter_pencaj"):
+		if _pemain_dicaj != tenaga:
+			_lepas_pemain_dicaj()
+			_pemain_dicaj = tenaga
+		tenaga.daftar_inverter_pencaj(self)
+	else:
+		_lepas_pemain_dicaj()
+
+func _lepas_pemain_dicaj() -> void:
+	if is_instance_valid(_pemain_dicaj) and _pemain_dicaj.has_method("nyahdaftar_inverter_pencaj"):
+		_pemain_dicaj.nyahdaftar_inverter_pencaj(self)
+	_pemain_dicaj = null
+
+func _exit_tree() -> void:
+	_lepas_pemain_dicaj()
 
 func _bebaskan_semua_solar_milik_saya() -> void:
 	for solar in get_tree().get_nodes_in_group("SolarModule"):
