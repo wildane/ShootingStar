@@ -23,6 +23,10 @@ var jari_bina: int = -1
 var jarak_heretan: float = 0.0
 const JARAK_TAP_MAKS: float = 14.0
 
+# true bila sentuhan bermula atas UI terapung preview (butang ✓/✗, senarai bahan).
+# Sentuhan macam ini milik butang, bukan isyarat bina.
+var _tekan_atas_ui_preview: bool = false
+
 # ==========================================================
 # 🏗️ CONSTRUCTION INITIALIZATION
 # ==========================================================
@@ -84,6 +88,7 @@ func mulakan_pembinaan(laluan_preview: String, laluan_actual: String, _nama_grou
 	posisi_jari_terakhir = get_viewport().get_mouse_position()
 	jari_bina = -1
 	jarak_heretan = 0.0
+	_tekan_atas_ui_preview = false
 	
 	mod_pembinaan = true
 	
@@ -130,8 +135,10 @@ func _input(event: InputEvent):
 			return
 
 		if event.button_index == MOUSE_BUTTON_LEFT:
-			# Klik atas UI (panel build / butang) jangan jadi binaan
-			if get_viewport().gui_get_hovered_control() == null:
+			# Klik atas UI (panel build / butang) jangan jadi binaan.
+			# Pada telefon input sampai sebagai mouse maya, jadi semakan UI
+			# preview kena dibuat di sini juga - bukan di _unhandled_input sahaja.
+			if get_viewport().gui_get_hovered_control() == null and not _kena_ui_preview(event.position):
 				ikut_mouse(event.position)
 				cuba_bina()
 				get_viewport().set_input_as_handled()
@@ -141,6 +148,7 @@ func _input(event: InputEvent):
 		# Jika sentuhan terkena pada mana-mana butang UI, abaikan pergerakan drag hologram
 		if event.pressed:
 			posisi_jari_terakhir = event.position
+			_tekan_atas_ui_preview = _kena_ui_preview(event.position)
 
 	if event is InputEventScreenDrag:
 		var jarak_skrin = event.position - posisi_jari_terakhir
@@ -163,11 +171,16 @@ func _unhandled_input(event: InputEvent) -> void:
 			jari_bina = event.index
 			posisi_jari_terakhir = event.position
 			jarak_heretan = 0.0
+			if _kena_ui_preview(event.position):
+				_tekan_atas_ui_preview = true
 		elif event.index == jari_bina:
 			jari_bina = -1
 			# Tap ringkas (bukan heret) = letak bangunan di posisi preview.
-			# Tap atas butang ✓/✗ atau senarai bahan preview bukan isyarat bina.
-			if jarak_heretan < JARAK_TAP_MAKS and not _kena_ui_preview(event.position):
+			# Tap yang bermula atas butang ✓/✗ atau senarai bahan preview
+			# bukan isyarat bina, walaupun jari bergeser sedikit.
+			var atas_ui: bool = _tekan_atas_ui_preview or _kena_ui_preview(event.position)
+			_tekan_atas_ui_preview = false
+			if jarak_heretan < JARAK_TAP_MAKS and not atas_ui:
 				cuba_bina()
 		return
 
