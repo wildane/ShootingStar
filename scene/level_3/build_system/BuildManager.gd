@@ -165,10 +165,32 @@ func _unhandled_input(event: InputEvent) -> void:
 			jarak_heretan = 0.0
 		elif event.index == jari_bina:
 			jari_bina = -1
-			# Tap ringkas (bukan heret) = letak bangunan di posisi preview
-			if jarak_heretan < JARAK_TAP_MAKS:
+			# Tap ringkas (bukan heret) = letak bangunan di posisi preview.
+			# Tap atas butang ✓/✗ atau senarai bahan preview bukan isyarat bina.
+			if jarak_heretan < JARAK_TAP_MAKS and not _kena_ui_preview(event.position):
 				cuba_bina()
 		return
+
+# Sentuhan pada UI terapung preview (butang ✓/✗ dan senarai bahan) tak boleh
+# dikira sebagai tap untuk bina. Tanpa semakan ini, tekan ✓ akan terus
+# membina bangunan di posisi preview juga.
+func _kena_ui_preview(pos_skrin: Vector2) -> bool:
+	if not is_instance_valid(hologram_aktif) or not ("bekas_ui_utama" in hologram_aktif):
+		return false
+	var bekas = hologram_aktif.bekas_ui_utama
+	if not is_instance_valid(bekas):
+		return false
+	return _kena_control(bekas, pos_skrin)
+
+func _kena_control(nod: Control, pos_skrin: Vector2) -> bool:
+	if not is_instance_valid(nod) or not nod.is_visible_in_tree():
+		return false
+	if nod.get_global_rect().has_point(_skrin_ke_dunia(pos_skrin)):
+		return true
+	for anak in nod.get_children():
+		if anak is Control and _kena_control(anak, pos_skrin):
+			return true
+	return false
 
 # Sembunyi butang ✓/✗ pada hologram (kekalkan senarai bahan)
 func sembunyi_butang_hologram() -> void:
