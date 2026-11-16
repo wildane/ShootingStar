@@ -132,6 +132,7 @@ func get_save_data() -> Dictionary:
 
 # 🔴 Sistem Pengurusan Kuasa Elektrik
 func set_power_status(status_elektrik: bool, pembekal: Node2D = null) -> void:
+	var kuasa_berubah: bool = has_power != status_elektrik
 	has_power = status_elektrik
 	if status_elektrik:
 		inverter_pembekal = pembekal
@@ -139,6 +140,11 @@ func set_power_status(status_elektrik: bool, pembekal: Node2D = null) -> void:
 		if inverter_pembekal == pembekal or pembekal == null:
 			inverter_pembekal = null
 	_kemas_kini_warna_visual()
+	# Butang craft kena ikut status kuasa semasa (menu mungkin tengah dibuka).
+	# Hanya kemas kini bila status betul-betul berubah supaya senarai harga
+	# tak dibina semula setiap 0.15s inverter.
+	if kuasa_berubah:
+		_kemas_kini_craft()
 
 # 🔴 Sistem Visual Feedback
 func _kemas_kini_warna_visual() -> void:
@@ -493,6 +499,9 @@ func _kemas_kini_craft() -> void:
 	if sudah:
 		_butang_craft.text = "Already crafted"
 		_butang_craft.disabled = true
+	elif not has_power:
+		_butang_craft.text = "No power"
+		_butang_craft.disabled = true
 	elif _bahan_cukup(resipi):
 		_butang_craft.text = "Craft"
 		_butang_craft.disabled = false
@@ -541,6 +550,11 @@ func _on_butang_craft_pressed() -> void:
 
 	if _sudah_punya(resipi["id"]):
 		_tulis_info(str(resipi["nama"]) + " is already crafted")
+		return
+
+	# Fabricator perlu kuasa dari inverter sebelum boleh craft
+	if not has_power:
+		_tulis_info("Fabricator has no power - connect it to a power inverter")
 		return
 
 	if not _bahan_cukup(resipi):
