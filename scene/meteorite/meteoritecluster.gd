@@ -21,6 +21,12 @@ var mine_timer: float = 0.0
 var hp_maks: int = 5
 var _keretakan: Array[Sprite2D] = []
 
+# Gegaran sikit masa sedang dilombong (dan sentakan kecil setiap ketukan)
+var _gegar_kuat: float = 0.0
+const GEGAR_LOMBONG: float = 0.35
+const GEGAR_KETUKAN: float = 1.6
+const GEGAR_REDUP: float = 4.0
+
 # Kilat pendek setiap kali meteor dipukul (bukan strobo berulang)
 var _kilat_timer: float = 0.0
 const MASA_KILAT: float = 0.09
@@ -63,12 +69,17 @@ func _process(delta: float) -> void:
 		direction = (direction + Vector2(randf_range(-0.1, 0.1), randf_range(-0.1, 0.1))).normalized()
 
 	if is_being_mined:
+		_gegar_kuat = maxf(_gegar_kuat, GEGAR_LOMBONG)
 		mine_timer += delta
 		if mine_timer >= 1.0:
 			mine_timer = 0.0
 			take_damage()
 	else:
 		mine_timer = 0.0
+
+	# Gegaran: offset rawak yang mengecil semula ke kedudukan asal
+	_gegar_kuat = maxf(0.0, _gegar_kuat - delta * GEGAR_REDUP)
+	_set_gegar(Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _gegar_kuat)
 
 	# Padam kilat selepas seketika
 	if _kilat_timer > 0.0:
@@ -79,6 +90,13 @@ func _process(delta: float) -> void:
 			if spark_vfx and not is_being_mined:
 				spark_vfx.emitting = false
 				spark_vfx.visible = false
+
+# Alih sprite meteor dan lapisan retak serentak supaya nampak bergegar.
+func _set_gegar(ofset: Vector2) -> void:
+	if sprite:
+		sprite.position = ofset
+	for retak in _keretakan:
+		retak.position = ofset
 
 # Retak ditambah satu lapis setiap kali HP berkurang.
 func _kemas_kini_keretakan() -> void:
@@ -100,6 +118,7 @@ func take_damage() -> void:
 	
 	_kemas_kini_keretakan()
 	_kilat()
+	_gegar_kuat = maxf(_gegar_kuat, GEGAR_KETUKAN)
 	
 	if hp <= 0:
 		destroy()
