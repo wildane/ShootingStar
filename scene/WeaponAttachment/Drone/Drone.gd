@@ -1,5 +1,7 @@
 extends Node2D
 
+const Bunyi = preload("res://audio/sfx.gd")  # kesan bunyi
+
 @export var rotation_speed: float = 3.0    # Kelajuan dron pusing keliling player
 @export var orbit_radius: float = 20.0     # Jarak rapat dron dengan Player
 @export var detection_range: float = 150.0  # Julat jarak untuk serang musuh
@@ -157,7 +159,7 @@ func shoot_bullet():
 		# Peluru ikut julat drone ini: hilang bila sampai detection_range
 		if "max_range" in bullet:
 			bullet.max_range = detection_range
-		Sfx.mainkan(get_parent(), "tembakan", -14.0)
+		Bunyi.mainkan(get_parent(), "tembakan", -14.0)
 		_shake_drone_sprite()
 
 func _shake_drone_sprite():
