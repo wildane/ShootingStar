@@ -60,8 +60,10 @@ func _bina_ikon_cas() -> void:
 	_ikon_cas.name = "IkonCas"
 	_ikon_cas.set_script(skrip)
 	_ikon_cas.ikut_sprite_aktif = false
-	_ikon_cas.jarak_simbol = -34.0
-	_ikon_cas.saiz_simbol = 11.0
+	# Sprite stesen lebih kurang 24 unit tinggi (tengah di 0), jadi ikon
+	# diletak rapat di atas bahagian atasnya.
+	_ikon_cas.jarak_simbol = -16.0
+	_ikon_cas.saiz_simbol = 10.0
 	_ikon_cas.position = Vector2.ZERO
 	add_child(_ikon_cas)
 
