@@ -149,6 +149,7 @@ func _on_objek_keluar(target: Node2D) -> void:
 
 func destroy() -> void:
 	print("Sistem Meteor: Meteor hancur! Mencari DropComponent...")
+	Sfx.mainkan("pecah", -3.0)
 	
 	# Mencari DropComponent di dalam nod anak meteorcluster
 	var drop_comp = find_child("DropComponent", true, false)

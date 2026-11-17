@@ -26,6 +26,7 @@ func _ready() -> void:
 	_sedia("lendir")
 	_sedia("letupan")
 	_sedia("lendir_boss")
+	_sedia("pecah")
 	_mula_ambien()
 	_mula_muzik_bos()
 
@@ -178,6 +179,8 @@ func _jana(nama: String) -> AudioStreamWAV:
 		return _jana_letupan()
 	if nama == "lendir_boss":
 		return _jana_lendir_boss()
+	if nama == "pecah":
+		return _jana_pecah()
 	push_warning("Sfx: bunyi tidak dikenali - " + nama)
 	return null
 
@@ -492,3 +495,39 @@ func _jana_rancak() -> AudioStreamWAV:
 
 	_normal(s, 0.97)
 	return _ke_stream(s, true, kadar)
+
+# ---- Bunyi meteorit pecah sepenuhnya: hancur besar -------------------
+
+func _jana_pecah() -> AudioStreamWAV:
+	var tempoh: float = 0.95
+	var n: int = int(KADAR * tempoh)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var a_tengah: float = clampf(TAU * 2200.0 / float(KADAR), 0.0, 1.0)
+	var a_rendah: float = clampf(TAU * 180.0 / float(KADAR), 0.0, 1.0)
+	var y_tengah: float = 0.0
+	var y_rendah: float = 0.0
+	var fasa_gemuruh: float = 0.0
+	var butir: float = 0.0
+	for i in n:
+		var t: float = float(i) / float(KADAR)
+		var putih: float = randf_range(-1.0, 1.0)
+		y_tengah += a_tengah * (putih - y_tengah)
+		y_rendah += a_rendah * (putih - y_rendah)
+		# Letusan besar: noise penuh.
+		var letus: float = putih * exp(-t * 55.0) * 0.9
+		# Hancuran batu yang berterusan.
+		var hancur: float = (y_tengah - y_rendah) * exp(-t * 7.0) * 1.5
+		# Gemuruh rendah perlahan (rasa berat).
+		fasa_gemuruh += TAU * lerpf(72.0, 34.0, t / tempoh) / float(KADAR)
+		var gemuruh: float = sin(fasa_gemuruh) * exp(-t * 3.2) * 0.45
+		# Serpihan bertaburan sepanjang letupan.
+		if randf() < 0.30 * exp(-t * 3.5):
+			butir = randf_range(-1.0, 1.0) * randf_range(0.25, 0.7)
+		butir *= 0.9
+		s[i] = letus + hancur + gemuruh + butir
+	_lulus_rendah(s, 5200.0)
+	_gema(s, 0.12, 0.25)
+	_gema(s, 0.26, 0.14)
+	_normal(s, 0.95)
+	return _ke_stream(s, false)
