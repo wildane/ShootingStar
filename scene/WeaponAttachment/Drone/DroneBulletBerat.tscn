@@ -4,7 +4,7 @@
 
 [node name="DroneBulletBerat" instance=ExtResource("1_bullet")]
 speed = 430.0
-damage = 3.0
+damage = 5.0
 
 [node name="Sprite2D" parent="." index="0"]
 scale = Vector2(0.2, 0.2)
