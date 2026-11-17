@@ -26,6 +26,7 @@ InventoryManager="*res://scene/Inventory/InventoryManager.gd"
 SceneTransition="*res://scene/tscn_transition/ SceneTransition.tscn"
 NetworkManager="*res://NetworkManager.gd"
 SaveManager="*res://SaveManager.gd"
+Sfx="*res://audio/sfx.gd"
 
 [display]
 

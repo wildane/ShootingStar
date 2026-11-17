@@ -3,8 +3,6 @@
 # ==========================================================
 extends Area2D
 
-const Bunyi = preload("res://audio/sfx.gd")  # kesan bunyi
-
 # Kelajuan perlahan mengikut kod base asal anda
 var speed: float = 0.03
 var rotation_speed: float = 0.03
@@ -121,7 +119,7 @@ func take_damage() -> void:
 	_kemas_kini_keretakan()
 	_kilat()
 	_gegar_kuat = maxf(_gegar_kuat, GEGAR_KETUKAN)
-	Bunyi.mainkan(self, "lombong", -4.0)
+	Sfx.mainkan("lombong", -4.0)
 	
 	if hp <= 0:
 		destroy()
