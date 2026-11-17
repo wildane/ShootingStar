@@ -28,6 +28,7 @@ var angle: float = 0.0
 # Musuh di luar ark ini diabaikan, jadi dron tak pusing ke belakang.
 var arah_hadapan: float = 0.0
 
+
 # Pembolehubah dalaman untuk mengira masa bertenang
 var cooldown_timer: float = 0.0
 
@@ -52,7 +53,10 @@ func _physics_process(delta):
 	visible = true
 		
 	# 1. SET KEDUDUKAN ORBIT (Mengelilingi Player)
-	angle += rotation_speed * delta
+	# Bila ada sasaran, dron berhenti berpusing keliling player dan
+	# kekal di kedudukannya cuma pusing kiri kanan mengadap musuh.
+	if not is_instance_valid(current_enemy):
+		angle += rotation_speed * delta
 	var offset = Vector2(cos(angle), sin(angle)) * orbit_radius
 	global_position = target_player.global_position + offset
 
