@@ -73,7 +73,7 @@ func _mula_muzik_bos() -> void:
 		return
 	_muzik_bos = AudioStreamPlayer.new()
 	_muzik_bos.stream = stream
-	_muzik_bos.volume_db = -5.0
+	_muzik_bos.volume_db = -1.0
 	_muzik_bos.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_muzik_bos)
 
@@ -494,6 +494,9 @@ func _jana_rancak() -> AudioStreamWAV:
 		s[i] += sin(TAU * 36.71 * t) * 0.22 * getar
 
 	_normal(s, 0.97)
+	# Sedikit saturasi: bunyi terasa lebih kuat dan padat tanpa clipping.
+	for i in n:
+		s[i] = tanh(s[i] * 1.5) * 0.95
 	return _ke_stream(s, true, kadar)
 
 # ---- Bunyi meteorit pecah sepenuhnya: hancur besar -------------------
