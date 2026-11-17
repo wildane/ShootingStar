@@ -411,29 +411,83 @@ func _tambah_nada(s: PackedFloat32Array, kadar: int, mula: float, f: float,
 		var sampul: float = (1.0 - exp(-t * 90.0)) * exp(-t * redam)
 		s[idx] += v * sampul * amp
 
+func _tambah_kluster(s: PackedFloat32Array, kadar: int, mula: float, frekuensi: Array,
+		panjang: float, amp: float, redam: float) -> void:
+	var i0: int = int(mula * kadar)
+	var jumlah: int = int(panjang * kadar)
+	for i in jumlah:
+		var idx: int = (i0 + i) % s.size()
+		var t: float = float(i) / float(kadar)
+		var v: float = 0.0
+		for f in frekuensi:
+			var fasa: float = TAU * float(f) * t
+			v += sin(fasa) + 0.3 * sin(fasa * 3.0)
+		v /= float(frekuensi.size())
+		s[idx] += v * (1.0 - exp(-t * 120.0)) * exp(-t * redam) * amp
+
+func _tambah_riser(s: PackedFloat32Array, kadar: int, mula: float, panjang: float, amp: float) -> void:
+	var i0: int = int(mula * kadar)
+	var jumlah: int = int(panjang * kadar)
+	var a: float = clampf(TAU * 2000.0 / float(kadar), 0.0, 1.0)
+	var y: float = 0.0
+	var fasa: float = 0.0
+	for i in jumlah:
+		var idx: int = (i0 + i) % s.size()
+		var t: float = float(i) / float(kadar)
+		var maju: float = t / panjang
+		var putih: float = randf_range(-1.0, 1.0)
+		y += a * (putih - y)
+		var tinggi: float = putih - y
+		fasa += TAU * lerpf(120.0, 900.0, maju * maju) / float(kadar)
+		s[idx] += (tinggi * 0.6 + sin(fasa) * 0.5) * pow(maju, 2.0) * amp
+
 func _jana_rancak() -> AudioStreamWAV:
 	var kadar: int = KADAR_AMBIEN
-	var bpm: float = 140.0
+	var bpm: float = 168.0
 	var ketuk: float = 60.0 / bpm
 	var bil_ketuk: int = 8
 	var tempoh: float = ketuk * bil_ketuk
 	var n: int = int(kadar * tempoh)
 	var s := PackedFloat32Array()
 	s.resize(n)
-	# Garis bass mengikut corak 8 ketukan (A minor).
-	var bass := [55.0, 55.0, 65.41, 49.0, 55.0, 55.0, 73.42, 65.41]
-	# Melodi pendek pada off-beat.
-	var arp := [220.0, 261.63, 329.63, 261.63, 220.0, 261.63, 392.0, 329.63]
+	var langkah: float = ketuk * 0.25  # not keenam belas
+
+	# Bass ostinato 16-hantaran dengan tritone D#2 (rasa menakutkan).
+	var bass := [55.0, 55.0, 77.78, 55.0, 55.0, 55.0, 73.42, 55.0]
+	for i in 32:
+		var mula: float = float(i) * langkah
+		_tambah_nada(s, kadar, mula, bass[i % 8], langkah * 0.95, 0.24, 20.0)
+		# Hi-hat setiap 16-hantaran, aksen pada ketuk.
+		var aksen: float = 0.13 if i % 4 == 0 else 0.07
+		_tambah_hitam(s, kadar, mula, 0.05, aksen)
+
+	# Tendangan "denyut jantung": dua kali setiap ketuk.
 	for b in bil_ketuk:
 		var mula: float = float(b) * ketuk
-		# Tendangan pada setiap ketuk.
-		_tambah_dentum(s, kadar, mula, 150.0, 52.0, 0.24, 0.55, 16.0)
-		# Bass.
-		_tambah_nada(s, kadar, mula, bass[b], 0.30, 0.30, 7.0)
-		# Hi-hat pada separuh ketuk.
-		_tambah_hitam(s, kadar, mula, 0.06, 0.16)
-		_tambah_hitam(s, kadar, mula + ketuk * 0.5, 0.06, 0.12)
-		# Melodi pada off-beat.
-		_tambah_nada(s, kadar, mula + ketuk * 0.5, arp[b], 0.16, 0.12, 12.0)
-	_normal(s, 0.95)
+		_tambah_dentum(s, kadar, mula, 160.0, 48.0, 0.22, 0.7, 18.0)
+		_tambah_dentum(s, kadar, mula + ketuk * 0.35, 130.0, 45.0, 0.18, 0.45, 22.0)
+
+	# Pukulan snare pada ketuk 3 dan 7.
+	for b in [2, 6]:
+		var mula: float = float(b) * ketuk
+		_tambah_hitam(s, kadar, mula, 0.16, 0.30)
+		_tambah_nada(s, kadar, mula, 190.0, 0.12, 0.22, 30.0)
+
+	# Kluster sumbang (A minor + tritone) seperti biola histeria.
+	for b in [3, 7]:
+		var mula: float = float(b) * ketuk
+		_tambah_kluster(s, kadar, mula, [220.0, 261.63, 311.13], 0.18, 0.55, 16.0)
+		_tambah_kluster(s, kadar, mula + ketuk * 0.5, [233.08, 293.66, 349.23], 0.12, 0.35, 20.0)
+
+	# Riser menegangkan setiap 4 ketuk.
+	_tambah_riser(s, kadar, 0.0, ketuk * 4.0, 0.22)
+	_tambah_riser(s, kadar, ketuk * 4.0, ketuk * 4.0, 0.32)
+
+	# Dron rendah D1 yang bergetar perlahan (ancaman di belakang).
+	for i in n:
+		var t: float = float(i) / float(kadar)
+		var getar: float = 0.6 + 0.4 * sin(TAU * 3.0 * t / tempoh)
+		s[i] += sin(TAU * 36.71 * t) * 0.22 * getar
+
+	_normal(s, 0.97)
 	return _ke_stream(s, true, kadar)
