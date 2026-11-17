@@ -220,12 +220,9 @@ func _jana_ambien() -> AudioStreamWAV:
 		var angin: float = (y_angin - y_ombak * 0.6) * (0.35 + 0.65 * nafas)
 		# Ombak: gelombang lembut berulang.
 		var ombak: float = y_ombak * (0.45 + 0.55 * sin(TAU * 0.125 * t + 1.2))
-		# Dron rendah (oktaf + kelima) dengan tremolo sangat perlahan.
-		var dron: float = sin(TAU * 55.0 * t) * 0.5 + sin(TAU * 82.5 * t) * 0.22
-		dron *= 0.6 + 0.4 * sin(TAU * 0.05 * t)
 		# Bisikan tinggi yang samar (bintang berkelip).
 		var bisik: float = sin(TAU * 1320.0 * t + 2.0 * sin(TAU * 0.09 * t)) * 0.05
-		s[i] = angin * 0.75 + ombak * 0.85 + dron * 0.9 + bisik
+		s[i] = angin * 0.85 + ombak * 0.95 + bisik
 	_normal(s, 0.62)
 	# Crossfade hujung ke kepala supaya gelung tidak "pop".
 	for i in silang:
