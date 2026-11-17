@@ -18,7 +18,7 @@ var has_power: bool = false
 var inverter_pembekal: Node2D = null
 
 @export_category("Sistem Pengecasan")
-@export var radius_cas: float = 90.0
+@export var radius_cas: float = 30.0
 @export var kadar_cas: float = 5.0        # tenaga sesaat semasa aktif
 
 var player_dekat: bool = false
