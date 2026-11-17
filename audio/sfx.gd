@@ -213,27 +213,32 @@ func _jana_tembakan() -> AudioStreamWAV:
 # ---- Bunyi melombong: ketukan batu + serpihan pecah -------------------
 
 func _jana_lombong() -> AudioStreamWAV:
-	var tempoh: float = 0.32
+	# Bunyi batu hancur sepenuhnya berasaskan noise: tiada nada tetap,
+	# jadi tiada langsung bunyi "dong".
+	var tempoh: float = 0.30
 	var n: int = int(KADAR * tempoh)
 	var s := PackedFloat32Array()
 	s.resize(n)
-	var retak: float = 0.0
+	var a_tengah: float = clampf(TAU * 1800.0 / float(KADAR), 0.0, 1.0)
+	var a_rendah: float = clampf(TAU * 200.0 / float(KADAR), 0.0, 1.0)
+	var y_tengah: float = 0.0
+	var y_rendah: float = 0.0
+	var butir: float = 0.0
 	for i in n:
 		var t: float = float(i) / float(KADAR)
-		# Impak tajam mata cangkul kena batu.
-		var impak: float = randf_range(-1.0, 1.0) * exp(-t * 165.0) * 0.9
-		# Resonans batu: tiga partial tak harmonik, reput cepat.
-		var nada1: float = sin(TAU * 520.0 * t) * exp(-t * 38.0) * 0.35
-		var nada2: float = sin(TAU * 873.0 * t + 0.7) * exp(-t * 52.0) * 0.22
-		var nada3: float = sin(TAU * 1310.0 * t + 1.9) * exp(-t * 70.0) * 0.14
-		# Bunyi hancur / kerikil yang jatuh.
-		retak = retak * 0.6 + randf_range(-1.0, 1.0) * 0.4
-		var kerikil: float = retak * exp(-t * 16.0) * 0.5
-		var butir: float = 0.0
-		if randf() < 0.35 * exp(-t * 9.0):
-			butir = randf_range(-1.0, 1.0) * 0.45
-		s[i] = impak + nada1 + nada2 + nada3 + kerikil + butir
-	_lulus_rendah(s, 6500.0)
+		var putih: float = randf_range(-1.0, 1.0)
+		y_tengah += a_tengah * (putih - y_tengah)
+		y_rendah += a_rendah * (putih - y_rendah)
+		# Impak: noise penuh yang reput dalam beberapa milisaat.
+		var impak: float = putih * exp(-t * 230.0) * 0.85
+		# Hancur: julat pertengahan (band-pass kasar), lembap dan berat.
+		var hancur: float = (y_tengah - y_rendah) * exp(-t * 24.0) * 1.7
+		# Kerikil: butir rawak yang makin jarang (tekstur retak).
+		if randf() < 0.22 * exp(-t * 10.0):
+			butir = randf_range(-1.0, 1.0) * randf_range(0.3, 0.7)
+		butir *= 0.86
+		s[i] = impak + hancur + butir
+	_lulus_rendah(s, 6000.0)
 	_normal(s, 0.9)
 	return _ke_stream(s, false)
 
