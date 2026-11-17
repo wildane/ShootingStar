@@ -1,18 +1,21 @@
 extends Node2D
 
 ## Kesan visual semasa player dicas oleh Charging Station:
-## arka sian berputar + titik kecil mengelilingi badan player.
+## arka sian berputar + titik tenaga mengelilingi badan player.
+## Node ini anak terus player, jadi ia boleh ikut kedua-dua bentuk player
+## (SpriteBase semasa berjalan, SpriteAngkasa semasa terbang).
 
 @export var radius: float = 14.0
 @export var warna: Color = Color(0.45, 0.95, 1.0)
 @export var kelajuan: float = 2.0
+@export var ikut_sprite_aktif: bool = true
 
 var aktif: bool = false
 var _masa: float = 0.0
 
 func _ready() -> void:
 	visible = false
-	z_index = 2
+	z_index = 6
 	set_process(true)
 
 func _process(delta: float) -> void:
@@ -20,9 +23,31 @@ func _process(delta: float) -> void:
 		if visible:
 			visible = false
 		return
+
 	visible = true
 	_masa += delta
+	if ikut_sprite_aktif:
+		_ikut_sprite_aktif()
 	queue_redraw()
+
+# Letak kesan pada sprite player yang sedang kelihatan supaya arka
+# mengelilingi badan yang betul dalam kedua-dua bentuk.
+func _ikut_sprite_aktif() -> void:
+	var ibu := get_parent()
+	if ibu == null:
+		return
+
+	var sprite: Node2D = null
+	var base := ibu.get_node_or_null("SpriteBase") as Node2D
+	if base != null and base.visible:
+		sprite = base
+	else:
+		var angkasa := ibu.get_node_or_null("SpriteAngkasa") as Node2D
+		if angkasa != null and angkasa.visible:
+			sprite = angkasa
+
+	if sprite != null:
+		position = sprite.position
 
 func _draw() -> void:
 	if not aktif:
