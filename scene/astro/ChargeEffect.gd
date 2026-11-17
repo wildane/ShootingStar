@@ -11,7 +11,7 @@ extends Node2D
 @export var warna: Color = Color(0.45, 0.95, 1.0)          # warna zarah
 @export var warna_simbol: Color = Color(1.0, 0.85, 0.2)    # kuning ikon HUD
 @export var saiz_simbol: float = 9.0                       # tinggi ikon kilat
-@export var jarak_simbol: float = -19.0                    # betul-betul atas kepala
+@export var jarak_simbol: float = -15.0                    # rapat atas kepala
 @export var jumlah_zarah: int = 18
 @export var saiz_zarah_min: float = 0.12
 @export var saiz_zarah_max: float = 0.32
@@ -37,17 +37,17 @@ func _bina_zarah() -> void:
 	if tekstur != null:
 		_zarah.texture = tekstur
 	_zarah.amount = jumlah_zarah
-	_zarah.lifetime = 0.6
+	_zarah.lifetime = 0.5
 	_zarah.preprocess = 0.3
 	_zarah.direction = Vector2(0, -1)
 	_zarah.spread = 22.0
-	_zarah.gravity = Vector2(0, -12)
-	_zarah.initial_velocity_min = 24.0
-	_zarah.initial_velocity_max = 38.0
+	_zarah.gravity = Vector2(0, -8)
+	_zarah.initial_velocity_min = 18.0
+	_zarah.initial_velocity_max = 30.0
 	_zarah.scale_amount_min = saiz_zarah_min
 	_zarah.scale_amount_max = saiz_zarah_max
 	_zarah.color = warna
-	_zarah.position = Vector2(0, 2)
+	_zarah.position = Vector2(0, 0)
 	_zarah.z_index = 5
 	_zarah.emitting = false
 	add_child(_zarah)
