@@ -61,7 +61,13 @@ static func _buat(nama: String) -> AudioStreamWAV:
 			var petik: float = sin(TAU * 1450.0 * t) * exp(-t * 60.0) * 0.25
 			nilai = badan + petik + randf_range(-1.0, 1.0) * exp(-t * 40.0) * 0.35
 		nilai = clampf(nilai, -1.0, 1.0)
-		data.encode_s16(i * 2, int(roundf(nilai * KUAT)))
+		# Tulis PCM 16-bit little-endian secara manual (tanpa encode_s16).
+		var v: int = int(roundf(nilai * KUAT))
+		v = clampi(v, -32768, 32767)
+		if v < 0:
+			v += 65536
+		data[i * 2] = v & 0xFF
+		data[i * 2 + 1] = (v >> 8) & 0xFF
 
 	var stream := AudioStreamWAV.new()
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
