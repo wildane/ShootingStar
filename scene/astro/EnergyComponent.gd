@@ -18,6 +18,7 @@ var _baki_rehat: float = 0.0
 var kadar_cas_semasa: float = 0.0           # kadar cas sebenar, untuk paparan HUD
 var _stesen_cas: Array[Node] = []           # Charging Station yang sedang mengecas
 var _efek_cas: Node2D = null                # kesan arka semasa dicas
+var _efek_aktif_terakhir: bool = false
 
 func _ready() -> void:
 	tenaga = max_energy
@@ -42,6 +43,7 @@ func _sediakan_efek_cas() -> void:
 	if ibu == null:
 		ibu = self
 	ibu.add_child(_efek_cas)
+	print("[Cas] EfekCas dicipta bawah ", ibu.name)
 
 func _kemas_kini_efek_cas() -> void:
 	if _efek_cas == null or not ("aktif" in _efek_cas):
@@ -50,6 +52,9 @@ func _kemas_kini_efek_cas() -> void:
 	# dan tenaga belum penuh.
 	var mengecas: bool = tenaga < max_energy - 0.001 and kadar_cas_semasa > pulih_sesaat + 0.001
 	_efek_cas.aktif = mengecas
+	if mengecas != _efek_aktif_terakhir:
+		_efek_aktif_terakhir = mengecas
+		print("[Cas] kesan cas ", "HIDUP" if mengecas else "MATI", "  kadar=", kadar_cas_semasa)
 
 func _process(delta: float) -> void:
 	kadar_cas_semasa = _kira_kadar_cas()
