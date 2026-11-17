@@ -17,14 +17,40 @@ var tenaga: float = 100.0
 var _baki_rehat: float = 0.0
 var kadar_cas_semasa: float = 0.0           # kadar cas sebenar, untuk paparan HUD
 var _stesen_cas: Array[Node] = []           # Charging Station yang sedang mengecas
+var _efek_cas: Node2D = null                # kesan arka semasa dicas
 
 func _ready() -> void:
 	tenaga = max_energy
 	kadar_cas_semasa = pulih_sesaat
+	_sediakan_efek_cas()
 	set_process(true)
+
+# Kesan visual arka berputar di sekeliling badan player semasa dicas stesen.
+func _sediakan_efek_cas() -> void:
+	if _efek_cas != null:
+		return
+	var skrip = load("res://scene/astro/ChargeEffect.gd")
+	if skrip == null:
+		return
+	_efek_cas = Node2D.new()
+	_efek_cas.name = "EfekCas"
+	_efek_cas.set_script(skrip)
+	add_child(_efek_cas)
+
+func _kemas_kini_efek_cas() -> void:
+	if _efek_cas == null or not ("aktif" in _efek_cas):
+		return
+	var mengecas: bool = false
+	if tenaga < max_energy - 0.001:
+		for stesen in _stesen_cas:
+			if is_instance_valid(stesen) and ("kadar_cas_semasa" in stesen) and stesen.kadar_cas_semasa > 0.0:
+				mengecas = true
+				break
+	_efek_cas.aktif = mengecas
 
 func _process(delta: float) -> void:
 	kadar_cas_semasa = _kira_kadar_cas()
+	_kemas_kini_efek_cas()
 	if _baki_rehat > 0.0:
 		_baki_rehat -= delta
 		return
