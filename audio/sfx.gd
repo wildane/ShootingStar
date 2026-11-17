@@ -213,33 +213,27 @@ func _jana_tembakan() -> AudioStreamWAV:
 # ---- Bunyi melombong: ketukan batu + serpihan pecah -------------------
 
 func _jana_lombong() -> AudioStreamWAV:
-	var tempoh: float = 0.38
+	var tempoh: float = 0.32
 	var n: int = int(KADAR * tempoh)
 	var s := PackedFloat32Array()
 	s.resize(n)
-	var fasa: float = 0.0
-	var gerudi: float = 0.0
+	var retak: float = 0.0
 	for i in n:
 		var t: float = float(i) / float(KADAR)
-		var maju: float = t / tempoh
-		# Motor gerudi: laju naik dulu, kemudian perlahan balik.
-		var naik: float = minf(maju * 2.5, 1.0)
-		var turun: float = 1.0 - 0.35 * clampf((maju - 0.6) / 0.4, 0.0, 1.0)
-		var f: float = lerpf(150.0, 305.0, naik) * turun
-		fasa += TAU * f / float(KADAR)
-		# Gelombang gigi gergaji: bunyi mekanikal motor.
-		var gigi: float = fmod(fasa / TAU, 1.0) * 2.0 - 1.0
-		var motor: float = gigi * exp(-t * 3.0) * 0.32
-		# Hancuran batu: noise yang berdenyut ikut putaran gerudi.
-		gerudi = gerudi * 0.55 + randf_range(-1.0, 1.0) * 0.45
-		var putar: float = 0.45 + 0.55 * sin(TAU * 42.0 * t)
-		var hancur: float = gerudi * putar * exp(-t * 4.5) * 0.95
-		# Ketukan kecil bila mata gerudi sentuh batu.
-		var sentuh: float = 0.0
-		if randf() < 0.05 * exp(-t * 3.0):
-			sentuh = randf_range(-1.0, 1.0) * 0.4
-		s[i] = motor + hancur + sentuh
-	_lulus_rendah(s, 5000.0)
+		# Impak tajam mata cangkul kena batu.
+		var impak: float = randf_range(-1.0, 1.0) * exp(-t * 165.0) * 0.9
+		# Resonans batu: tiga partial tak harmonik, reput cepat.
+		var nada1: float = sin(TAU * 520.0 * t) * exp(-t * 38.0) * 0.35
+		var nada2: float = sin(TAU * 873.0 * t + 0.7) * exp(-t * 52.0) * 0.22
+		var nada3: float = sin(TAU * 1310.0 * t + 1.9) * exp(-t * 70.0) * 0.14
+		# Bunyi hancur / kerikil yang jatuh.
+		retak = retak * 0.6 + randf_range(-1.0, 1.0) * 0.4
+		var kerikil: float = retak * exp(-t * 16.0) * 0.5
+		var butir: float = 0.0
+		if randf() < 0.35 * exp(-t * 9.0):
+			butir = randf_range(-1.0, 1.0) * 0.45
+		s[i] = impak + nada1 + nada2 + nada3 + kerikil + butir
+	_lulus_rendah(s, 6500.0)
 	_normal(s, 0.9)
 	return _ke_stream(s, false)
 
