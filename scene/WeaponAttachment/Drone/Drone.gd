@@ -77,11 +77,9 @@ func _physics_process(delta):
 		var arah_musuh: float = (current_enemy.global_position - global_position).angle()
 		_putar_ke(arah_musuh, delta)
 		
-		var beza_muncung: float = absf(wrapf(global_rotation - arah_musuh, -PI, PI))
-		var beza_kedudukan: float = absf(wrapf(angle - sudut_sasaran, -PI, PI))
-		
-		# Tembak hanya bila sudah sampai titik terdekat DAN muncung menghala ke musuh
-		if cooldown_timer <= 0 and beza_muncung <= deg_to_rad(6.0) and beza_kedudukan <= deg_to_rad(8.0):
+		# Tembak serta-merta bila detect musuh, walaupun masih bergerak ke orbit
+		# terdekat. Peluru dihalakan terus ke musuh dalam shoot_bullet().
+		if cooldown_timer <= 0:
 			shoot_bullet()
 			cooldown_timer = shoot_cooldown # Reset semula masa menunggu mengikut nilai Inspector
 	else:
@@ -150,7 +148,12 @@ func shoot_bullet():
 		var bullet = bullet_scene.instantiate()
 		get_tree().current_scene.add_child(bullet)
 		bullet.global_position = global_position
-		bullet.global_rotation = global_rotation
+		# Hala peluru terus ke musuh supaya tembakan tepat walaupun dron
+		# masih berpusing/bergerak ke posisi orbit terdekat.
+		if is_instance_valid(current_enemy):
+			bullet.global_rotation = (current_enemy.global_position - global_position).angle()
+		else:
+			bullet.global_rotation = global_rotation
 		# Peluru ikut julat drone ini: hilang bila sampai detection_range
 		if "max_range" in bullet:
 			bullet.max_range = detection_range
