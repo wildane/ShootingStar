@@ -58,6 +58,7 @@ static func _jana(nama: String) -> AudioStreamWAV:
 		push_warning("Sfx: bunyi tidak dikenali - " + nama)
 		return null
 
+	print("SFX: jana bunyi ", nama, " (", tempoh, "s) - tiada aset diperlukan")
 	var jumlah: int = maxi(1, int(KADAR * tempoh))
 	var bait := PackedByteArray()
 	bait.resize(jumlah * 2)
