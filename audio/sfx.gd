@@ -213,31 +213,33 @@ func _jana_tembakan() -> AudioStreamWAV:
 # ---- Bunyi melombong: ketukan batu + serpihan pecah -------------------
 
 func _jana_lombong() -> AudioStreamWAV:
-	var tempoh: float = 0.34
+	var tempoh: float = 0.38
 	var n: int = int(KADAR * tempoh)
 	var s := PackedFloat32Array()
 	s.resize(n)
 	var fasa: float = 0.0
-	var fasa_logam: float = 0.0
-	var serakah: float = 0.0
+	var gerudi: float = 0.0
 	for i in n:
 		var t: float = float(i) / float(KADAR)
-		# Ketukan rendah batu.
-		var f: float = lerpf(230.0, 62.0, t / tempoh)
+		var maju: float = t / tempoh
+		# Motor gerudi: laju naik dulu, kemudian perlahan balik.
+		var naik: float = minf(maju * 2.5, 1.0)
+		var turun: float = 1.0 - 0.35 * clampf((maju - 0.6) / 0.4, 0.0, 1.0)
+		var f: float = lerpf(150.0, 305.0, naik) * turun
 		fasa += TAU * f / float(KADAR)
-		var dentum: float = sin(fasa) * exp(-t * 16.0) * 0.9
-		# Bunyi kasar batu pecah (noise yang ditapis).
-		serakah = serakah * 0.72 + randf_range(-1.0, 1.0) * 0.28
-		var hancur: float = serakah * exp(-t * 34.0) * 1.1
-		# Resonans logam kecil bila mata cangkul kena batu.
-		fasa_logam += TAU * 1180.0 / float(KADAR)
-		var logam: float = sin(fasa_logam) * exp(-t * 42.0) * 0.22
-		# Serpihan kecil yang berterabur lepas ketukan.
-		var serpihan: float = 0.0
-		if randf() < 0.05 * exp(-t * 6.0):
-			serpihan = randf_range(-1.0, 1.0) * 0.5
-		s[i] = dentum * 0.7 + hancur * 0.55 + logam + serpihan
-	_lulus_rendah(s, 3800.0)
+		# Gelombang gigi gergaji: bunyi mekanikal motor.
+		var gigi: float = fmod(fasa / TAU, 1.0) * 2.0 - 1.0
+		var motor: float = gigi * exp(-t * 3.0) * 0.32
+		# Hancuran batu: noise yang berdenyut ikut putaran gerudi.
+		gerudi = gerudi * 0.55 + randf_range(-1.0, 1.0) * 0.45
+		var putar: float = 0.45 + 0.55 * sin(TAU * 42.0 * t)
+		var hancur: float = gerudi * putar * exp(-t * 4.5) * 0.95
+		# Ketukan kecil bila mata gerudi sentuh batu.
+		var sentuh: float = 0.0
+		if randf() < 0.05 * exp(-t * 3.0):
+			sentuh = randf_range(-1.0, 1.0) * 0.4
+		s[i] = motor + hancur + sentuh
+	_lulus_rendah(s, 5000.0)
 	_normal(s, 0.9)
 	return _ke_stream(s, false)
 
