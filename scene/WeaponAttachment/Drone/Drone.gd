@@ -159,7 +159,7 @@ func shoot_bullet():
 		# Peluru ikut julat drone ini: hilang bila sampai detection_range
 		if "max_range" in bullet:
 			bullet.max_range = detection_range
-		Bunyi.mainkan(get_parent(), "tembakan", -14.0)
+		Bunyi.mainkan(self, "tembakan", -10.0)
 		_shake_drone_sprite()
 
 func _shake_drone_sprite():
