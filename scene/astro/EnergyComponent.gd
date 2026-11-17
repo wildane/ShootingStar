@@ -35,17 +35,20 @@ func _sediakan_efek_cas() -> void:
 	_efek_cas = Node2D.new()
 	_efek_cas.name = "EfekCas"
 	_efek_cas.set_script(skrip)
-	add_child(_efek_cas)
+	_efek_cas.position = Vector2.ZERO
+	# Jadi anak terus player (bukan child EnergyComponent) supaya kesan
+	# boleh ikut SpriteBase dan SpriteAngkasa dan lukis atas kedua-duanya.
+	var ibu: Node = get_parent()
+	if ibu == null:
+		ibu = self
+	ibu.add_child(_efek_cas)
 
 func _kemas_kini_efek_cas() -> void:
 	if _efek_cas == null or not ("aktif" in _efek_cas):
 		return
-	var mengecas: bool = false
-	if tenaga < max_energy - 0.001:
-		for stesen in _stesen_cas:
-			if is_instance_valid(stesen) and ("kadar_cas_semasa" in stesen) and stesen.kadar_cas_semasa > 0.0:
-				mengecas = true
-				break
+	# Kesan hanya bila kadar cas benar-benar meningkat (dicas stesen)
+	# dan tenaga belum penuh.
+	var mengecas: bool = tenaga < max_energy - 0.001 and kadar_cas_semasa > pulih_sesaat + 0.001
 	_efek_cas.aktif = mengecas
 
 func _process(delta: float) -> void:
