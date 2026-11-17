@@ -1,0 +1,78 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scene/level_3/build_system/ChargingStation/ChargingStationActual.gd" id="1_cs"]
+[ext_resource type="Texture2D" uid="uid://b2vga6iw2glt" path="res://scene/level_3/build_system/Image_683.png" id="2_cs"]
+[ext_resource type="Script" uid="uid://cm6wr4ttq07l0" path="res://scene/level_3/build_system/SaveComponent.gd" id="3_cs"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(18, 26)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_area"]
+size = Vector2(20, 28)
+
+[node name="ChargingStation" type="StaticBody2D"]
+y_sort_enabled = true
+collision_layer = 3
+collision_mask = 0
+script = ExtResource("1_cs")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.05, 0.05)
+texture = ExtResource("2_cs")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_body")
+
+[node name="Area2D" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+shape = SubResource("RectangleShape2D_area")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="MenuUI" type="PanelContainer" parent="CanvasLayer"]
+clip_contents = true
+custom_minimum_size = Vector2(150, 130)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -100.0
+offset_top = -65.0
+offset_right = 100.0
+offset_bottom = 65.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/MenuUI"]
+layout_mode = 2
+alignment = 1
+
+[node name="Title" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer"]
+layout_mode = 2
+text = "Charging Station"
+horizontal_alignment = 1
+
+[node name="LabelStatus" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer"]
+layout_mode = 2
+text = "Power: OFF"
+horizontal_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/MenuUI/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="ButtonTutup" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Close"
+
+[node name="ButtonDemolish" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Demolish"
+
+[node name="SaveComponent" type="Node2D" parent="."]
+script = ExtResource("3_cs")
