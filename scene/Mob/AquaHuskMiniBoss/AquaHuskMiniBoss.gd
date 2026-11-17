@@ -125,6 +125,7 @@ func _kemas_keadaan(player: Node2D, jarak: float) -> void:
 	# dipancing jauh: bila dia tersasar melebihi jarak_lepas dari titik_asal,
 	# dia WAJIB patah balik walau player ada betul-betul di depan hidungnya.
 	var jarak_dari_sarang: float = global_position.distance_to(titik_asal)
+	var keadaan_lama: int = keadaan
 
 	match keadaan:
 		Keadaan.DUDUK:
@@ -163,6 +164,10 @@ func _kemas_keadaan(player: Node2D, jarak: float) -> void:
 				masa_hilang_pandangan = 0.0
 				_pulihkan_darah()
 				print("AquaHuskMiniBoss: kembali bertugas di ", titik_asal)
+
+	# Muzik rancak hanya masa boss betul-betul menyerang.
+	if keadaan != keadaan_lama:
+		Sfx.muzik_bos(keadaan == Keadaan.KEJAR)
 
 func _jalankan_gerak(delta: float, player: Node2D, jarak: float) -> void:
 	var gandaan_laju: float = gandaan_laju_marah if sedang_marah else 1.0
@@ -313,6 +318,7 @@ func take_damage(amount: float) -> void:
 
 func _mati() -> void:
 	sedang_mati = true
+	Sfx.muzik_bos(false)
 	Sfx.mainkan("letupan", -4.0, 0.8)
 	keadaan = Keadaan.DUDUK
 	telegraf = 0.0
@@ -350,6 +356,7 @@ func _mati() -> void:
 	_sedia_hidup(false)
 
 func _sedia_hidup(pertama_kali: bool) -> void:
+	Sfx.muzik_bos(false)
 	sedang_mati = false
 	sedang_marah = false
 	keadaan = Keadaan.DUDUK
