@@ -18,10 +18,37 @@ func _ready() -> void:
 	_sedia("tembakan", 0.16)
 	_sedia("lombong", 0.22)
 	print("SFX sedia: ", _pemain.keys())
-	# UJIAN AUDIO: bunyi sekali setiap game mula. Buang 3 baris ini bila
-	# bunyi dah disahkan keluar.
+	# UJIAN AUDIO: bunyi sekali setiap game mula + paparan status di skrin.
+	# Buang blok ini bila bunyi dah disahkan keluar.
 	await get_tree().create_timer(0.5).timeout
 	mainkan("tembakan", -7.0)
+	await get_tree().create_timer(0.15).timeout
+	_papar_status_ujian()
+
+# Paparan sementara untuk sahkan keadaan audio pada peranti.
+func _papar_status_ujian() -> void:
+	var pemain: AudioStreamPlayer = null
+	if _pemain.has("tembakan"):
+		var senarai: Array = _pemain["tembakan"]
+		if not senarai.is_empty():
+			pemain = senarai[0]
+	var teks: String = "SFX ujian\n"
+	if pemain and pemain.stream:
+		teks += "panjang: " + str(snappedf(pemain.stream.get_length(), 0.01)) + "s\n"
+	teks += "playing: " + str(pemain.playing if pemain else false) + "\n"
+	teks += "bus: " + str(AudioServer.get_bus_count()) + " vol " + str(AudioServer.get_bus_volume_db(0))
+	teks += " mute " + str(AudioServer.is_bus_mute(0)) + "\n"
+	teks += "device: " + str(AudioServer.get_output_device())
+	var label := Label.new()
+	label.text = teks
+	label.position = Vector2(8, 40)
+	label.add_theme_font_size_override("font_size", 9)
+	label.add_theme_color_override("font_color", Color(1, 1, 0))
+	var lapisan := CanvasLayer.new()
+	lapisan.add_child(label)
+	get_tree().root.add_child(lapisan)
+	await get_tree().create_timer(10.0).timeout
+	lapisan.queue_free()
 
 func mainkan(nama: String, isipadu_db: float = -6.0, pic: float = 1.0) -> void:
 	if not _pemain.has(nama):
