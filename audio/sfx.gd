@@ -4,6 +4,10 @@
 # folder audio/ dan dimainkan pada satu bekas khas bawah root.
 # Guna (dengan const Bunyi = preload("res://audio/sfx.gd")):
 #   Bunyi.mainkan(self, "tembakan")
+#
+# Nota: kalau editor Godot belum import .wav (tiada fail .import),
+# load() akan gagal. Kod ini akan baca PCM terus dari fail sebagai
+# ganti supaya bunyi tetap keluar walaupun belum di-import.
 # ==========================================================
 extends RefCounted
 
@@ -47,12 +51,44 @@ static func _ambil(nama: String) -> AudioStream:
 	if laluan == "":
 		push_warning("Sfx: bunyi tidak dikenali - " + nama)
 		return null
-	stream = load(laluan)
+	if ResourceLoader.exists(laluan):
+		stream = load(laluan)
+	if stream == null:
+		stream = _baca_wav_mentah(laluan)
 	if stream == null:
 		push_warning("Sfx: gagal memuatkan " + laluan)
 		return null
 	_cache[nama] = stream
 	return stream
+
+# Baca fail WAV PCM 16-bit terus dari cakera (tak perlu import editor).
+static func _baca_wav_mentah(laluan: String) -> AudioStreamWAV:
+	var bait := FileAccess.get_file_as_bytes(laluan)
+	if bait.size() < 44:
+		return null
+	if bait.slice(0, 4).get_string_from_ascii() != "RIFF":
+		return null
+	var kadar: int = 22050
+	var saluran: int = 1
+	var i: int = 12
+	while i + 8 <= bait.size():
+		var id: String = bait.slice(i, i + 4).get_string_from_ascii()
+		var saiz: int = bait.decode_u32(i + 4)
+		if id == "fmt " and i + 16 <= bait.size():
+			saluran = bait.decode_u16(i + 10)
+			kadar = bait.decode_u32(i + 12)
+		elif id == "data":
+			var akhir: int = mini(i + 8 + saiz, bait.size())
+			if akhir <= i + 8:
+				return null
+			var stream := AudioStreamWAV.new()
+			stream.format = AudioStreamWAV.FORMAT_16_BITS
+			stream.mix_rate = kadar
+			stream.stereo = saluran == 2
+			stream.data = bait.slice(i + 8, akhir)
+			return stream
+		i += 8 + saiz + (saiz & 1)
+	return null
 
 static func _bekas_bunyi(pokok: SceneTree) -> Node:
 	if _bekas != null and is_instance_valid(_bekas) and _bekas.is_inside_tree():
