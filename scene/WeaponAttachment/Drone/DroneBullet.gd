@@ -5,7 +5,7 @@ extends Area2D
 
 # Jarak maksimum (ikut detection_range drone). Peluru hilang bila sampai,
 # kena atau tak kena sasaran.
-@export var max_range: float = 300.0
+@export var max_range: float = 150.0
 
 var is_direction_set: bool = false
 var movement_direction: Vector2 = Vector2.RIGHT

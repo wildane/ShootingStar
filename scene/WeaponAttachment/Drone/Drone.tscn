@@ -8,7 +8,7 @@
 script = ExtResource("1_472wi")
 rotation_speed = 1.0
 orbit_radius = 10.0
-detection_range = 50.0
+detection_range = 150.0
 bullet_scene = ExtResource("2_o8aao")
 layers_for_enemies = 0
 
