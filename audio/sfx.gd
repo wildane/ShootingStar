@@ -22,6 +22,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_sedia("tembakan")
 	_sedia("lombong")
+	_sedia("lendir")
+	_sedia("letupan")
 	_mula_ambien()
 
 func mainkan(nama: String, isipadu_db: float = -6.0, pic: float = 1.0) -> void:
@@ -135,6 +137,10 @@ func _jana(nama: String) -> AudioStreamWAV:
 		return _jana_tembakan()
 	if nama == "lombong":
 		return _jana_lombong()
+	if nama == "lendir":
+		return _jana_lendir()
+	if nama == "letupan":
+		return _jana_letupan()
 	push_warning("Sfx: bunyi tidak dikenali - " + nama)
 	return null
 
@@ -249,3 +255,55 @@ func _jana_ambien() -> AudioStreamWAV:
 	for i in gelung:
 		hasil[i] = s[i]
 	return _ke_stream(hasil, true, kadar)
+
+# ---- Bunyi lendir: "blup" basah + percikan ----------------------------
+
+func _jana_lendir() -> AudioStreamWAV:
+	var tempoh: float = 0.30
+	var n: int = int(KADAR * tempoh)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var fasa: float = 0.0
+	var lembap: float = 0.0
+	for i in n:
+		var t: float = float(i) / float(KADAR)
+		var maju: float = t / tempoh
+		# Blup basah: frekuensi jatuh 560 -> 150 Hz dengan getaran kecil.
+		var f: float = lerpf(560.0, 150.0, pow(maju, 0.8))
+		fasa += TAU * f / float(KADAR)
+		var badan: float = sin(fasa + 0.25 * sin(TAU * 26.0 * t))
+		badan = clampf(badan * 1.6, -1.0, 1.0) * exp(-t * 9.0)
+		# Percikan lendir melekit.
+		lembap = lembap * 0.6 + randf_range(-1.0, 1.0) * 0.4
+		var percik: float = lembap * exp(-t * 20.0) * 0.5
+		s[i] = badan * 0.75 + percik
+	_lulus_rendah(s, 2600.0)
+	_normal(s, 0.85)
+	return _ke_stream(s, false)
+
+# ---- Bunyi letupan musuh: debum rendah + serpihan --------------------
+
+func _jana_letupan() -> AudioStreamWAV:
+	var tempoh: float = 0.75
+	var n: int = int(KADAR * tempoh)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var fasa: float = 0.0
+	var gemuruh: float = 0.0
+	for i in n:
+		var t: float = float(i) / float(KADAR)
+		var f: float = lerpf(115.0, 34.0, t / tempoh)
+		fasa += TAU * f / float(KADAR)
+		var debum: float = sin(fasa) * exp(-t * 6.5) * 0.9
+		# Riuh rendah yang pecah (noise ditapis).
+		gemuruh = gemuruh * 0.85 + randf_range(-1.0, 1.0) * 0.15
+		var hancur: float = gemuruh * exp(-t * 13.0) * 1.6
+		# Serpihan kecil bertaburan.
+		var retak: float = 0.0
+		if randf() < 0.12 * exp(-t * 5.0):
+			retak = randf_range(-1.0, 1.0) * 0.6
+		s[i] = debum + hancur + retak
+	_lulus_rendah(s, 1900.0)
+	_gema(s, 0.09, 0.22)
+	_normal(s, 0.95)
+	return _ke_stream(s, false)
