@@ -20,7 +20,6 @@ var inverter_pembekal: Node2D = null
 @export_category("Sistem Pengecasan")
 @export var radius_cas: float = 90.0
 @export var kadar_cas: float = 5.0        # tenaga sesaat semasa aktif
-@export var jarak_label: float = -58.0
 
 var player_dekat: bool = false
 var masa_ketikan_terakhir: float = 0.0
@@ -31,7 +30,6 @@ const SELA_MASA_SEMAKAN: float = 0.2
 
 var kadar_cas_semasa: float = 0.0
 var _pemain_dicas: Node = null
-var _label_cas: Label = null
 
 func _ready() -> void:
 	add_to_group("Furniture")
@@ -47,21 +45,9 @@ func _ready() -> void:
 	if butang_tutup: butang_tutup.pressed.connect(_on_butang_tutup_pressed)
 	if butang_demolish: butang_demolish.pressed.connect(_on_butang_demolish_pressed)
 
-	_bina_label_cas()
 	_kemas_kini_warna_visual()
 	_kemas_kini_label_status()
 	_auto_save_selepas_wujud()
-
-# Label kecil di atas stesen: tunjuk kadar cas semasa atau "No power"
-func _bina_label_cas() -> void:
-	_label_cas = Label.new()
-	_label_cas.name = "LabelCas"
-	_label_cas.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_label_cas.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_label_cas.add_theme_font_size_override("font_size", 8)
-	_label_cas.position = Vector2(-60, jarak_label)
-	_label_cas.size = Vector2(120, 16)
-	add_child(_label_cas)
 
 func _physics_process(_delta: float) -> void:
 	var masa_sekarang = Time.get_ticks_msec() / 1000.0
@@ -90,20 +76,6 @@ func _kemas_kini_pengecasan() -> void:
 		kadar_cas_semasa = kadar_cas
 	else:
 		_lepas_pemain()
-
-	_kemas_kini_label_cas(dalam_julat)
-
-func _kemas_kini_label_cas(dalam_julat: bool) -> void:
-	if _label_cas == null:
-		return
-	if kadar_cas_semasa > 0.0:
-		_label_cas.text = "+" + str(kadar_cas_semasa) + "/s"
-		_label_cas.modulate = Color(0.35, 1.0, 0.45)
-	elif dalam_julat and not has_power:
-		_label_cas.text = "No power"
-		_label_cas.modulate = Color(1.0, 0.4, 0.4)
-	else:
-		_label_cas.text = ""
 
 func _lepas_pemain() -> void:
 	if is_instance_valid(_pemain_dicas) and _pemain_dicas.has_method("nyahdaftar_stesen_cas"):
@@ -134,7 +106,7 @@ func _kemas_kini_warna_visual() -> void:
 func _kemas_kini_label_status() -> void:
 	if label_status == null: return
 	if has_power:
-		label_status.text = "Power: ON  " + str(kadar_cas) + "/s"
+		label_status.text = "Power: ON"
 		label_status.modulate = Color(0.35, 1.0, 0.45)
 	else:
 		label_status.text = "Power: OFF"

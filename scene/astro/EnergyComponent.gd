@@ -13,13 +13,9 @@ extends Node
 @export var pulih_sesaat: float = 0.1       # cas perlahan, macam panel solar
 @export var masa_rehat: float = 1.0         # tunggu sebelum mula cas
 
-@export_group("Bonus Inverter")
-@export var pembahagi_baki: float = 10.0    # baki load inverter yang tak dipakai / 10 jadi kadar cas
-
 var tenaga: float = 100.0
 var _baki_rehat: float = 0.0
 var kadar_cas_semasa: float = 0.0           # kadar cas sebenar, untuk paparan HUD
-var _inverter_pencaj: Array[Node] = []      # inverter yang sedang membekalkan bonus cas
 var _stesen_cas: Array[Node] = []           # Charging Station yang sedang mengecas
 
 func _ready() -> void:
@@ -35,23 +31,10 @@ func _process(delta: float) -> void:
 	if tenaga < max_energy:
 		tenaga = minf(max_energy, tenaga + kadar_cas_semasa * delta)
 
-## Kadar cas semasa: asas pulih_sesaat, naik jadi baki_tenaga / pembahagi_baki
-## untuk inverter yang ada baki load tak dipakai.
+## Kadar cas semasa: asas pulih_sesaat, atau lebih tinggi bila berada
+## dalam julat Charging Station yang berkuasa.
 func _kira_kadar_cas() -> float:
 	var kadar: float = pulih_sesaat
-	var pembahagi: float = pembahagi_baki if pembahagi_baki > 0.001 else 0.001
-	var i: int = _inverter_pencaj.size() - 1
-	while i >= 0:
-		var inverter = _inverter_pencaj[i]
-		if not is_instance_valid(inverter):
-			_inverter_pencaj.remove_at(i)
-		else:
-			var baki: float = inverter.baki_tenaga if ("baki_tenaga" in inverter) else 0.0
-			if baki > 0.0:
-				kadar = maxf(kadar, baki / pembahagi)
-		i -= 1
-
-	# Charging Station berkuasa dalam julat memberi kadar cas tetap
 	var j: int = _stesen_cas.size() - 1
 	while j >= 0:
 		var stesen = _stesen_cas[j]
@@ -63,14 +46,6 @@ func _kira_kadar_cas() -> float:
 				kadar = maxf(kadar, kadar_stesen)
 		j -= 1
 	return kadar
-
-func daftar_inverter_pencaj(inverter: Node) -> void:
-	if inverter == null or _inverter_pencaj.has(inverter):
-		return
-	_inverter_pencaj.append(inverter)
-
-func nyahdaftar_inverter_pencaj(inverter: Node) -> void:
-	_inverter_pencaj.erase(inverter)
 
 func daftar_stesen_cas(stesen: Node) -> void:
 	if stesen == null or _stesen_cas.has(stesen):

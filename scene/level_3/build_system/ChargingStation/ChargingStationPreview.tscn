@@ -1,7 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" uid="uid://dmompw4vwhfqr" path="res://scene/level_3/build_system/BuildPreview.gd" id="1_cs"]
-[ext_resource type="Texture2D" uid="uid://b2vga6iw2glt" path="res://scene/level_3/build_system/Image_683.png" id="2_cs"]
+[ext_resource type="Texture2D" path="res://scene/level_3/build_system/ChargingStation/ChargingStation.png" id="2_cs"]
 [ext_resource type="Texture2D" uid="uid://fpkdh8qrkkjl" path="res://scene/level_3/build_system/Image_98.png" id="3_cs"]
 [ext_resource type="Texture2D" uid="uid://m2fv4yfswxfe" path="res://scene/level_3/build_system/Image_810.png" id="4_cs"]
 
