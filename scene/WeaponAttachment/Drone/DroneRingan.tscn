@@ -5,7 +5,7 @@
 
 [node name="DroneRingan" instance=ExtResource("1_drone")]
 rotation_speed = 2.2
-orbit_radius = 22.0
+orbit_radius = 14.0
 detection_range = 40.0
 bullet_scene = ExtResource("2_bullet")
 shoot_cooldown = 0.35
