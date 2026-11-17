@@ -313,6 +313,7 @@ func take_damage(amount: float) -> void:
 
 func _mati() -> void:
 	sedang_mati = true
+	Sfx.mainkan("letupan", -4.0, 0.8)
 	keadaan = Keadaan.DUDUK
 	telegraf = 0.0
 	cooldown_lendir = 0.0
