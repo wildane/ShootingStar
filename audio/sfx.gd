@@ -17,6 +17,7 @@ const KADAR_AMBIEN: int = 11025  # lebih rendah supaya penjanaan pantas
 var _pemain: Dictionary = {}
 var _giliran: Dictionary = {}
 var _ambien: AudioStreamPlayer = null
+var _muzik_bos: AudioStreamPlayer = null
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -24,7 +25,9 @@ func _ready() -> void:
 	_sedia("lombong")
 	_sedia("lendir")
 	_sedia("letupan")
+	_sedia("lendir_boss")
 	_mula_ambien()
+	_mula_muzik_bos()
 
 func mainkan(nama: String, isipadu_db: float = -6.0, pic: float = 1.0) -> void:
 	if not _pemain.has(nama):
@@ -40,6 +43,31 @@ func mainkan(nama: String, isipadu_db: float = -6.0, pic: float = 1.0) -> void:
 	pemain.play()
 
 # ---- Ambien ruang angkasa -------------------------------------------
+
+# Muzik rancak semasa boss menyerang.
+func muzik_bos(nyala: bool) -> void:
+	if _muzik_bos == null:
+		return
+	if nyala:
+		if not _muzik_bos.playing:
+			_muzik_bos.play()
+		if _ambien:
+			_ambien.volume_db = -22.0  # ambien diperlahankan masa lawan boss
+	else:
+		if _muzik_bos.playing:
+			_muzik_bos.stop()
+		if _ambien:
+			_ambien.volume_db = -13.0
+
+func _mula_muzik_bos() -> void:
+	var stream := _jana_rancak()
+	if stream == null:
+		return
+	_muzik_bos = AudioStreamPlayer.new()
+	_muzik_bos.stream = stream
+	_muzik_bos.volume_db = -11.0
+	_muzik_bos.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_muzik_bos)
 
 func ambien_aktif(nyala: bool) -> void:
 	if _ambien == null:
@@ -141,6 +169,8 @@ func _jana(nama: String) -> AudioStreamWAV:
 		return _jana_lendir()
 	if nama == "letupan":
 		return _jana_letupan()
+	if nama == "lendir_boss":
+		return _jana_lendir_boss()
 	push_warning("Sfx: bunyi tidak dikenali - " + nama)
 	return null
 
@@ -307,3 +337,96 @@ func _jana_letupan() -> AudioStreamWAV:
 	_gema(s, 0.09, 0.22)
 	_normal(s, 0.95)
 	return _ke_stream(s, false)
+
+# ---- Bunyi lendir boss: semburan api ---------------------------------
+
+func _jana_lendir_boss() -> AudioStreamWAV:
+	var tempoh: float = 0.55
+	var n: int = int(KADAR * tempoh)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var a_badan: float = clampf(TAU * 1200.0 / float(KADAR), 0.0, 1.0)
+	var a_udara: float = clampf(TAU * 5200.0 / float(KADAR), 0.0, 1.0)
+	var y_badan: float = 0.0
+	var y_udara: float = 0.0
+	for i in n:
+		var t: float = float(i) / float(KADAR)
+		var putih: float = randf_range(-1.0, 1.0)
+		y_badan += a_badan * (putih - y_badan)
+		y_udara += a_udara * (putih - y_udara)
+		var mula: float = 1.0 - exp(-t * 60.0)   # sembur keluar pantas
+		var habis: float = exp(-t * 4.2)
+		# Bergetar seperti api yang bergelogok.
+		var layap: float = 0.8 + 0.2 * sin(TAU * 33.0 * t + 3.0 * sin(TAU * 7.0 * t))
+		var sembur: float = (y_badan * 0.9 + (y_udara - y_badan) * 0.6) * mula * habis * layap
+		var retak: float = 0.0
+		if randf() < 0.04 * exp(-t * 3.0):
+			retak = randf_range(-1.0, 1.0) * 0.35
+		s[i] = sembur * 1.2 + retak
+	_normal(s, 0.9)
+	return _ke_stream(s, false)
+
+# ---- Muzik rancak boss: gelung 8 ketukan -----------------------------
+
+func _tambah_dentum(s: PackedFloat32Array, kadar: int, mula: float, f0: float, f1: float,
+		panjang: float, amp: float, redam: float) -> void:
+	var i0: int = int(mula * kadar)
+	var jumlah: int = int(panjang * kadar)
+	var fasa: float = 0.0
+	for i in jumlah:
+		var idx: int = (i0 + i) % s.size()  # bungkus supaya gelung licin
+		var t: float = float(i) / float(kadar)
+		fasa += TAU * lerpf(f0, f1, t / panjang) / float(kadar)
+		s[idx] += sin(fasa) * exp(-t * redam) * amp
+
+func _tambah_hitam(s: PackedFloat32Array, kadar: int, mula: float, panjang: float, amp: float) -> void:
+	var i0: int = int(mula * kadar)
+	var jumlah: int = int(panjang * kadar)
+	var a: float = clampf(TAU * 1500.0 / float(kadar), 0.0, 1.0)
+	var y: float = 0.0
+	for i in jumlah:
+		var idx: int = (i0 + i) % s.size()
+		var t: float = float(i) / float(kadar)
+		var putih: float = randf_range(-1.0, 1.0)
+		y += a * (putih - y)
+		s[idx] += (putih - y) * exp(-t * 75.0) * amp
+
+func _tambah_nada(s: PackedFloat32Array, kadar: int, mula: float, f: float,
+		panjang: float, amp: float, redam: float) -> void:
+	var i0: int = int(mula * kadar)
+	var jumlah: int = int(panjang * kadar)
+	var fasa: float = 0.0
+	for i in jumlah:
+		var idx: int = (i0 + i) % s.size()
+		var t: float = float(i) / float(kadar)
+		fasa += TAU * f / float(kadar)
+		var v: float = sin(fasa) + 0.5 * sin(fasa * 2.0) + 0.25 * sin(fasa * 3.0)
+		var sampul: float = (1.0 - exp(-t * 90.0)) * exp(-t * redam)
+		s[idx] += v * sampul * amp
+
+func _jana_rancak() -> AudioStreamWAV:
+	var kadar: int = KADAR_AMBIEN
+	var bpm: float = 140.0
+	var ketuk: float = 60.0 / bpm
+	var bil_ketuk: int = 8
+	var tempoh: float = ketuk * bil_ketuk
+	var n: int = int(kadar * tempoh)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	# Garis bass mengikut corak 8 ketukan (A minor).
+	var bass := [55.0, 55.0, 65.41, 49.0, 55.0, 55.0, 73.42, 65.41]
+	# Melodi pendek pada off-beat.
+	var arp := [220.0, 261.63, 329.63, 261.63, 220.0, 261.63, 392.0, 329.63]
+	for b in bil_ketuk:
+		var mula: float = float(b) * ketuk
+		# Tendangan pada setiap ketuk.
+		_tambah_dentum(s, kadar, mula, 150.0, 52.0, 0.24, 0.55, 16.0)
+		# Bass.
+		_tambah_nada(s, kadar, mula, bass[b], 0.30, 0.30, 7.0)
+		# Hi-hat pada separuh ketuk.
+		_tambah_hitam(s, kadar, mula, 0.06, 0.16)
+		_tambah_hitam(s, kadar, mula + ketuk * 0.5, 0.06, 0.12)
+		# Melodi pada off-beat.
+		_tambah_nada(s, kadar, mula + ketuk * 0.5, arp[b], 0.16, 0.12, 12.0)
+	_normal(s, 0.85)
+	return _ke_stream(s, true, kadar)
