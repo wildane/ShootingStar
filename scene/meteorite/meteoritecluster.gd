@@ -17,10 +17,14 @@ var hp: int = 5
 var is_being_mined: bool = false
 var mine_timer: float = 0.0
 
-# 🔥 KUNCI PEMBAIKAN: Pembolehubah kelipan strobo wajib diisytiharkan di atas fail
-var is_flashing_burst: bool = false
-var burst_flash_timer: float = 0.0
-var burst_duration_timer: float = 0.0
+# Retak yang muncul sikit-sikit bila HP berkurang
+var hp_maks: int = 5
+var _keretakan: Array[Sprite2D] = []
+
+# Kilat pendek setiap kali meteor dipukul (bukan strobo berulang)
+var _kilat_timer: float = 0.0
+const MASA_KILAT: float = 0.09
+const WARNA_KILAT: Color = Color(1.8, 1.8, 1.8)
 
 @onready var sprite: Sprite2D = $Sprite2D 
 @onready var spark_vfx: CPUParticles2D = $SparkVFX 
@@ -28,6 +32,14 @@ var burst_duration_timer: float = 0.0
 func _ready() -> void:
 	direction = Vector2(randf_range(-1, 1), randf_range(-1, 1)).normalized()
 	rotation_speed = randf_range(-0.1, 0.1)
+	
+	hp_maks = hp
+	_keretakan.clear()
+	for nama in ["Crack1", "Crack2", "Crack3", "Crack4"]:
+		var retak := get_node_or_null(nama) as Sprite2D
+		if retak:
+			retak.visible = false
+			_keretakan.append(retak)
 	
 	# Menyambung isyarat perlanggaran
 	body_entered.connect(_on_objek_masuk)
@@ -55,43 +67,39 @@ func _process(delta: float) -> void:
 		if mine_timer >= 1.0:
 			mine_timer = 0.0
 			take_damage()
-			start_burst_flash()
-			
-		if is_flashing_burst:
-			burst_duration_timer += delta
-			burst_flash_timer += delta
-			
-			if burst_flash_timer >= 0.05:
-				burst_flash_timer = 0.0
-				if sprite and sprite.modulate == Color.WHITE:
-					sprite.modulate = Color(1.0, 0.0, 0.0, 0.3) 
-					if spark_vfx: spark_vfx.visible = true 
-				elif sprite:
-					sprite.modulate = Color.WHITE 
-					if spark_vfx: spark_vfx.visible = false 
-			
-			if burst_duration_timer >= 0.3:
-				is_flashing_burst = false
-				if sprite: sprite.modulate = Color.WHITE 
-				if spark_vfx: spark_vfx.visible = true 
 	else:
-		if sprite and sprite.modulate != Color.WHITE:
-			sprite.modulate = Color.WHITE
 		mine_timer = 0.0
-		is_flashing_burst = false
-		if spark_vfx and spark_vfx.emitting:
-			spark_vfx.emitting = false
-			spark_vfx.visible = false
 
-# 🔥 KUNCI PEMBAIKAN: Fungsi ini diletakkan semula dengan betul supaya baris bawah tidak error
-func start_burst_flash() -> void:
-	is_flashing_burst = true
-	burst_flash_timer = 0.0
-	burst_duration_timer = 0.0
+	# Padam kilat selepas seketika
+	if _kilat_timer > 0.0:
+		_kilat_timer = max(0.0, _kilat_timer - delta)
+		if _kilat_timer == 0.0:
+			if sprite:
+				sprite.modulate = Color.WHITE
+			if spark_vfx and not is_being_mined:
+				spark_vfx.emitting = false
+				spark_vfx.visible = false
+
+# Retak ditambah satu lapis setiap kali HP berkurang.
+func _kemas_kini_keretakan() -> void:
+	var hilang := clampi(hp_maks - hp, 0, _keretakan.size())
+	for i in _keretakan.size():
+		_keretakan[i].visible = i < hilang
+
+func _kilat() -> void:
+	if sprite:
+		sprite.modulate = WARNA_KILAT
+	_kilat_timer = MASA_KILAT
+	if spark_vfx:
+		spark_vfx.emitting = true
+		spark_vfx.visible = true
 
 func take_damage() -> void:
 	hp -= 1
 	print("MELOMBONG -> Baki HP Meteorite: ", hp)
+	
+	_kemas_kini_keretakan()
+	_kilat()
 	
 	if hp <= 0:
 		destroy()
@@ -107,10 +115,6 @@ func _on_objek_masuk(target: Node2D) -> void:
 			
 		is_being_mined = true 
 		take_damage() 
-		start_burst_flash() 
-		if spark_vfx:
-			spark_vfx.emitting = true
-			spark_vfx.visible = true
 
 func _on_objek_keluar(target: Node2D) -> void:
 	if target.name == "Player" or target.is_in_group("Player") or target.name == "SpaceShip":
@@ -133,7 +137,10 @@ func destroy() -> void:
 		drop_comp.trigger_drop()
 	else:
 		print("Sistem Meteor: AMARAN! Tiada DropComponent diletakkan sebagai anak di Inspector!")
-
+	
+	# Peledakan serpihan sebelum hilang
+	_serpihan_letup()
+	
 	# Pembersihan metadata keselamatan
 	var players = get_tree().get_nodes_in_group("Player")
 	for p in players:
@@ -149,5 +156,30 @@ func destroy() -> void:
 		var player_node = main_scene.find_child("Player", true, false)
 		if player_node and player_node.has_meta("batu_lombong_aktif") and player_node.get_meta("batu_lombong_aktif") == self:
 			player_node.remove_meta("batu_lombong_aktif")
-			
+	
 	queue_free()
+
+# Pecahan kecil terbang keluar bila batu hancur.
+func _serpihan_letup() -> void:
+	var ibu = get_parent()
+	if ibu == null:
+		return
+	var bunga = CPUParticles2D.new()
+	bunga.position = position
+	bunga.amount = 12
+	bunga.lifetime = 0.45
+	bunga.one_shot = true
+	bunga.explosiveness = 1.0
+	bunga.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	bunga.emission_sphere_radius = 12.0
+	bunga.direction = Vector2(0, -1)
+	bunga.spread = 180.0
+	bunga.gravity = Vector2.ZERO
+	bunga.initial_velocity_min = 40.0
+	bunga.initial_velocity_max = 90.0
+	bunga.scale_amount_min = 0.4
+	bunga.scale_amount_max = 1.0
+	bunga.color = Color(0.42, 0.46, 0.55)
+	ibu.add_child(bunga)
+	bunga.emitting = true
+	bunga.finished.connect(bunga.queue_free)
