@@ -51,13 +51,20 @@ func muzik_bos(nyala: bool) -> void:
 	if nyala:
 		if not _muzik_bos.playing:
 			_muzik_bos.play()
-		if _ambien:
-			_ambien.volume_db = -22.0  # ambien diperlahankan masa lawan boss
+		# Ambien dimatikan sepenuhnya: pudar keluar dulu, baru stop.
+		if _ambien and _ambien.playing:
+			var pudar := create_tween()
+			pudar.tween_property(_ambien, "volume_db", -40.0, 0.35)
+			pudar.tween_callback(_ambien.stop)
 	else:
 		if _muzik_bos.playing:
 			_muzik_bos.stop()
+		# Balik ke ambien asal: hidupkan semula dan pudar masuk.
 		if _ambien:
-			_ambien.volume_db = -13.0
+			_ambien.volume_db = -40.0
+			_ambien.play()
+			var masuk := create_tween()
+			masuk.tween_property(_ambien, "volume_db", -13.0, 0.9)
 
 func _mula_muzik_bos() -> void:
 	var stream := _jana_rancak()
@@ -65,7 +72,7 @@ func _mula_muzik_bos() -> void:
 		return
 	_muzik_bos = AudioStreamPlayer.new()
 	_muzik_bos.stream = stream
-	_muzik_bos.volume_db = -11.0
+	_muzik_bos.volume_db = -5.0
 	_muzik_bos.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_muzik_bos)
 
@@ -428,5 +435,5 @@ func _jana_rancak() -> AudioStreamWAV:
 		_tambah_hitam(s, kadar, mula + ketuk * 0.5, 0.06, 0.12)
 		# Melodi pada off-beat.
 		_tambah_nada(s, kadar, mula + ketuk * 0.5, arp[b], 0.16, 0.12, 12.0)
-	_normal(s, 0.85)
+	_normal(s, 0.95)
 	return _ke_stream(s, true, kadar)
