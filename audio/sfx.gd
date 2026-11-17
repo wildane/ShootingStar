@@ -3,7 +3,7 @@
 # Kesan bunyi ringkas yang dijana secara prosedur (tiada fail .wav
 # diperlukan). Setiap bunyi dibina sekali dan di-cache.
 # Guna (dengan const Bunyi = preload("res://audio/sfx.gd")):
-#   Bunyi.mainkan(get_parent(), "tembakan")
+#   Bunyi.mainkan(self, "tembakan")
 # ==========================================================
 extends RefCounted
 
@@ -12,11 +12,19 @@ const KUAT: float = 32000.0
 
 static var _cache: Dictionary = {}
 
-# Mainkan bunyi pada parent (biasanya get_parent() atau current_scene).
-static func mainkan(parent: Node, nama: String, isipadu_db: float = -6.0, pic: float = 1.0) -> void:
-	if parent == null:
+# Bekas khas di bawah root scene tree. AudioStreamPlayer TIDAK boleh jadi
+# anak kepada Node2D dalam game kerana spawner/save manager menyusun semula
+# anak-anak itu guna global_position (bunyi akan picu ralat).
+static var _bekas: Node = null
+
+# Mainkan bunyi. `sumber` hanya digunakan untuk dapatkan SceneTree.
+static func mainkan(sumber: Node, nama: String, isipadu_db: float = -6.0, pic: float = 1.0) -> void:
+	if sumber == null:
 		return
-	if not parent.is_inside_tree():
+	if not sumber.is_inside_tree():
+		return
+	var pokok: SceneTree = sumber.get_tree()
+	if pokok == null:
 		return
 	var stream: AudioStreamWAV = _cache.get(nama)
 	if stream == null:
@@ -28,9 +36,17 @@ static func mainkan(parent: Node, nama: String, isipadu_db: float = -6.0, pic: f
 	pemain.stream = stream
 	pemain.volume_db = isipadu_db
 	pemain.pitch_scale = pic * randf_range(0.94, 1.06)
-	parent.add_child(pemain)
+	_bekas_bunyi(pokok).add_child(pemain)
 	pemain.finished.connect(pemain.queue_free)
 	pemain.play()
+
+static func _bekas_bunyi(pokok: SceneTree) -> Node:
+	if _bekas != null and is_instance_valid(_bekas) and _bekas.is_inside_tree():
+		return _bekas
+	_bekas = Node.new()
+	_bekas.name = "BekasSFX"
+	pokok.root.add_child(_bekas)
+	return _bekas
 
 static func _buat(nama: String) -> AudioStreamWAV:
 	var tempoh: float = 0.0
