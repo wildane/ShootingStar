@@ -121,7 +121,7 @@ func take_damage() -> void:
 	_kemas_kini_keretakan()
 	_kilat()
 	_gegar_kuat = maxf(_gegar_kuat, GEGAR_KETUKAN)
-	Bunyi.mainkan(self, "lombong", -6.0)
+	Bunyi.mainkan(self, "lombong", -4.0)
 	
 	if hp <= 0:
 		destroy()
