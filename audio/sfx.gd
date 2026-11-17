@@ -197,7 +197,7 @@ func _jana_lombong() -> AudioStreamWAV:
 	_normal(s, 0.9)
 	return _ke_stream(s, false)
 
-# ---- Ambien galaksi: angin, ombak perlahan dan dron rendah -----------
+# ---- Ambien galaksi: angin dan ombak perlahan -------------------------
 
 func _jana_ambien() -> AudioStreamWAV:
 	var gelung: int = int(KADAR * TEMPOH_AMBIEN)
