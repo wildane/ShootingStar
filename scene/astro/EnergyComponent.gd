@@ -17,48 +17,14 @@ var tenaga: float = 100.0
 var _baki_rehat: float = 0.0
 var kadar_cas_semasa: float = 0.0           # kadar cas sebenar, untuk paparan HUD
 var _stesen_cas: Array[Node] = []           # Charging Station yang sedang mengecas
-var _efek_cas: Node2D = null                # kesan arka semasa dicas
-var _efek_aktif_terakhir: bool = false
 
 func _ready() -> void:
 	tenaga = max_energy
 	kadar_cas_semasa = pulih_sesaat
-	_sediakan_efek_cas()
 	set_process(true)
-
-# Kesan visual arka berputar di sekeliling badan player semasa dicas stesen.
-func _sediakan_efek_cas() -> void:
-	if _efek_cas != null:
-		return
-	var skrip = load("res://scene/astro/ChargeEffect.gd")
-	if skrip == null:
-		return
-	_efek_cas = Node2D.new()
-	_efek_cas.name = "EfekCas"
-	_efek_cas.set_script(skrip)
-	_efek_cas.position = Vector2.ZERO
-	# Jadi anak terus player (bukan child EnergyComponent) supaya kesan
-	# boleh ikut SpriteBase dan SpriteAngkasa dan lukis atas kedua-duanya.
-	var ibu: Node = get_parent()
-	if ibu == null:
-		ibu = self
-	ibu.add_child(_efek_cas)
-	print("[Cas] EfekCas dicipta bawah ", ibu.name)
-
-func _kemas_kini_efek_cas() -> void:
-	if _efek_cas == null or not ("aktif" in _efek_cas):
-		return
-	# Kesan menyala bila kadar cas benar-benar meningkat (dicas stesen),
-	# termasuk bila tenaga sudah penuh.
-	var mengecas: bool = kadar_cas_semasa > pulih_sesaat + 0.001
-	_efek_cas.aktif = mengecas
-	if mengecas != _efek_aktif_terakhir:
-		_efek_aktif_terakhir = mengecas
-		print("[Cas] kesan cas ", "HIDUP" if mengecas else "MATI", "  kadar=", kadar_cas_semasa)
 
 func _process(delta: float) -> void:
 	kadar_cas_semasa = _kira_kadar_cas()
-	_kemas_kini_efek_cas()
 	if _baki_rehat > 0.0:
 		_baki_rehat -= delta
 		return

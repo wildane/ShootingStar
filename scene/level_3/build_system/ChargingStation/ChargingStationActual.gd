@@ -30,6 +30,7 @@ const SELA_MASA_SEMAKAN: float = 0.2
 
 var kadar_cas_semasa: float = 0.0
 var _pemain_dicas: Node = null
+var _ikon_cas: Node2D = null
 
 func _ready() -> void:
 	add_to_group("Furniture")
@@ -45,9 +46,24 @@ func _ready() -> void:
 	if butang_tutup: butang_tutup.pressed.connect(_on_butang_tutup_pressed)
 	if butang_demolish: butang_demolish.pressed.connect(_on_butang_demolish_pressed)
 
+	_bina_ikon_cas()
 	_kemas_kini_warna_visual()
 	_kemas_kini_label_status()
 	_auto_save_selepas_wujud()
+
+# Ikon kilat kuning berkelip di atas stesen semasa ia mengecas player.
+func _bina_ikon_cas() -> void:
+	var skrip = load("res://scene/astro/ChargeEffect.gd")
+	if skrip == null:
+		return
+	_ikon_cas = Node2D.new()
+	_ikon_cas.name = "IkonCas"
+	_ikon_cas.set_script(skrip)
+	_ikon_cas.ikut_sprite_aktif = false
+	_ikon_cas.jarak_simbol = -34.0
+	_ikon_cas.saiz_simbol = 11.0
+	_ikon_cas.position = Vector2.ZERO
+	add_child(_ikon_cas)
 
 func _physics_process(_delta: float) -> void:
 	var masa_sekarang = Time.get_ticks_msec() / 1000.0
@@ -76,6 +92,9 @@ func _kemas_kini_pengecasan() -> void:
 		kadar_cas_semasa = kadar_cas
 	else:
 		_lepas_pemain()
+
+	if _ikon_cas != null and ("aktif" in _ikon_cas):
+		_ikon_cas.aktif = kadar_cas_semasa > 0.0
 
 func _lepas_pemain() -> void:
 	if is_instance_valid(_pemain_dicas) and _pemain_dicas.has_method("nyahdaftar_stesen_cas"):
