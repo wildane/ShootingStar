@@ -48,9 +48,9 @@ func _sediakan_efek_cas() -> void:
 func _kemas_kini_efek_cas() -> void:
 	if _efek_cas == null or not ("aktif" in _efek_cas):
 		return
-	# Kesan hanya bila kadar cas benar-benar meningkat (dicas stesen)
-	# dan tenaga belum penuh.
-	var mengecas: bool = tenaga < max_energy - 0.001 and kadar_cas_semasa > pulih_sesaat + 0.001
+	# Kesan menyala bila kadar cas benar-benar meningkat (dicas stesen),
+	# termasuk bila tenaga sudah penuh.
+	var mengecas: bool = kadar_cas_semasa > pulih_sesaat + 0.001
 	_efek_cas.aktif = mengecas
 	if mengecas != _efek_aktif_terakhir:
 		_efek_aktif_terakhir = mengecas
