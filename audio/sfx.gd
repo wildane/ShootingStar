@@ -11,7 +11,8 @@ extends Node
 const KADAR: int = 22050
 const PUNCAK: float = 32000.0
 const BILANGAN_PEMAIN: int = 4  # supaya bunyi boleh bertindih
-const TEMPOH_AMBIEN: float = 8.0
+const TEMPOH_AMBIEN: float = 14.0
+const KADAR_AMBIEN: int = 11025  # lebih rendah supaya penjanaan pantas
 
 var _pemain: Dictionary = {}
 var _giliran: Dictionary = {}
@@ -105,7 +106,7 @@ func _normal(s: PackedFloat32Array, sasaran: float) -> void:
 	for i in s.size():
 		s[i] *= g
 
-func _ke_stream(s: PackedFloat32Array, gelung: bool) -> AudioStreamWAV:
+func _ke_stream(s: PackedFloat32Array, gelung: bool, kadar: int = KADAR) -> AudioStreamWAV:
 	var bait := PackedByteArray()
 	bait.resize(s.size() * 2)
 	for i in s.size():
@@ -118,7 +119,7 @@ func _ke_stream(s: PackedFloat32Array, gelung: bool) -> AudioStreamWAV:
 		bait[i * 2 + 1] = (u >> 8) & 0xFF
 	var stream := AudioStreamWAV.new()
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	stream.mix_rate = KADAR
+	stream.mix_rate = kadar
 	stream.stereo = false
 	stream.data = bait
 	if gelung:
@@ -197,33 +198,48 @@ func _jana_lombong() -> AudioStreamWAV:
 	_normal(s, 0.9)
 	return _ke_stream(s, false)
 
-# ---- Ambien galaksi: angin dan ombak perlahan -------------------------
+# ---- Ambien angkasa: pad lembut + bintang berkelip --------------------
 
 func _jana_ambien() -> AudioStreamWAV:
-	var gelung: int = int(KADAR * TEMPOH_AMBIEN)
-	var silang: int = int(KADAR * 0.6)  # tempoh crossfade untuk gelung licin
+	var kadar: int = KADAR_AMBIEN
+	var gelung: int = int(kadar * TEMPOH_AMBIEN)
+	var silang: int = int(kadar * 1.0)  # crossfade untuk gelung licin
 	var n: int = gelung + silang
 	var s := PackedFloat32Array()
 	s.resize(n)
-	# Dua penapis untuk lapisan "angin" (band-pass kasar) dan "ombak" (rendah).
-	var a_angin: float = clampf(TAU * 900.0 / float(KADAR), 0.0, 1.0)
-	var a_ombak: float = clampf(TAU * 220.0 / float(KADAR), 0.0, 1.0)
-	var y_angin: float = 0.0
-	var y_ombak: float = 0.0
+	# Pad lembut: A2, E3, C4 — setiap satu dua oscillator detune supaya
+	# ada "beating" perlahan seperti bunyi ambient angkasa.
+	var nada := [110.0, 164.81, 261.63]
+	var lfo_kadar := [1.0, 2.0, 3.0]
 	for i in n:
-		var t: float = float(i) / float(KADAR)
-		var putih: float = randf_range(-1.0, 1.0)
-		y_angin += a_angin * (putih - y_angin)
-		y_ombak += a_ombak * (putih - y_ombak)
-		# Angin: desiran yang naik turun perlahan.
-		var nafas: float = 0.5 + 0.5 * sin(TAU * 0.0625 * t)
-		var angin: float = (y_angin - y_ombak * 0.6) * (0.35 + 0.65 * nafas)
-		# Ombak: gelombang lembut berulang.
-		var ombak: float = y_ombak * (0.45 + 0.55 * sin(TAU * 0.125 * t + 1.2))
-		# Bisikan tinggi yang samar (bintang berkelip).
-		var bisik: float = sin(TAU * 1320.0 * t + 2.0 * sin(TAU * 0.09 * t)) * 0.05
-		s[i] = angin * 0.85 + ombak * 0.95 + bisik
-	_normal(s, 0.62)
+		var t: float = float(i) / float(kadar)
+		var pad: float = 0.0
+		for j in nada.size():
+			var f: float = nada[j]
+			var am: float = 0.5 + 0.5 * sin(TAU * lfo_kadar[j] * t / TEMPOH_AMBIEN + float(j) * 1.7)
+			pad += (sin(TAU * f * t) + 0.6 * sin(TAU * f * 1.004 * t)) * am
+		pad /= float(nada.size()) * 1.6
+		# Kilau tinggi yang berdenyut perlahan.
+		var kilau: float = sin(TAU * 1046.5 * t + 1.5 * sin(TAU * 2.0 * t / TEMPOH_AMBIEN)) * 0.05
+		kilau *= 0.5 + 0.5 * sin(TAU * 3.0 * t / TEMPOH_AMBIEN + 0.8)
+		s[i] = pad * 0.9 + kilau
+	# Bintang berkelip: loceng halus bertaburan sepanjang gelung.
+	var nada_bintang := [1318.5, 1568.0, 1760.0, 2093.0]
+	for _k in 12:
+		var mula: float = randf_range(0.5, TEMPOH_AMBIEN - 2.0)
+		var f2: float = nada_bintang.pick_random()
+		var amp: float = randf_range(0.05, 0.11)
+		var i0: int = int(mula * kadar)
+		var panjang: int = int(2.0 * kadar)
+		var fasa2: float = 0.0
+		for i in panjang:
+			var idx: int = i0 + i
+			if idx >= n:
+				break
+			var t2: float = float(i) / float(kadar)
+			fasa2 += TAU * f2 / float(kadar)
+			s[idx] += sin(fasa2) * exp(-t2 * 2.0) * amp
+	_normal(s, 0.5)
 	# Crossfade hujung ke kepala supaya gelung tidak "pop".
 	for i in silang:
 		var w: float = float(i) / float(silang)
@@ -232,4 +248,4 @@ func _jana_ambien() -> AudioStreamWAV:
 	hasil.resize(gelung)
 	for i in gelung:
 		hasil[i] = s[i]
-	return _ke_stream(hasil, true)
+	return _ke_stream(hasil, true, kadar)
