@@ -1,0 +1,197 @@
+extends StaticBody2D
+
+## Charging Station: perabot yang mengecas semula tenaga pemain.
+## Perlu kuasa dari Power Inverter (sama macam perabot lain) dan pemain
+## mesti berada dalam radius stesen untuk menerima cas.
+
+@onready var save_component = $SaveComponent
+@onready var sprite = get_node_or_null("Sprite2D")
+@onready var area_penderia = get_node_or_null("Area2D")
+@onready var menu_ui = get_node_or_null("CanvasLayer/MenuUI")
+@onready var label_status = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/LabelStatus")
+@onready var butang_tutup = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonTutup")
+@onready var butang_demolish = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonDemolish")
+
+@export_category("Sistem Kuasa")
+@export var power_required: float = 30.0
+var has_power: bool = false
+var inverter_pembekal: Node2D = null
+
+@export_category("Sistem Pengecasan")
+@export var radius_cas: float = 90.0
+@export var kadar_cas: float = 5.0        # tenaga sesaat semasa aktif
+@export var jarak_label: float = -58.0
+
+var player_dekat: bool = false
+var masa_ketikan_terakhir: float = 0.0
+const SELA_MASA_MINIMUM: float = 0.2
+
+var masa_semakan_terakhir: float = 0.0
+const SELA_MASA_SEMAKAN: float = 0.2
+
+var kadar_cas_semasa: float = 0.0
+var _pemain_dicas: Node = null
+var _label_cas: Label = null
+
+func _ready() -> void:
+	add_to_group("Furniture")
+
+	if area_penderia:
+		area_penderia.input_pickable = true
+		area_penderia.body_entered.connect(_on_body_entered)
+		area_penderia.body_exited.connect(_on_body_exited)
+		area_penderia.input_event.connect(_on_area_input_event)
+
+	if menu_ui:
+		menu_ui.hide()
+	if butang_tutup: butang_tutup.pressed.connect(_on_butang_tutup_pressed)
+	if butang_demolish: butang_demolish.pressed.connect(_on_butang_demolish_pressed)
+
+	_bina_label_cas()
+	_kemas_kini_warna_visual()
+	_kemas_kini_label_status()
+	_auto_save_selepas_wujud()
+
+# Label kecil di atas stesen: tunjuk kadar cas semasa atau "No power"
+func _bina_label_cas() -> void:
+	_label_cas = Label.new()
+	_label_cas.name = "LabelCas"
+	_label_cas.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_label_cas.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_label_cas.add_theme_font_size_override("font_size", 8)
+	_label_cas.position = Vector2(-60, jarak_label)
+	_label_cas.size = Vector2(120, 16)
+	add_child(_label_cas)
+
+func _physics_process(_delta: float) -> void:
+	var masa_sekarang = Time.get_ticks_msec() / 1000.0
+	if masa_sekarang - masa_semakan_terakhir < SELA_MASA_SEMAKAN:
+		return
+	masa_semakan_terakhir = masa_sekarang
+	_kemas_kini_pengecasan()
+	_kemas_kini_label_status()
+
+## Daftar/lepas pemain pada EnergyComponent ikut jarak dan status kuasa.
+func _kemas_kini_pengecasan() -> void:
+	var pemain = get_tree().get_first_node_in_group("Player")
+	var tenaga: Node = null
+	var dalam_julat: bool = false
+	if is_instance_valid(pemain):
+		dalam_julat = global_position.distance_to(pemain.global_position) <= radius_cas
+		if dalam_julat:
+			tenaga = pemain.get_node_or_null("EnergyComponent")
+
+	var aktif: bool = has_power and dalam_julat and tenaga != null
+	if aktif and tenaga.has_method("daftar_stesen_cas"):
+		if _pemain_dicas != tenaga:
+			_lepas_pemain()
+			_pemain_dicas = tenaga
+		tenaga.daftar_stesen_cas(self)
+		kadar_cas_semasa = kadar_cas
+	else:
+		_lepas_pemain()
+
+	_kemas_kini_label_cas(dalam_julat)
+
+func _kemas_kini_label_cas(dalam_julat: bool) -> void:
+	if _label_cas == null:
+		return
+	if kadar_cas_semasa > 0.0:
+		_label_cas.text = "+" + str(kadar_cas_semasa) + "/s"
+		_label_cas.modulate = Color(0.35, 1.0, 0.45)
+	elif dalam_julat and not has_power:
+		_label_cas.text = "No power"
+		_label_cas.modulate = Color(1.0, 0.4, 0.4)
+	else:
+		_label_cas.text = ""
+
+func _lepas_pemain() -> void:
+	if is_instance_valid(_pemain_dicas) and _pemain_dicas.has_method("nyahdaftar_stesen_cas"):
+		_pemain_dicas.nyahdaftar_stesen_cas(self)
+	_pemain_dicas = null
+	kadar_cas_semasa = 0.0
+
+# ---- Sistem kuasa (dipanggil oleh PowerInverter) ----
+func set_power_status(status_elektrik: bool, pembekal: Node2D = null) -> void:
+	has_power = status_elektrik
+	if status_elektrik:
+		inverter_pembekal = pembekal
+	else:
+		if inverter_pembekal == pembekal or pembekal == null:
+			inverter_pembekal = null
+	_kemas_kini_warna_visual()
+	_kemas_kini_label_status()
+
+func _kemas_kini_warna_visual() -> void:
+	if not sprite: return
+	if player_dekat:
+		sprite.modulate = Color(0.3, 1.0, 0.3, 1.0)
+	elif has_power:
+		sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	else:
+		sprite.modulate = Color(0.45, 0.45, 0.45, 1.0)
+
+func _kemas_kini_label_status() -> void:
+	if label_status == null: return
+	if has_power:
+		label_status.text = "Power: ON  " + str(kadar_cas) + "/s"
+		label_status.modulate = Color(0.35, 1.0, 0.45)
+	else:
+		label_status.text = "Power: OFF"
+		label_status.modulate = Color(1.0, 0.4, 0.4)
+
+# ---- Penderia player ----
+func _on_body_entered(body: Node2D):
+	if body is CharacterBody2D:
+		player_dekat = true
+		_kemas_kini_warna_visual()
+
+func _on_body_exited(body: Node2D):
+	if body is CharacterBody2D:
+		player_dekat = false
+		_kemas_kini_warna_visual()
+		if menu_ui: menu_ui.hide()
+
+func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int):
+	var ada_sentuhan = (event is InputEventScreenTouch and event.pressed) or (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed)
+	if ada_sentuhan and player_dekat:
+		var masa_sekarang = Time.get_ticks_msec() / 1000.0
+		if masa_sekarang - masa_ketikan_terakhir < SELA_MASA_MINIMUM: return
+		masa_ketikan_terakhir = masa_sekarang
+		if menu_ui:
+			_kemas_kini_label_status()
+			menu_ui.visible = !menu_ui.visible
+		get_viewport().set_input_as_handled()
+
+func _on_butang_tutup_pressed():
+	if menu_ui: menu_ui.hide()
+
+func _on_butang_demolish_pressed():
+	_lepas_pemain()
+	player_dekat = false
+	if sprite: sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	queue_free()
+	await get_tree().process_frame
+	if get_node_or_null("/root/SaveManager"):
+		SaveManager.save_game()
+
+func get_save_data() -> Dictionary:
+	var data_stesen: Dictionary = {}
+	if save_component and save_component.has_method("get_data"):
+		data_stesen = save_component.get_data()
+	data_stesen["scene_path"] = scene_file_path
+	data_stesen["pos_x"] = global_position.x
+	data_stesen["pos_y"] = global_position.y
+	return data_stesen
+
+func load_save_data(data: Dictionary) -> void:
+	if data.has("global_position"):
+		global_position = data["global_position"]
+
+func _exit_tree() -> void:
+	_lepas_pemain()
+
+func _auto_save_selepas_wujud() -> void:
+	await get_tree().process_frame
+	if get_node_or_null("/root/SaveManager"):
+		SaveManager.save_game()

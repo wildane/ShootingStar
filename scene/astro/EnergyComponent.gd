@@ -20,6 +20,7 @@ var tenaga: float = 100.0
 var _baki_rehat: float = 0.0
 var kadar_cas_semasa: float = 0.0           # kadar cas sebenar, untuk paparan HUD
 var _inverter_pencaj: Array[Node] = []      # inverter yang sedang membekalkan bonus cas
+var _stesen_cas: Array[Node] = []           # Charging Station yang sedang mengecas
 
 func _ready() -> void:
 	tenaga = max_energy
@@ -49,6 +50,18 @@ func _kira_kadar_cas() -> float:
 			if baki > 0.0:
 				kadar = maxf(kadar, baki / pembahagi)
 		i -= 1
+
+	# Charging Station berkuasa dalam julat memberi kadar cas tetap
+	var j: int = _stesen_cas.size() - 1
+	while j >= 0:
+		var stesen = _stesen_cas[j]
+		if not is_instance_valid(stesen):
+			_stesen_cas.remove_at(j)
+		else:
+			var kadar_stesen: float = stesen.kadar_cas_semasa if ("kadar_cas_semasa" in stesen) else 0.0
+			if kadar_stesen > 0.0:
+				kadar = maxf(kadar, kadar_stesen)
+		j -= 1
 	return kadar
 
 func daftar_inverter_pencaj(inverter: Node) -> void:
@@ -58,6 +71,14 @@ func daftar_inverter_pencaj(inverter: Node) -> void:
 
 func nyahdaftar_inverter_pencaj(inverter: Node) -> void:
 	_inverter_pencaj.erase(inverter)
+
+func daftar_stesen_cas(stesen: Node) -> void:
+	if stesen == null or _stesen_cas.has(stesen):
+		return
+	_stesen_cas.append(stesen)
+
+func nyahdaftar_stesen_cas(stesen: Node) -> void:
+	_stesen_cas.erase(stesen)
 
 func nisbah() -> float:
 	if max_energy <= 0.0:
