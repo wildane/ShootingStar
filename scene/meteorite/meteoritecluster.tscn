@@ -7,6 +7,10 @@
 [ext_resource type="PackedScene" uid="uid://b3cj8p80hxayv" path="res://scene/Item/0002MeteoriteIce/MeteoriteIce.tscn" id="3_ew88e"]
 [ext_resource type="PackedScene" uid="uid://dabfa1g2ettth" path="res://scene/Item/0003RawSilica/0003RawSilica.tscn" id="4_3mue4"]
 [ext_resource type="PackedScene" uid="uid://dnqvr5tac1ttl" path="res://scene/Item/0004Geode/0004Geode.tscn" id="5_spwsc"]
+[ext_resource type="Texture2D" path="res://scene/meteorite/MeteoriteCrack1.png" id="6_crk1"]
+[ext_resource type="Texture2D" path="res://scene/meteorite/MeteoriteCrack2.png" id="7_crk2"]
+[ext_resource type="Texture2D" path="res://scene/meteorite/MeteoriteCrack3.png" id="8_crk3"]
+[ext_resource type="Texture2D" path="res://scene/meteorite/MeteoriteCrack4.png" id="9_crk4"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_rbqd8"]
 radius = 26.019224
@@ -22,6 +26,26 @@ script = ExtResource("1_cm68p")
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1038918963]
 scale = Vector2(0.2, 0.2)
 texture = ExtResource("3_7ge6p")
+
+[node name="Crack1" type="Sprite2D" parent="."]
+visible = false
+scale = Vector2(0.2, 0.2)
+texture = ExtResource("6_crk1")
+
+[node name="Crack2" type="Sprite2D" parent="."]
+visible = false
+scale = Vector2(0.2, 0.2)
+texture = ExtResource("7_crk2")
+
+[node name="Crack3" type="Sprite2D" parent="."]
+visible = false
+scale = Vector2(0.2, 0.2)
+texture = ExtResource("8_crk3")
+
+[node name="Crack4" type="Sprite2D" parent="."]
+visible = false
+scale = Vector2(0.2, 0.2)
+texture = ExtResource("9_crk4")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1223009758]
 scale = Vector2(0.99999994, 0.99999994)
