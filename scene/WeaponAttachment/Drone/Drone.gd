@@ -10,10 +10,10 @@ extends Node2D
 @export var shoot_cooldown: float = 2.0    # Set 2.0 untuk 2 saat, 0.5 untuk setengah saat
 @export var kos_tenaga_tembakan: float = 6.0  # tenaga player dipakai setiap tembakan
 
-# === ARK TEMBAKAN (hanya hadapan, tak pusing belakang) ===
-@export_group("Ark Tembakan")
-@export var sudut_ark_tembakan: float = 180.0  # jumlah ark hadapan (180 = +/-90 darjah)
-@export var kelajuan_pusing_arahan: float = 10.0  # rad/s untuk pusing kiri kanan
+# === PERGERAKAN KE SASARAN ===
+@export_group("Pergerakan Sasaran")
+@export var kelajuan_kejar_sasaran: float = 5.0  # rad/s slide keliling player ke arah musuh
+@export var kelajuan_pusing_arahan: float = 10.0  # rad/s untuk pusing muncung
 
 # === LAYER CONFIGURATION ====
 @export_group("Collision Layers Setup")
@@ -23,11 +23,6 @@ extends Node2D
 var target_player: CharacterBody2D = null
 var current_enemy: Node2D = null
 var angle: float = 0.0
-
-# Sudut hadapan drone: ikut arah ia bergerak mengelilingi player.
-# Musuh di luar ark ini diabaikan, jadi dron tak pusing ke belakang.
-var arah_hadapan: float = 0.0
-
 
 # Pembolehubah dalaman untuk mengira masa bertenang
 var cooldown_timer: float = 0.0
@@ -53,9 +48,14 @@ func _physics_process(delta):
 	visible = true
 		
 	# 1. SET KEDUDUKAN ORBIT (Mengelilingi Player)
-	# Bila ada sasaran, dron berhenti berpusing keliling player dan
-	# kekal di kedudukannya cuma pusing kiri kanan mengadap musuh.
-	if not is_instance_valid(current_enemy):
+	# Tiada musuh: pusing keliling player macam biasa.
+	# Ada musuh: slide ke titik orbit PALING DEKAT dengan musuh (depan, kiri,
+	# kanan atau belakang) dan berhenti di situ untuk menembak.
+	var sudut_sasaran: float = angle
+	if is_instance_valid(current_enemy):
+		sudut_sasaran = (current_enemy.global_position - target_player.global_position).angle()
+		angle = lerp_angle(angle, sudut_sasaran, clampf(kelajuan_kejar_sasaran * delta, 0.0, 1.0))
+	else:
 		angle += rotation_speed * delta
 	var offset = Vector2(cos(angle), sin(angle)) * orbit_radius
 	global_position = target_player.global_position + offset
@@ -73,21 +73,20 @@ func _physics_process(delta):
 
 	# 4. KUNCI SASARAN & TEMBAK AUTOMATIK (Sekatan Cooldown Ketat)
 	if is_instance_valid(current_enemy):
-		# Kekal mengadap musuh (hadapan dikunci), pusing kiri/kanan dalam ark sahaja
+		# Mengadap musuh yang disasarkan
 		var arah_musuh: float = (current_enemy.global_position - global_position).angle()
 		_putar_ke(arah_musuh, delta)
 		
-		# Hanya tembak bila muncung betul-betul menghala ke musuh
-		var beza_tembak: float = absf(wrapf(global_rotation - arah_musuh, -PI, PI))
+		var beza_muncung: float = absf(wrapf(global_rotation - arah_musuh, -PI, PI))
+		var beza_kedudukan: float = absf(wrapf(angle - sudut_sasaran, -PI, PI))
 		
-		# Dron HANYA boleh menembak jika masa menunggu sudah tamat (habis kira)
-		if cooldown_timer <= 0 and beza_tembak <= deg_to_rad(6.0):
+		# Tembak hanya bila sudah sampai titik terdekat DAN muncung menghala ke musuh
+		if cooldown_timer <= 0 and beza_muncung <= deg_to_rad(6.0) and beza_kedudukan <= deg_to_rad(8.0):
 			shoot_bullet()
 			cooldown_timer = shoot_cooldown # Reset semula masa menunggu mengikut nilai Inspector
 	else:
-		# Tiada sasaran: hadapan kembali ikut arah larian orbit
-		arah_hadapan = arah_larian
-		_putar_ke(arah_hadapan, delta)
+		# Tiada sasaran: muncung ikut arah larian orbit
+		_putar_ke(arah_larian, delta)
 
 func _find_closest_enemy():
 	var all_enemies = get_tree().get_nodes_in_group("enemy")
@@ -98,9 +97,6 @@ func _find_closest_enemy():
 		if is_instance_valid(enemy) and not enemy.get("is_dying"):
 			var distance = target_player.global_position.distance_to(enemy.global_position)
 			if distance < shortest_distance:
-				# Hanya musuh di dalam ark hadapan yang dianggap sasaran
-				if not _dalam_ark_hadapan(enemy):
-					continue
 				# Semak laluan lurus bebas dinding dari pusat Player
 				if _is_line_of_sight_clear(enemy):
 					shortest_distance = distance
@@ -108,19 +104,10 @@ func _find_closest_enemy():
 
 	current_enemy = closest_enemy
 
-# Adakah musuh berada dalam ark hadapan (default 180 darjah, +/-90 darjah)?
-func _dalam_ark_hadapan(enemy: Node2D) -> bool:
-	var arah_musuh: float = (enemy.global_position - global_position).angle()
-	var beza: float = wrapf(arah_musuh - arah_hadapan, -PI, PI)
-	return absf(beza) <= deg_to_rad(sudut_ark_tembakan * 0.5)
-
-# Pusing ke sudut global dengan had kelajuan, dan kekal dalam ark hadapan.
+# Pusing muncung ke sudut global dengan had kelajuan.
 func _putar_ke(sudut_sasaran: float, delta: float) -> void:
-	var separuh_ark: float = deg_to_rad(sudut_ark_tembakan * 0.5)
-	var beza: float = clampf(wrapf(sudut_sasaran - arah_hadapan, -PI, PI), -separuh_ark, separuh_ark)
-	var sudut_terhad: float = arah_hadapan + beza
 	var berat: float = clampf(kelajuan_pusing_arahan * delta, 0.0, 1.0)
-	global_rotation = lerp_angle(global_rotation, sudut_terhad, berat)
+	global_rotation = lerp_angle(global_rotation, sudut_sasaran, berat)
 
 func _is_line_of_sight_clear(enemy: Node2D) -> bool:
 	var space_state = get_world_2d().direct_space_state
