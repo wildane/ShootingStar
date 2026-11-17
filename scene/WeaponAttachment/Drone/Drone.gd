@@ -2,7 +2,7 @@ extends Node2D
 
 @export var rotation_speed: float = 3.0    # Kelajuan dron pusing keliling player
 @export var orbit_radius: float = 20.0     # Jarak rapat dron dengan Player
-@export var detection_range: float = 250.0  # Julat jarak untuk serang musuh
+@export var detection_range: float = 150.0  # Julat jarak untuk serang musuh
 @export var bullet_scene: PackedScene      # Fail Bullet.tscn di Inspector
 
 # === 🔥 EXPORT COOLDOWN TIMER (Boleh ubah terus dari Inspector) ===
