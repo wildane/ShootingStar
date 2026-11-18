@@ -175,6 +175,9 @@ func _on_self_pressed() -> void:
 		tutup_menu()
 		return
 
+	# Tutup panel bina / inventori dulu supaya tak bertindih
+	_tutup_menu_lain()
+
 	# Segarkan senarai setiap kali menu dibuka (dron baru mungkin baru siap)
 	_isi_butang_jenis()
 	_susun_tanda_aktif()
@@ -186,6 +189,19 @@ func _on_self_pressed() -> void:
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(_opsi, "scale:x", 1.0, 0.2).set_trans(Tween.TRANS_CUBIC)
 	tween.tween_property(_opsi, "modulate:a", 1.0, 0.2)
+
+
+func _tutup_menu_lain() -> void:
+	var induk := get_parent()
+	if induk == null:
+		return
+	for nod in induk.get_children():
+		if nod == self:
+			continue
+		if nod.has_method("tutup_menu_cepat"):
+			nod.tutup_menu_cepat()
+		elif nod.has_method("tutup_menu"):
+			nod.tutup_menu()
 
 
 func tutup_menu() -> void:

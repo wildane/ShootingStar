@@ -28,6 +28,12 @@ func _ready():
 	# Nama ringkas di bawah setiap ikon bangunan
 	_tambah_label_ikon()
 
+	# Panel ikon dijadikan overlay (top_level) supaya ia TIDAK memberi
+	# tekanan saiz pada baris butang. Tanpa ini, HBoxContainer membesar
+	# bila panel dibuka dan butang tukul nampak "turun ke bawah".
+	items_panel.top_level = true
+	items_panel.pivot_offset = Vector2.ZERO
+
 # Nama pendek supaya muat dalam sel 32 px
 const NAMA_IKON: Dictionary = {
 	"ResearchTableButton": "Research",
@@ -82,7 +88,10 @@ func _on_build_button_pressed():
 	var tween = create_tween().set_parallel(true)
 	
 	if menu_terbuka:
-		tutup_inventory_jika_terbuka()
+		_tutup_menu_lain()
+		var saiz: Vector2 = items_panel.get_combined_minimum_size()
+		items_panel.size = saiz if saiz != Vector2.ZERO else Vector2(96, 84)
+		items_panel.global_position = build_button.global_position + Vector2(build_button.size.x, 0.0)
 		items_panel.visible = true
 		tween.tween_property(items_panel, "scale:x", 1.0, 0.2).set_trans(Tween.TRANS_CUBIC)
 		tween.tween_property(items_panel, "modulate:a", 1.0, 0.2)
@@ -96,6 +105,23 @@ func tutup_menu_cepat():
 	items_panel.modulate.a = 0.0
 	items_panel.visible = false
 	build_button.text = ""
+
+# Tutup menu cepat lain (inventori, pilihan dron) supaya tidak bertindih.
+# Semua butang menu cepat duduk dalam VBoxContainer yang sama.
+func _tutup_menu_lain():
+	var baris: Node = get_parent()
+	if baris == null:
+		return
+	var induk: Node = baris.get_parent()
+	if induk == null:
+		return
+	for nod in induk.get_children():
+		if nod == self or not (nod is Node):
+			continue
+		if nod.has_method("tutup_menu_cepat"):
+			nod.tutup_menu_cepat()
+		elif nod.has_method("tutup_menu"):
+			nod.tutup_menu()
 
 func tutup_inventory_jika_terbuka():
 	if inventory_ui and inventory_ui.visible:
