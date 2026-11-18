@@ -107,12 +107,9 @@ func tutup_menu_cepat():
 	build_button.text = ""
 
 # Tutup menu cepat lain (inventori, pilihan dron) supaya tidak bertindih.
-# Semua butang menu cepat duduk dalam VBoxContainer yang sama.
+# BuildSystem sendiri anak terus VBoxContainer, sama seperti butang lain.
 func _tutup_menu_lain():
-	var baris: Node = get_parent()
-	if baris == null:
-		return
-	var induk: Node = baris.get_parent()
+	var induk: Node = get_parent()
 	if induk == null:
 		return
 	for nod in induk.get_children():
