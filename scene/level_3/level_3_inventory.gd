@@ -33,6 +33,8 @@ func _on_self_pressed() -> void:
 		_on_close_button_pressed()
 	# Jika inventory sedang tertutup, tamatkan mod bina dan buka ia
 	else:
+		# Tutup panel bina / pilihan dron dulu supaya tak bertindih
+		_tutup_menu_lain()
 		var pengurus_bina = get_tree().current_scene
 		if pengurus_bina and pengurus_bina.has_method("tamatkan_mod_pembinaan"):
 			pengurus_bina.tamatkan_mod_pembinaan()
@@ -41,6 +43,23 @@ func _on_self_pressed() -> void:
 			inventory_ui.show_inventory()
 		else:
 			inventory_ui.visible = true
+
+# Dipanggil oleh menu cepat lain (bina / dron) bila ia dibuka
+func tutup_menu_cepat() -> void:
+	if inventory_ui != null and inventory_ui.visible:
+		_on_close_button_pressed()
+
+func _tutup_menu_lain() -> void:
+	var induk := get_parent()
+	if induk == null:
+		return
+	for nod in induk.get_children():
+		if nod == self:
+			continue
+		if nod.has_method("tutup_menu_cepat"):
+			nod.tutup_menu_cepat()
+		elif nod.has_method("tutup_menu"):
+			nod.tutup_menu()
 
 # AKSI APABILA BUTANG TUTUP (CLOSE BUTTON) DIKLIK ATAU DIARAH TUTUP
 func _on_close_button_pressed() -> void:
