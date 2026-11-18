@@ -21,6 +21,7 @@ enum Keadaan { DUDUK, KEJAR, BALIK }
 @export var jarak_lepas: float = 380.0     # (1) Jauh dari SARANG -> balik
 @export var jarak_lepas_player: float = 520.0  # (2) Player dah jauh dari boss -> balik
 @export var masa_ingat_sasaran: float = 2.0   # Ingatan bila pandangan terlindung sementara
+@export var jarak_kawasan: float = 620.0   # Player dalam jarak ini dari SARANG -> ambien kawasan AquaHusk
 
 @export_group("Pergerakan")
 @export var kelajuan_kejar: float = 78.0
@@ -116,9 +117,23 @@ func _physics_process(delta: float) -> void:
 	else:
 		masa_hilang_pandangan += delta
 
+	_kemas_kawasan(player)
 	_kemas_keadaan(player, jarak)
 	_jalankan_gerak(delta, player, jarak)
 	_animasi(delta)
+
+# Ambien kawasan: bila player hampiri sarang AquaHusk, ambien angkasa bertukar
+# jadi versi perlahan muzik boss. Boss mula mengejar -> muzik boss penuh ambil alih.
+func _kemas_kawasan(player: Node2D) -> void:
+	if not is_instance_valid(player):
+		return
+	var dalam: bool = titik_asal.distance_to(player.global_position) <= jarak_kawasan
+	Sfx.kawasan_bos(dalam)
+
+func _exit_tree() -> void:
+	# Jangan tinggalkan ambien kawasan hidup bila scene ditukar.
+	Sfx.kawasan_bos(false)
+	Sfx.muzik_bos(false)
 
 func _kemas_keadaan(player: Node2D, jarak: float) -> void:
 	# Leash dikira dari SARANG, bukan dari player - sebab itu boss tak boleh

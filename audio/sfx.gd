@@ -15,11 +15,16 @@ const TEMPOH_AMBIEN: float = 14.0
 const KADAR_AMBIEN: int = 11025  # lebih rendah supaya penjanaan pantas
 # Muzik lawan boss sengaja lebih kuat daripada ambien biasa.
 const ISIPADU_BOS: float = 6.0
+const ISIPADU_AMBIEN: float = -13.0
+const ISIPADU_KAWASAN: float = -11.0
 
 var _pemain: Dictionary = {}
 var _giliran: Dictionary = {}
 var _ambien: AudioStreamPlayer = null
+var _ambien_kawasan: AudioStreamPlayer = null
 var _muzik_bos: AudioStreamPlayer = null
+var _dalam_kawasan: bool = false
+var _tween_ambien: Tween = null
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -30,6 +35,7 @@ func _ready() -> void:
 	_sedia("lendir_boss")
 	_sedia("pecah")
 	_mula_ambien()
+	_mula_ambien_kawasan()
 	_mula_muzik_bos()
 
 func mainkan(nama: String, isipadu_db: float = -6.0, pic: float = 1.0) -> void:
@@ -45,7 +51,38 @@ func mainkan(nama: String, isipadu_db: float = -6.0, pic: float = 1.0) -> void:
 	pemain.pitch_scale = pic * randf_range(0.94, 1.06)
 	pemain.play()
 
-# ---- Ambien ruang angkasa -------------------------------------------
+# ---- Ambien: ruang angkasa + kawasan AquaHusk ------------------------
+
+func _ambien_semasa() -> AudioStreamPlayer:
+	return _ambien_kawasan if _dalam_kawasan else _ambien
+
+# Player masuk/keluar kawasan AquaHusk: ambien angkasa bertukar jadi versi
+# perlahan muzik boss. Muzik boss penuh mengatasinya bila boss menyerang.
+func kawasan_bos(nyala: bool) -> void:
+	if _dalam_kawasan == nyala:
+		return
+	_dalam_kawasan = nyala
+	if _muzik_bos != null and _muzik_bos.playing:
+		# Muzik boss sedang main; muzik_bos(false) nanti pilih ambien betul.
+		return
+	_tukar_ambien(_ambien_semasa(), 1.2)
+
+func _tukar_ambien(sasaran: AudioStreamPlayer, masa: float) -> void:
+	if _tween_ambien != null and _tween_ambien.is_valid():
+		_tween_ambien.kill()
+	for p in [_ambien, _ambien_kawasan]:
+		if p == null or p == sasaran:
+			continue
+		if p.playing:
+			p.stop()
+	if sasaran == null:
+		return
+	var isipadu: float = ISIPADU_KAWASAN if sasaran == _ambien_kawasan else ISIPADU_AMBIEN
+	sasaran.volume_db = -40.0
+	if not sasaran.playing:
+		sasaran.play()
+	_tween_ambien = create_tween()
+	_tween_ambien.tween_property(sasaran, "volume_db", isipadu, masa)
 
 # Muzik rancak semasa boss menyerang.
 func muzik_bos(nyala: bool) -> void:
@@ -58,20 +95,13 @@ func muzik_bos(nyala: bool) -> void:
 			_muzik_bos.play()
 			var naik := create_tween()
 			naik.tween_property(_muzik_bos, "volume_db", ISIPADU_BOS, 0.7)
-		# Ambien dimatikan sepenuhnya: pudar keluar dulu, baru stop.
-		if _ambien and _ambien.playing:
-			var pudar := create_tween()
-			pudar.tween_property(_ambien, "volume_db", -40.0, 0.35)
-			pudar.tween_callback(_ambien.stop)
+		# Ambien dimatikan sepenuhnya semasa muzik boss main.
+		_tukar_ambien(null, 0.0)
 	else:
 		if _muzik_bos.playing:
 			_muzik_bos.stop()
-		# Balik ke ambien asal: hidupkan semula dan pudar masuk.
-		if _ambien:
-			_ambien.volume_db = -40.0
-			_ambien.play()
-			var masuk := create_tween()
-			masuk.tween_property(_ambien, "volume_db", -13.0, 0.9)
+		# Balik ke ambien yang betul: kawasan AquaHusk atau ruang angkasa.
+		_tukar_ambien(_ambien_semasa(), 0.9)
 
 func _mula_muzik_bos() -> void:
 	var stream := _jana_rancak()
@@ -84,16 +114,18 @@ func _mula_muzik_bos() -> void:
 	add_child(_muzik_bos)
 
 func ambien_aktif(nyala: bool) -> void:
-	if _ambien == null:
+	var p := _ambien_semasa()
+	if p == null:
 		return
 	if nyala:
-		_ambien.play()
+		p.play()
 	else:
-		_ambien.stop()
+		p.stop()
 
 func isipadu_ambien(db: float) -> void:
-	if _ambien:
-		_ambien.volume_db = db
+	var p := _ambien_semasa()
+	if p:
+		p.volume_db = db
 
 func _mula_ambien() -> void:
 	var stream := _jana_ambien()
@@ -101,10 +133,20 @@ func _mula_ambien() -> void:
 		return
 	_ambien = AudioStreamPlayer.new()
 	_ambien.stream = stream
-	_ambien.volume_db = -13.0
+	_ambien.volume_db = ISIPADU_AMBIEN
 	_ambien.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_ambien)
 	_ambien.play()
+
+func _mula_ambien_kawasan() -> void:
+	var stream := _jana_kawasan_bos()
+	if stream == null:
+		return
+	_ambien_kawasan = AudioStreamPlayer.new()
+	_ambien_kawasan.stream = stream
+	_ambien_kawasan.volume_db = -40.0
+	_ambien_kawasan.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_ambien_kawasan)
 
 # ---- Peralatan bunyi -------------------------------------------------
 
@@ -451,9 +493,8 @@ func _tambah_riser(s: PackedFloat32Array, kadar: int, mula: float, panjang: floa
 		fasa += TAU * lerpf(120.0, 900.0, maju * maju) / float(kadar)
 		s[idx] += (tinggi * 0.6 + sin(fasa) * 0.5) * pow(maju, 2.0) * amp
 
-func _jana_rancak() -> AudioStreamWAV:
+func _jana_rancak(bpm: float = 172.0, drive: float = 6.0, sasaran: float = 0.50) -> AudioStreamWAV:
 	var kadar: int = KADAR_AMBIEN
-	var bpm: float = 172.0
 	var ketuk: float = 60.0 / bpm
 	var bil_ketuk: int = 8
 	var tempoh: float = ketuk * bil_ketuk
@@ -519,10 +560,14 @@ func _jana_rancak() -> AudioStreamWAV:
 	# Mampatan tanh kuat: RMS naik tinggi, jadi muzik terasa paling kuat
 	# walaupun puncak kekal dalam had (tiada clipping).
 	for i in n:
-		s[i] = tanh(s[i] * 6.0)
+		s[i] = tanh(s[i] * drive)
 	# 0.50 + ISIPADU_BOS 6.0 dB (~2x) = puncak ~1.0: sekuat mungkin tanpa clipping.
-	_normal(s, 0.50)
+	_normal(s, sasaran)
 	return _ke_stream(s, true, kadar)
+
+# Versi perlahan muzik boss untuk kawasan AquaHusk (sebelum boss bangun).
+func _jana_kawasan_bos() -> AudioStreamWAV:
+	return _jana_rancak(124.0, 3.0, 0.55)
 
 # ---- Bunyi meteorit pecah sepenuhnya: hancur besar -------------------
 
