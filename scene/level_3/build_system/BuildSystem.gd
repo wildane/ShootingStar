@@ -25,6 +25,48 @@ func _ready():
 	items_panel.modulate.a = 0.0
 	items_panel.scale.x = 0.0
 
+	# Nama ringkas di bawah setiap ikon bangunan
+	_tambah_label_ikon()
+
+# Nama pendek supaya muat dalam sel 32 px
+const NAMA_IKON: Dictionary = {
+	"ResearchTableButton": "Research",
+	"FabricatorButton": "Fabricator",
+	"KitchenTableButton": "Kitchen",
+	"SolarModuleButton": "Solar",
+	"PowerInverterButton": "Inverter",
+	"ChargingStationButton": "Charger",
+}
+
+func _tambah_label_ikon() -> void:
+	var grid: Node = items_panel.get_node_or_null("MarginContainer/HBoxContainer")
+	if grid == null:
+		return
+	# Setiap butang dibalut dalam VBox + label nama di bawahnya.
+	for kanak in grid.get_children():
+		if not (kanak is Control):
+			continue
+		var bekas := VBoxContainer.new()
+		bekas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bekas.add_theme_constant_override("separation", 0)
+		var idx: int = kanak.get_index()
+		grid.add_child(bekas)
+		grid.move_child(bekas, idx)
+		kanak.reparent(bekas, false)
+
+		var label := Label.new()
+		label.text = NAMA_IKON.get(str(kanak.name), "")
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		label.clip_text = true
+		label.custom_minimum_size = Vector2(32, 8)
+		label.add_theme_font_size_override("font_size", 5)
+		label.add_theme_color_override("font_color", Color(0.86, 0.95, 1.0))
+		label.add_theme_color_override("font_outline_color", Color(0.02, 0.03, 0.06))
+		label.add_theme_constant_override("outline_size", 2)
+		bekas.add_child(label)
+
 # ==========================================================
 # 📱 KAWALAN PANEL MENU UI (EXPAND / COLLAPSE)
 # ==========================================================
