@@ -453,7 +453,7 @@ func _tambah_riser(s: PackedFloat32Array, kadar: int, mula: float, panjang: floa
 
 func _jana_rancak() -> AudioStreamWAV:
 	var kadar: int = KADAR_AMBIEN
-	var bpm: float = 182.0
+	var bpm: float = 172.0
 	var ketuk: float = 60.0 / bpm
 	var bil_ketuk: int = 8
 	var tempoh: float = ketuk * bil_ketuk
@@ -467,22 +467,16 @@ func _jana_rancak() -> AudioStreamWAV:
 	for i in 32:
 		var mula: float = float(i) * langkah
 		_tambah_nada(s, kadar, mula, bass[i % 8], langkah * 0.9, 0.30, 26.0)
-		# Not gallop separuh hantaran supaya bass berdenyut laju.
-		if i % 2 == 0:
-			_tambah_nada(s, kadar, mula + langkah * 0.5, bass[(i + 3) % 8], langkah * 0.4, 0.17, 45.0)
 		# Hi-hat setiap 16-hantaran, aksen pada ketuk.
 		var aksen: float = 0.16 if i % 4 == 0 else 0.09
 		_tambah_hitam(s, kadar, mula, 0.05, aksen)
-		# Hi-hat terbuka di hujung setiap ketuk (meriah).
-		if i % 4 == 3:
-			_tambah_hitam(s, kadar, mula + langkah * 0.5, 0.12, 0.11)
 
 	# Tendangan setiap ketuk + tendangan hantu antara ketuk.
 	for b in bil_ketuk:
 		var mula: float = float(b) * ketuk
 		_tambah_dentum(s, kadar, mula, 160.0, 48.0, 0.22, 0.85, 18.0)
 		_tambah_dentum(s, kadar, mula + ketuk * 0.35, 130.0, 45.0, 0.18, 0.58, 22.0)
-		if b % 2 == 1:
+		if b == 3 or b == 7:
 			_tambah_dentum(s, kadar, mula + ketuk * 0.62, 150.0, 52.0, 0.10, 0.34, 34.0)
 
 	# Snare utama + snare hantu supaya rentak terasa sesak.
@@ -490,30 +484,30 @@ func _jana_rancak() -> AudioStreamWAV:
 		var mula: float = float(b) * ketuk
 		_tambah_hitam(s, kadar, mula, 0.16, 0.40)
 		_tambah_nada(s, kadar, mula, 190.0, 0.12, 0.28, 30.0)
-	for b in bil_ketuk:
-		if b % 2 == 0:
-			_tambah_hitam(s, kadar, float(b) * ketuk + ketuk * 0.5, 0.06, 0.14)
+	for b in [1, 5]:
+		_tambah_hitam(s, kadar, float(b) * ketuk + ketuk * 0.5, 0.06, 0.14)
 
-	# Kluster sumbang (A minor + tritone) setiap ketuk: biola histeria.
+	# Kluster sumbang (A minor + tritone): biola histeria, dua ketuk sekali.
 	var kluster_a := [220.0, 261.63, 311.13]
 	var kluster_b := [233.08, 293.66, 349.23]
 	for b in bil_ketuk:
+		if b % 2 == 1:
+			continue
 		var mula: float = float(b) * ketuk
-		var notas: Array = kluster_a if b % 2 == 0 else kluster_b
-		_tambah_kluster(s, kadar, mula, notas, 0.16, 0.58, 18.0)
-		_tambah_kluster(s, kadar, mula + ketuk * 0.5, notas, 0.10, 0.34, 24.0)
+		var notas: Array = kluster_a if b % 4 == 0 else kluster_b
+		_tambah_kluster(s, kadar, mula, notas, 0.18, 0.62, 16.0)
+		if b == 2 or b == 6:
+			_tambah_kluster(s, kadar, mula + ketuk * 0.5, notas, 0.12, 0.40, 22.0)
 
 	# Melodi arpeggio tinggi: inilah yang paling jelas pada speaker kecil iPhone.
 	var melodi := [587.33, 698.46, 880.0, 783.99, 659.25, 880.0, 1046.5, 880.0,
 		587.33, 698.46, 880.0, 1174.66, 1046.5, 880.0, 783.99, 659.25]
-	for i in 16:
-		_tambah_nada(s, kadar, float(i) * ketuk * 0.5, melodi[i], ketuk * 0.42, 0.26, 14.0)
+	for i in bil_ketuk:
+		_tambah_nada(s, kadar, float(i) * ketuk, melodi[i * 2], ketuk * 0.8, 0.26, 12.0)
 
-	# Riser menegangkan setiap 4 ketuk, ditambah riser pendek setiap ketuk.
+	# Riser menegangkan setiap 4 ketuk.
 	_tambah_riser(s, kadar, 0.0, ketuk * 4.0, 0.30)
 	_tambah_riser(s, kadar, ketuk * 4.0, ketuk * 4.0, 0.42)
-	for b in bil_ketuk:
-		_tambah_riser(s, kadar, float(b) * ketuk, ketuk * 0.9, 0.14)
 
 	# Dron rendah D1 yang bergetar perlahan (ancaman di belakang).
 	for i in n:
