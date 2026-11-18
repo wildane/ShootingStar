@@ -453,7 +453,7 @@ func _tambah_riser(s: PackedFloat32Array, kadar: int, mula: float, panjang: floa
 
 func _jana_rancak() -> AudioStreamWAV:
 	var kadar: int = KADAR_AMBIEN
-	var bpm: float = 168.0
+	var bpm: float = 182.0
 	var ketuk: float = 60.0 / bpm
 	var bil_ketuk: int = 8
 	var tempoh: float = ketuk * bil_ketuk
@@ -462,49 +462,70 @@ func _jana_rancak() -> AudioStreamWAV:
 	s.resize(n)
 	var langkah: float = ketuk * 0.25  # not keenam belas
 
-	# Bass ostinato 16-hantaran dengan tritone D#2 (rasa menakutkan).
-	var bass := [55.0, 55.0, 77.78, 55.0, 55.0, 55.0, 73.42, 55.0]
+	# Bass 16-hantaran dengan lompat oktaf: rasa kelam kabut dan gelisah.
+	var bass := [55.0, 55.0, 110.0, 55.0, 77.78, 55.0, 73.42, 103.83]
 	for i in 32:
 		var mula: float = float(i) * langkah
-		_tambah_nada(s, kadar, mula, bass[i % 8], langkah * 0.95, 0.30, 20.0)
+		_tambah_nada(s, kadar, mula, bass[i % 8], langkah * 0.9, 0.30, 26.0)
+		# Not gallop separuh hantaran supaya bass berdenyut laju.
+		if i % 2 == 0:
+			_tambah_nada(s, kadar, mula + langkah * 0.5, bass[(i + 3) % 8], langkah * 0.4, 0.17, 45.0)
 		# Hi-hat setiap 16-hantaran, aksen pada ketuk.
-		var aksen: float = 0.15 if i % 4 == 0 else 0.08
+		var aksen: float = 0.16 if i % 4 == 0 else 0.09
 		_tambah_hitam(s, kadar, mula, 0.05, aksen)
+		# Hi-hat terbuka di hujung setiap ketuk (meriah).
+		if i % 4 == 3:
+			_tambah_hitam(s, kadar, mula + langkah * 0.5, 0.12, 0.11)
 
-	# Tendangan "denyut jantung": dua kali setiap ketuk.
+	# Tendangan setiap ketuk + tendangan hantu antara ketuk.
 	for b in bil_ketuk:
 		var mula: float = float(b) * ketuk
 		_tambah_dentum(s, kadar, mula, 160.0, 48.0, 0.22, 0.85, 18.0)
-		_tambah_dentum(s, kadar, mula + ketuk * 0.35, 130.0, 45.0, 0.18, 0.55, 22.0)
+		_tambah_dentum(s, kadar, mula + ketuk * 0.35, 130.0, 45.0, 0.18, 0.58, 22.0)
+		if b % 2 == 1:
+			_tambah_dentum(s, kadar, mula + ketuk * 0.62, 150.0, 52.0, 0.10, 0.34, 34.0)
 
-	# Pukulan snare pada ketuk 3 dan 7.
+	# Snare utama + snare hantu supaya rentak terasa sesak.
 	for b in [2, 6]:
 		var mula: float = float(b) * ketuk
-		_tambah_hitam(s, kadar, mula, 0.16, 0.38)
-		_tambah_nada(s, kadar, mula, 190.0, 0.12, 0.26, 30.0)
+		_tambah_hitam(s, kadar, mula, 0.16, 0.40)
+		_tambah_nada(s, kadar, mula, 190.0, 0.12, 0.28, 30.0)
+	for b in bil_ketuk:
+		if b % 2 == 0:
+			_tambah_hitam(s, kadar, float(b) * ketuk + ketuk * 0.5, 0.06, 0.14)
 
-	# Kluster sumbang (A minor + tritone) seperti biola histeria.
-	for b in [3, 7]:
+	# Kluster sumbang (A minor + tritone) setiap ketuk: biola histeria.
+	var kluster_a := [220.0, 261.63, 311.13]
+	var kluster_b := [233.08, 293.66, 349.23]
+	for b in bil_ketuk:
 		var mula: float = float(b) * ketuk
-		_tambah_kluster(s, kadar, mula, [220.0, 261.63, 311.13], 0.18, 0.62, 16.0)
-		_tambah_kluster(s, kadar, mula + ketuk * 0.5, [233.08, 293.66, 349.23], 0.12, 0.40, 20.0)
+		var notas: Array = kluster_a if b % 2 == 0 else kluster_b
+		_tambah_kluster(s, kadar, mula, notas, 0.16, 0.58, 18.0)
+		_tambah_kluster(s, kadar, mula + ketuk * 0.5, notas, 0.10, 0.34, 24.0)
 
-	# Riser menegangkan setiap 4 ketuk.
-	_tambah_riser(s, kadar, 0.0, ketuk * 4.0, 0.22)
-	_tambah_riser(s, kadar, ketuk * 4.0, ketuk * 4.0, 0.32)
+	# Melodi arpeggio tinggi: inilah yang paling jelas pada speaker kecil iPhone.
+	var melodi := [587.33, 698.46, 880.0, 783.99, 659.25, 880.0, 1046.5, 880.0,
+		587.33, 698.46, 880.0, 1174.66, 1046.5, 880.0, 783.99, 659.25]
+	for i in 16:
+		_tambah_nada(s, kadar, float(i) * ketuk * 0.5, melodi[i], ketuk * 0.42, 0.26, 14.0)
+
+	# Riser menegangkan setiap 4 ketuk, ditambah riser pendek setiap ketuk.
+	_tambah_riser(s, kadar, 0.0, ketuk * 4.0, 0.30)
+	_tambah_riser(s, kadar, ketuk * 4.0, ketuk * 4.0, 0.42)
+	for b in bil_ketuk:
+		_tambah_riser(s, kadar, float(b) * ketuk, ketuk * 0.9, 0.14)
 
 	# Dron rendah D1 yang bergetar perlahan (ancaman di belakang).
 	for i in n:
 		var t: float = float(i) / float(kadar)
 		var getar: float = 0.6 + 0.4 * sin(TAU * 3.0 * t / tempoh)
-		s[i] += sin(TAU * 36.71 * t) * 0.28 * getar
+		s[i] += sin(TAU * 36.71 * t) * 0.26 * getar
 
 	_normal(s, 0.97)
-	# Saturasi lebih tebal: RMS naik, jadi muzik terasa lebih kuat dan padat
-	# walaupun puncaknya tetap tak clipping.
+	# Mampatan tanh kuat: RMS naik tinggi, jadi muzik terasa paling kuat
+	# walaupun puncak kekal dalam had (tiada clipping).
 	for i in n:
-		s[i] = tanh(s[i] * 3.5)
-	# Selepas tanh puncak jatuh, jadi normal semula dekat had penuh.
+		s[i] = tanh(s[i] * 6.0)
 	# 0.50 + ISIPADU_BOS 6.0 dB (~2x) = puncak ~1.0: sekuat mungkin tanpa clipping.
 	_normal(s, 0.50)
 	return _ke_stream(s, true, kadar)
