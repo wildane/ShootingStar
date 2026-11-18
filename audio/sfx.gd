@@ -14,7 +14,7 @@ const BILANGAN_PEMAIN: int = 4  # supaya bunyi boleh bertindih
 const TEMPOH_AMBIEN: float = 14.0
 const KADAR_AMBIEN: int = 11025  # lebih rendah supaya penjanaan pantas
 # Muzik lawan boss sengaja lebih kuat daripada ambien biasa.
-const ISIPADU_BOS: float = 3.0
+const ISIPADU_BOS: float = 6.0
 
 var _pemain: Dictionary = {}
 var _giliran: Dictionary = {}
@@ -503,10 +503,10 @@ func _jana_rancak() -> AudioStreamWAV:
 	# Saturasi lebih tebal: RMS naik, jadi muzik terasa lebih kuat dan padat
 	# walaupun puncaknya tetap tak clipping.
 	for i in n:
-		s[i] = tanh(s[i] * 2.0)
+		s[i] = tanh(s[i] * 3.5)
 	# Selepas tanh puncak jatuh, jadi normal semula dekat had penuh.
-	# 0.70 + ISIPADU_BOS 3.0 dB = puncak ~1.0 (kuat tetapi tidak clipping).
-	_normal(s, 0.70)
+	# 0.50 + ISIPADU_BOS 6.0 dB (~2x) = puncak ~1.0: sekuat mungkin tanpa clipping.
+	_normal(s, 0.50)
 	return _ke_stream(s, true, kadar)
 
 # ---- Bunyi meteorit pecah sepenuhnya: hancur besar -------------------
