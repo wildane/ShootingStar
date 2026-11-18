@@ -8,15 +8,15 @@ var _bar_tenaga: HpBar
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	# Dua bar tegak di bawah kanan skrin, isi naik ke atas
+	# Dua bar tegak di atas kanan skrin, di sebelah kiri ikon arah
 	var susunan := HBoxContainer.new()
 	susunan.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	susunan.add_theme_constant_override("separation", 4)
-	susunan.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	susunan.offset_left = -(HpBar.SAIZ_MENEGAK.x * 2.0 + 4.0 + 6.0)
-	susunan.offset_top = -(HpBar.SAIZ_MENEGAK.y + 6.0)
-	susunan.offset_right = -6.0
-	susunan.offset_bottom = -6.0
+	susunan.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	susunan.offset_left = -(HpBar.SAIZ_MENEGAK.x * 2.0 + 4.0 + 46.0)
+	susunan.offset_top = 6.0
+	susunan.offset_right = -46.0
+	susunan.offset_bottom = 6.0 + HpBar.SAIZ_MENEGAK.y
 	add_child(susunan)
 
 	_bar_hp = HpBar.cipta(HpBar.SAIZ_MENEGAK, HpBar.FON_MENEGAK, "hp", true)
