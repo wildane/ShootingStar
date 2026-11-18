@@ -13,6 +13,8 @@ const PUNCAK: float = 32000.0
 const BILANGAN_PEMAIN: int = 4  # supaya bunyi boleh bertindih
 const TEMPOH_AMBIEN: float = 14.0
 const KADAR_AMBIEN: int = 11025  # lebih rendah supaya penjanaan pantas
+# Muzik lawan boss sengaja lebih kuat daripada ambien biasa.
+const ISIPADU_BOS: float = 3.0
 
 var _pemain: Dictionary = {}
 var _giliran: Dictionary = {}
@@ -51,7 +53,11 @@ func muzik_bos(nyala: bool) -> void:
 		return
 	if nyala:
 		if not _muzik_bos.playing:
+			# Pudar masuk ringkas supaya masuk lawan boss terasa "meledak".
+			_muzik_bos.volume_db = -12.0
 			_muzik_bos.play()
+			var naik := create_tween()
+			naik.tween_property(_muzik_bos, "volume_db", ISIPADU_BOS, 0.7)
 		# Ambien dimatikan sepenuhnya: pudar keluar dulu, baru stop.
 		if _ambien and _ambien.playing:
 			var pudar := create_tween()
@@ -73,7 +79,7 @@ func _mula_muzik_bos() -> void:
 		return
 	_muzik_bos = AudioStreamPlayer.new()
 	_muzik_bos.stream = stream
-	_muzik_bos.volume_db = -1.0
+	_muzik_bos.volume_db = ISIPADU_BOS
 	_muzik_bos.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_muzik_bos)
 
@@ -460,28 +466,28 @@ func _jana_rancak() -> AudioStreamWAV:
 	var bass := [55.0, 55.0, 77.78, 55.0, 55.0, 55.0, 73.42, 55.0]
 	for i in 32:
 		var mula: float = float(i) * langkah
-		_tambah_nada(s, kadar, mula, bass[i % 8], langkah * 0.95, 0.24, 20.0)
+		_tambah_nada(s, kadar, mula, bass[i % 8], langkah * 0.95, 0.30, 20.0)
 		# Hi-hat setiap 16-hantaran, aksen pada ketuk.
-		var aksen: float = 0.13 if i % 4 == 0 else 0.07
+		var aksen: float = 0.15 if i % 4 == 0 else 0.08
 		_tambah_hitam(s, kadar, mula, 0.05, aksen)
 
 	# Tendangan "denyut jantung": dua kali setiap ketuk.
 	for b in bil_ketuk:
 		var mula: float = float(b) * ketuk
-		_tambah_dentum(s, kadar, mula, 160.0, 48.0, 0.22, 0.7, 18.0)
-		_tambah_dentum(s, kadar, mula + ketuk * 0.35, 130.0, 45.0, 0.18, 0.45, 22.0)
+		_tambah_dentum(s, kadar, mula, 160.0, 48.0, 0.22, 0.85, 18.0)
+		_tambah_dentum(s, kadar, mula + ketuk * 0.35, 130.0, 45.0, 0.18, 0.55, 22.0)
 
 	# Pukulan snare pada ketuk 3 dan 7.
 	for b in [2, 6]:
 		var mula: float = float(b) * ketuk
-		_tambah_hitam(s, kadar, mula, 0.16, 0.30)
-		_tambah_nada(s, kadar, mula, 190.0, 0.12, 0.22, 30.0)
+		_tambah_hitam(s, kadar, mula, 0.16, 0.38)
+		_tambah_nada(s, kadar, mula, 190.0, 0.12, 0.26, 30.0)
 
 	# Kluster sumbang (A minor + tritone) seperti biola histeria.
 	for b in [3, 7]:
 		var mula: float = float(b) * ketuk
-		_tambah_kluster(s, kadar, mula, [220.0, 261.63, 311.13], 0.18, 0.55, 16.0)
-		_tambah_kluster(s, kadar, mula + ketuk * 0.5, [233.08, 293.66, 349.23], 0.12, 0.35, 20.0)
+		_tambah_kluster(s, kadar, mula, [220.0, 261.63, 311.13], 0.18, 0.62, 16.0)
+		_tambah_kluster(s, kadar, mula + ketuk * 0.5, [233.08, 293.66, 349.23], 0.12, 0.40, 20.0)
 
 	# Riser menegangkan setiap 4 ketuk.
 	_tambah_riser(s, kadar, 0.0, ketuk * 4.0, 0.22)
@@ -491,12 +497,16 @@ func _jana_rancak() -> AudioStreamWAV:
 	for i in n:
 		var t: float = float(i) / float(kadar)
 		var getar: float = 0.6 + 0.4 * sin(TAU * 3.0 * t / tempoh)
-		s[i] += sin(TAU * 36.71 * t) * 0.22 * getar
+		s[i] += sin(TAU * 36.71 * t) * 0.28 * getar
 
 	_normal(s, 0.97)
-	# Sedikit saturasi: bunyi terasa lebih kuat dan padat tanpa clipping.
+	# Saturasi lebih tebal: RMS naik, jadi muzik terasa lebih kuat dan padat
+	# walaupun puncaknya tetap tak clipping.
 	for i in n:
-		s[i] = tanh(s[i] * 1.5) * 0.95
+		s[i] = tanh(s[i] * 2.0)
+	# Selepas tanh puncak jatuh, jadi normal semula dekat had penuh.
+	# 0.70 + ISIPADU_BOS 3.0 dB = puncak ~1.0 (kuat tetapi tidak clipping).
+	_normal(s, 0.70)
 	return _ke_stream(s, true, kadar)
 
 # ---- Bunyi meteorit pecah sepenuhnya: hancur besar -------------------
