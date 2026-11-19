@@ -1,5 +1,7 @@
 extends StaticBody2D
 
+const KESAN_TELEPORT := preload("res://scene/level_3/build_system/doorway/KesanTeleport.gd")
+
 @onready var sprite := $Sprite2D
 @onready var area := $Area2D
 
@@ -74,9 +76,8 @@ func _on_input(_viewport, event, _shape_idx):
 			# Ambil rujukan pusat State Machine milik pemain
 			var sm = player.get_node_or_null("StateMachine")
 			
-			# 100% LOGIK ASAL KAMU (TIDAK DIUBAH SAMA SEKALI)
 			if player.global_position.y > global_position.y:
-				player.global_position = INSIDE_POS
+				_teleport_badan(player, INSIDE_POS)
 				print("[DOOR] Pemain di luar, Teleport MASUK →", INSIDE_POS)
 				
 				# PEMBETULAN: Mengikut map anda, INSIDE_POS sepatutnya mengaktifkan MOD ANG KASA
@@ -86,7 +87,7 @@ func _on_input(_viewport, event, _shape_idx):
 						sm.tukar_state(state_angkasa)
 			
 			else:
-				player.global_position = OUTSIDE_POS
+				_teleport_badan(player, OUTSIDE_POS)
 				print("[DOOR] Pemain di dalam, Teleport KELUAR →", OUTSIDE_POS)
 				
 				# PEMBETULAN: Mengikut map anda, OUTSIDE_POS sepatutnya mengaktifkan MOD BASE
@@ -112,9 +113,42 @@ func lalu_automatik(body: Node2D) -> void:
 	if body == null or not is_instance_valid(body):
 		return
 	if body.global_position.y > global_position.y:
-		body.global_position = INSIDE_POS
+		_teleport_badan(body, INSIDE_POS)
 	else:
-		body.global_position = OUTSIDE_POS
+		_teleport_badan(body, OUTSIDE_POS)
+
+
+# =========================
+# KESAN TELEPORT
+# =========================
+# Pindahkan badan ke titik teleport sambil memainkan animasi di kedua-dua
+# hujung pintu: badan "hilang" di tempat lama, "muncul" di tempat baru.
+func _teleport_badan(body: Node2D, pos_baru: Vector2) -> void:
+	var pos_lama: Vector2 = body.global_position
+	_main_kesan(body, pos_lama, false)
+	body.global_position = pos_baru
+	_main_kesan(body, pos_baru, true)
+	_kelip_badan(body)
+
+
+func _main_kesan(body: Node2D, pada: Vector2, muncul: bool) -> void:
+	var induk := body.get_parent()
+	if induk == null or not is_instance_valid(induk):
+		return
+	var kesan := KESAN_TELEPORT.new()
+	kesan.muncul = muncul
+	induk.add_child(kesan)
+	kesan.global_position = pada
+
+
+# Kilau putih singkat pada badan sendiri supaya perpindahan terasa seperti
+# teleport, bukan lompat terus. Modulate asal dipulihkan selepas itu.
+func _kelip_badan(body: Node2D) -> void:
+	var asal: Color = body.modulate
+	body.modulate = Color(2.0, 2.0, 2.0, 0.35)
+	var tw := body.create_tween()
+	tw.tween_property(body, "modulate", Color(2.0, 2.0, 2.0, 1.0), 0.12)
+	tw.tween_property(body, "modulate", asal, 0.2)
 
 
 # =========================
