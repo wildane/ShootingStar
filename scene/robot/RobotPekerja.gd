@@ -9,8 +9,11 @@ extends CharacterBody2D
 @export_group("Pergerakan")
 @export var kelajuan: float = 34.0
 @export var julat_lombong: float = 20.0
-@export var jarak_pintu: float = 18.0
+@export var jarak_pintu: float = 22.0
 @export var masa_scan: float = 0.6
+# Kalau dinding kedap dalam jarak ini pada keempat-empat arah, robot
+# anggap ia terkurung dalam bilik dan cari pintu untuk keluar dulu.
+@export var jarak_bilik: float = 100.0
 
 @export_group("Tenaga")
 @export var tenaga_maks: float = 100.0
@@ -35,6 +38,11 @@ var _pintu: Node2D = null
 var _masa_scan_baki: float = 0.0
 var _masa_pintu_baki: float = 0.0
 var _masa_lombong: float = 0.0
+var _masa_larang_pintu: float = 0.0
+var _masa_semak_bilik: float = 0.0
+var _bilik_terkurung: bool = false
+var _menuju_pintu: bool = false
+var _sisi_elak: float = 1.0
 var _perlu_cas: bool = false
 var _sedang_baiki: bool = false
 var _sedang_rehat: bool = false
@@ -84,6 +92,9 @@ func _physics_process(delta: float) -> void:
 
 	_kemas_bahaya(delta)
 	_kemas_kilat(delta)
+	_kemas_bilik(delta)
+	if _masa_larang_pintu > 0.0:
+		_masa_larang_pintu = maxf(0.0, _masa_larang_pintu - delta)
 
 	# Panel solar kecil: cas perlahan sepanjang masa.
 	if tenaga < tenaga_maks:
@@ -160,8 +171,10 @@ func _physics_process(delta: float) -> void:
 
 
 func _pilih_sasaran() -> void:
-	var terbaik: Node2D = null
-	var jarak_terbaik := INF
+	var calon_lihat: Node2D = null
+	var jarak_lihat := INF
+	var calon_dekat: Node2D = null
+	var jarak_dekat := INF
 	# Array tanpa jenis: setiap nod diperiksa secara dinamik ("hp" hanya
 	# ada pada meteorit, bukan pada semua Node).
 	var senarai_musuh: Array = get_tree().get_nodes_in_group("enemies")
@@ -175,17 +188,32 @@ func _pilih_sasaran() -> void:
 			continue
 		if int(nod.hp) <= 0:
 			continue
-		var jarak: float = global_position.distance_squared_to((nod as Node2D).global_position)
-		if jarak < jarak_terbaik:
-			jarak_terbaik = jarak
-			terbaik = nod
-	_sasaran = terbaik
+		var nod2d := nod as Node2D
+		var jarak: float = global_position.distance_squared_to(nod2d.global_position)
+		if jarak < jarak_dekat:
+			jarak_dekat = jarak
+			calon_dekat = nod2d
+		# Utamakan meteorit yang boleh dilihat terus (tiada dinding).
+		if jarak < jarak_lihat and _ada_jarak_lihat(nod2d.global_position):
+			jarak_lihat = jarak
+			calon_lihat = nod2d
+	# Kalau tiada satu pun kelihatan, simpan sasaran terdekat; logik pintu
+	# di bawah akan bawa robot keluar bilik dulu sebelum mengejarnya.
+	_sasaran = calon_lihat if calon_lihat != null else calon_dekat
 
 
 # ==========================================================
-# PINTU: robot lalu sendiri pintu yang pemain kena klik.
+# PINTU: robot kesan ia terkurung, keluar ikut pintu, baru cari meteor.
 # ==========================================================
+# Pintu yang pemain kena klik itu satu-satunya jalan keluar. Robot tidak
+# lagi mengejar meteorit yang di belakang dinding: ia periksa dinding di
+# sekeliling, cari pintu, lalu keluar dari bilik dahulu.
 func _cuba_lalu_pintu(delta: float) -> bool:
+	if not _bilik_terkurung:
+		return false
+	if _masa_larang_pintu > 0.0:
+		return false
+
 	if not is_instance_valid(_pintu):
 		_masa_pintu_baki -= delta
 		if _masa_pintu_baki > 0.0:
@@ -195,18 +223,22 @@ func _cuba_lalu_pintu(delta: float) -> bool:
 		if _pintu == null:
 			return false
 
-	# Sasaran di sisi pintu yang sama: jalan biasa, tak perlu pintu.
-	if _sisi_pintu(global_position) == _sisi_pintu(_sasaran.global_position):
-		return false
-
 	if global_position.distance_to(_pintu.global_position) <= jarak_pintu:
 		if not _pintu.has_method("lalu_automatik"):
 			return false
 		_pintu.call("lalu_automatik", self)
+		# Jangan terus pusing balik masuk pintu yang sama.
+		_masa_larang_pintu = 4.0
+		_bilik_terkurung = false
+		_masa_semak_bilik = 0.4
 		_berhenti()
 		return true
 
+	# Betul-betul depan pintu sahaja elak dinding dimatikan, supaya robot
+	# boleh sampai ke pusat pintu tanpa terpesong oleh badan pintu itu.
+	_menuju_pintu = global_position.distance_to(_pintu.global_position) < 35.0
 	_bergerak_ke(_pintu.global_position, delta)
+	_menuju_pintu = false
 	return true
 
 
@@ -224,10 +256,44 @@ func _cari_pintu() -> Node2D:
 	return terbaik
 
 
-func _sisi_pintu(posisi: Vector2) -> int:
-	if not is_instance_valid(_pintu):
-		return 0
-	return 1 if posisi.y > _pintu.global_position.y else -1
+# ----------------------------------------------------------
+# PENGESANAN BILIK DAN DINDING
+# ----------------------------------------------------------
+# Terkurung = ada dinding dalam jarak_bilik pada keempat-empat arah
+# (kiri, kanan, atas, bawah). Ini menandakan robot ada di dalam bilik
+# berpagar yang cuma boleh keluar melalui pintu.
+func _kemas_bilik(delta: float) -> void:
+	_masa_semak_bilik -= delta
+	if _masa_semak_bilik > 0.0:
+		return
+	_masa_semak_bilik = 0.4
+	var arah_uji: Array[Vector2] = [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]
+	var bilangan_dinding := 0
+	for arah in arah_uji:
+		if not _sinar_dinding(global_position, arah, jarak_bilik).is_empty():
+			bilangan_dinding += 1
+	_bilik_terkurung = bilangan_dinding >= 4
+
+
+func _sinar_dinding(dari: Vector2, arah: Vector2, jarak: float) -> Dictionary:
+	var ruang := get_world_2d().direct_space_state
+	if ruang == null:
+		return {}
+	# Mask 2 = layer dinding. Robot sendiri dikecualikan.
+	var pertanyaan := PhysicsRayQueryParameters2D.create(dari, dari + arah * jarak, 2)
+	var kecuali: Array[RID] = [get_rid()]
+	pertanyaan.exclude = kecuali
+	pertanyaan.collide_with_areas = false
+	pertanyaan.collide_with_bodies = true
+	return ruang.intersect_ray(pertanyaan)
+
+
+# Ada laluan lurus bebas dinding ke titik itu?
+func _ada_jarak_lihat(posisi: Vector2) -> bool:
+	var arah := posisi - global_position
+	if arah.length() < 4.0:
+		return true
+	return _sinar_dinding(global_position, arah.normalized(), arah.length()).is_empty()
 
 
 # ==========================================================
@@ -242,10 +308,31 @@ func _bergerak_ke(posisi: Vector2, delta: float) -> void:
 	if _baki_elak > 0.0:
 		_baki_elak -= delta
 		arah = _arah_elak
+	elif not _menuju_pintu:
+		# Mengelilingi dinding, bukan merempuh dinding.
+		arah = _elak_dinding(arah)
 	velocity = arah * kelajuan
 	tenaga = maxf(0.0, tenaga - kos_gerak_sesaat * delta)
 	move_and_slide()
 	_semak_tersangkut(delta, arah)
+
+
+# Kalau ada dinding di hadapan, pusing ikut permukaan dinding ke arah
+# yang masih menghala ke sasaran (wall following ringkas).
+func _elak_dinding(arah: Vector2) -> Vector2:
+	var hasil := _sinar_dinding(global_position, arah, 26.0)
+	if hasil.is_empty():
+		return arah
+	var normal: Vector2 = hasil.get("normal", Vector2.ZERO)
+	if normal == Vector2.ZERO:
+		return arah
+	# Buang komponen yang menuju ke dinding, kekalkan arah selari.
+	var selari := arah - normal * arah.dot(normal)
+	if selari.length() > 0.2:
+		return (selari.normalized() + normal * 0.35).normalized()
+	# Dinding tepat di hadapan: ikut satu sisi dinding secara konsisten.
+	var tangen := Vector2(-normal.y, normal.x) * _sisi_elak
+	return (tangen + normal * 0.35).normalized()
 
 
 func _berhenti() -> void:
@@ -259,8 +346,10 @@ func _semak_tersangkut(delta: float, arah: Vector2) -> void:
 	if _masa_semak < 0.9:
 		return
 	if global_position.distance_to(_pos_semak) < 2.0:
+		# Tersangkut juga: tukar sisi ikut dinding dan cuba laluan lain.
+		_sisi_elak = -_sisi_elak
 		_baki_elak = 0.8
-		_arah_elak = arah.orthogonal() * (1.0 if randf() < 0.5 else -1.0)
+		_arah_elak = arah.orthogonal() * _sisi_elak
 	_pos_semak = global_position
 	_masa_semak = 0.0
 
