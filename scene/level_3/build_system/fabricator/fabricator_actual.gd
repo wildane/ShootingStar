@@ -71,15 +71,17 @@ var resipi_dron: Array[Dictionary] = [
 # Robot terus muncul di sebelah Fabricator selepas dibuat, kemudian
 # bekerja sendiri (lombong meteorit + cas tenaga sendiri).
 const ADEGAN_ROBOT: String = "res://scene/robot/RobotPekerja.tscn"
-const IKON_ROBOT: String = "res://scene/WeaponAttachment/Drone/Image_836.png"
-const WARNA_ROBOT: Color = Color(0.45, 1.0, 0.55)
+const SkripRekaRobot := preload("res://scene/robot/RekaRobot.gd")
+# Ikon robot dilukis secara vektor (tiada fail imej baru), jadi tint neutral
+# supaya warnanya kekal seperti yang dilukis.
+const WARNA_ROBOT: Color = Color(1.0, 1.0, 1.0)
 
 var resipi_robot: Array[Dictionary] = [
 	{
 		"id": "robot_mining",
 		"nama": "Mining Robot",
 		"robot": true,
-		"ikon_slot": IKON_ROBOT,
+		"ikon_slot": "",
 		"warna": WARNA_ROBOT,
 		"keterangan": "An autonomous worker. It flies to the nearest meteorite and mines it, repairs 30 HP in 3 seconds, and passes through doorways without a click. After 3 meteorites (or when its energy runs low) it returns to the base and recharges at a Charging Station until full.",
 		"statistik_teks": "Meteorite miner\n3 meteors per trip\nEnergy 100  ·  HP 60",
@@ -106,6 +108,8 @@ var _bekas_harga: VBoxContainer = null
 var _label_keterangan: RichTextLabel = null
 var _butang_craft: Button = null
 var _pilihan_craft: int = 0
+# Ikon robot vektor: dijana sekali sahaja (48x48) dan dikongsi semua slot.
+static var _ikon_robot_cache: Texture2D = null
 
 
 func _ready():
@@ -341,7 +345,7 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 
 		var b := Button.new()
 		b.flat = true
-		b.icon = load(str(senarai[i].get("ikon_slot", IKON_DRON)))
+		b.icon = _ikon_resipi(senarai[i])
 		b.expand_icon = true
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		b.self_modulate = senarai[i]["warna"]
@@ -501,6 +505,19 @@ func _sudah_punya(id_item: String) -> bool:
 	if id_item == "robot_mining":
 		return _robot_wujud()
 	return _bilangan_dalam_beg(id_item) > 0
+
+
+# Ikon slot: robot guna ikon vektor yang dijana dalam kod, resipi lain guna
+# fail imej masing-masing.
+func _ikon_resipi(resipi: Dictionary) -> Texture2D:
+	if bool(resipi.get("robot", false)):
+		if _ikon_robot_cache == null:
+			_ikon_robot_cache = SkripRekaRobot.buat_ikon(48)
+		return _ikon_robot_cache
+	var laluan: String = str(resipi.get("ikon_slot", IKON_DRON))
+	if laluan != "" and ResourceLoader.exists(laluan):
+		return load(laluan)
+	return null
 
 
 func _bahan_cukup(resipi: Dictionary) -> bool:

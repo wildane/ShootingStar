@@ -1,7 +1,6 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scene/robot/RobotPekerja.gd" id="1_robot"]
-[ext_resource type="Texture2D" path="res://scene/WeaponAttachment/Drone/Image_836.png" id="2_robot"]
 [ext_resource type="Script" path="res://scene/level_3/build_system/SaveComponent.gd" id="3_robot"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_badan"]
@@ -15,10 +14,6 @@ y_sort_enabled = true
 collision_layer = 0
 collision_mask = 2
 script = ExtResource("1_robot")
-
-[node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.022, 0.022)
-texture = ExtResource("2_robot")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_badan")
