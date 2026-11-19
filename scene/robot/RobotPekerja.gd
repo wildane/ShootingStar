@@ -85,6 +85,8 @@ var _baki_elak: float = 0.0
 var _arah_elak: Vector2 = Vector2.ZERO
 
 var _kilat_baki: float = 0.0
+# Jam animasi ringkas (jalan / melombong / cas).
+var _masa_anim: float = 0.0
 var _sudah_mati: bool = false
 
 # Warna teras robot: biasa / melombong / cas / baiki.
@@ -122,6 +124,7 @@ func _physics_process(delta: float) -> void:
 
 	_kemas_bahaya(delta)
 	_kemas_kilat(delta)
+	_masa_anim += delta
 	_kemas_bilik(delta)
 	if _masa_larang_pintu > 0.0:
 		_masa_larang_pintu = maxf(0.0, _masa_larang_pintu - delta)
@@ -710,11 +713,35 @@ func _kemas_visual() -> void:
 func _draw() -> void:
 	# Badan robot dari skrip reka bentuk yang sama dengan ikon Fabricator.
 	var kilat := 1.0 if _kilat_baki > 0.0 else 0.0
-	for lapisan in SkripReka.bentuk(SKALA_BADAN, _warna_aksen, kilat):
+
+	# Animasi ringkas ikut keadaan:
+	#   jalan   — kaki dan lengan berayun, badan naik-turun sedikit
+	#   lombong — gerudi menolak ke bawah berulang, badan gegar halus
+	#   cas     — teras berdenyut dan badan terapung perlahan
+	var bergerak := velocity.length() > 1.0 and not _sedang_lombong
+	var hayun := 0.0
+	var gerudi := 0.0
+	var degup := 0.0
+	var angkat := 0.0
+	var gegar := 0.0
+	if _sedang_lombong:
+		gerudi = absf(sin(_masa_anim * 7.0)) * 1.6
+		gegar = sin(_masa_anim * 38.0) * 0.35
+	elif bergerak:
+		hayun = sin(_masa_anim * 11.0)
+		angkat = -absf(sin(_masa_anim * 11.0)) * 0.9
+	if _sedang_rehat:
+		degup = 0.5 + 0.5 * sin(_masa_anim * 3.2)
+		angkat -= absf(sin(_masa_anim * 2.0)) * 0.7
+
+	draw_set_transform(Vector2(gegar, angkat), 0.0, Vector2.ONE)
+	for lapisan in SkripReka.bentuk(SKALA_BADAN, _warna_aksen, kilat, hayun, gerudi, degup):
 		if str(lapisan.get("jenis", "")) == "bulatan":
 			draw_circle(lapisan["pusat"], float(lapisan["jejari"]), lapisan["warna"], true, -1.0, true)
 		else:
 			draw_colored_polygon(lapisan["titik"], lapisan["warna"])
+	# Bar HP/tenaga tidak ikut gegar atau terapung.
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 	var lebar := 14.0
 	var tinggi := 1.8
