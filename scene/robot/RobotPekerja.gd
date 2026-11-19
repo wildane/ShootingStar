@@ -2,8 +2,8 @@ extends CharacterBody2D
 
 const SkripPeta := preload("res://scene/level_3/navigation/PetaNavigasi.gd")
 const SkripReka := preload("res://scene/robot/RekaRobot.gd")
-# Saiz lukisan badan robot (bentuk asal berdiameter ~50 unit).
-const SKALA_BADAN: float = 0.42
+# Saiz lukisan badan robot (bentuk humanoid setinggi ~38 x 22 unit).
+const SKALA_BADAN: float = 0.5
 
 ## Robot pekerja perlombongan.
 ## Dibuat di Fabricator. Selepas itu ia bekerja sendiri tanpa pemain:
