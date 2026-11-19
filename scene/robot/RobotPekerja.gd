@@ -1,6 +1,9 @@
 extends CharacterBody2D
 
 const SkripPeta := preload("res://scene/level_3/navigation/PetaNavigasi.gd")
+const SkripReka := preload("res://scene/robot/RekaRobot.gd")
+# Saiz lukisan badan robot (bentuk asal berdiameter ~50 unit).
+const SKALA_BADAN: float = 0.42
 
 ## Robot pekerja perlombongan.
 ## Dibuat di Fabricator. Selepas itu ia bekerja sendiri tanpa pemain:
@@ -11,6 +14,9 @@ const SkripPeta := preload("res://scene/level_3/navigation/PetaNavigasi.gd")
 @export_group("Pergerakan")
 @export var kelajuan: float = 34.0
 @export var julat_lombong: float = 20.0
+# Jarak berdiri semasa melombong: robot berhenti di sini dahulu supaya ia
+# tidak bertindih dengan meteorit.
+@export var jarak_berdiri: float = 18.0
 @export var jarak_pintu: float = 30.0
 @export var masa_scan: float = 0.6
 # Kalau dinding kedap dalam jarak ini pada keempat-empat arah, robot
@@ -81,7 +87,8 @@ var _arah_elak: Vector2 = Vector2.ZERO
 var _kilat_baki: float = 0.0
 var _sudah_mati: bool = false
 
-@onready var sprite: Sprite2D = get_node_or_null("Sprite2D")
+# Warna teras robot: biasa / melombong / cas / baiki.
+var _warna_aksen: Color = SkripReka.AKSEN
 
 
 func _ready() -> void:
@@ -178,19 +185,31 @@ func _physics_process(delta: float) -> void:
 	var jarak := global_position.distance_to(_sasaran.global_position)
 	if jarak > julat_lombong:
 		_sedang_lombong = false
+		# Menuju titik berdiri, bukan pusat meteorit, supaya robot tidak
+		# terbang menembusi meteor itu.
+		var titik_hampiri := _titik_hampiri(_sasaran.global_position)
 		# Meteor di sebalik dinding: ikut laluan yang dikira sistem navigasi.
-		if not _ada_jarak_lihat(_sasaran.global_position) and _minta_laluan(_sasaran.global_position):
+		if not _ada_jarak_lihat(_sasaran.global_position) and _minta_laluan(titik_hampiri):
 			if _ikut_laluan(delta):
 				_kemas_visual()
 				return
-		_bergerak_ke(_sasaran.global_position, delta)
+		_bergerak_ke(titik_hampiri, delta)
 		_kemas_visual()
 		return
 
-	# Sudah dekat: berhenti dan ketuk meteor setiap 1 saat.
+	# Sudah dekat: berhenti pada jarak berdiri dan ketuk meteor setiap 1 saat.
 	_sedang_lombong = true
 	_sasaran_dilombong = true
-	_berhenti()
+	if jarak < jarak_berdiri:
+		# Terlalu dekat (laluan lalu atas meteorit): undur sedikit dulu.
+		var undur := global_position - _sasaran.global_position
+		if undur.length() > 0.5:
+			velocity = undur.normalized() * kelajuan * 0.7
+			move_and_slide()
+		else:
+			_berhenti()
+	else:
+		_berhenti()
 	_masa_lombong += delta
 	if _masa_lombong >= 1.0 and tenaga >= kos_lombong:
 		_masa_lombong = 0.0
@@ -508,6 +527,14 @@ func _kawasan_laluan(ke: Vector2, senarai_pintu: Array) -> Rect2:
 # ==========================================================
 # PERGERAKAN
 # ==========================================================
+# Titik berdiri sejauh jarak_berdiri dari sasaran, pada arah robot sekarang.
+func _titik_hampiri(ke: Vector2) -> Vector2:
+	var arah := global_position - ke
+	if arah.length() < 0.5:
+		return ke + Vector2(0.0, -jarak_berdiri)
+	return ke + arah.normalized() * jarak_berdiri
+
+
 func _bergerak_ke(posisi: Vector2, delta: float, elak: bool = true) -> void:
 	var arah := posisi - global_position
 	if arah.length() < 2.0:
@@ -662,25 +689,33 @@ func _kemas_kilat(delta: float) -> void:
 
 func _kilat() -> void:
 	_kilat_baki = 0.08
-	if sprite:
-		sprite.modulate = Color(2.4, 2.4, 2.4)
+	queue_redraw()
 
 
 func _kemas_visual() -> void:
-	if sprite == null or _kilat_baki > 0.0:
+	if _kilat_baki > 0.0:
 		return
 	if _sedang_baiki:
-		sprite.modulate = Color(0.55, 1.0, 0.6)
+		_warna_aksen = SkripReka.AKSEN_BAIKI
 	elif _sedang_rehat:
-		sprite.modulate = Color(0.45, 0.85, 1.0)
+		_warna_aksen = SkripReka.AKSEN_CAS
 	elif _sedang_lombong:
-		sprite.modulate = Color(1.0, 0.82, 0.35)
+		_warna_aksen = SkripReka.AKSEN_LOMBONG
 	else:
-		sprite.modulate = Color.WHITE
+		_warna_aksen = SkripReka.AKSEN
+	queue_redraw()
 
 
-# Bar HP (hijau) dan tenaga (biru) di atas robot.
+# Badan robot gaya vektor + bar HP (hijau) dan tenaga (biru) di atasnya.
 func _draw() -> void:
+	# Badan robot dari skrip reka bentuk yang sama dengan ikon Fabricator.
+	var kilat := 1.0 if _kilat_baki > 0.0 else 0.0
+	for lapisan in SkripReka.bentuk(SKALA_BADAN, _warna_aksen, kilat):
+		if str(lapisan.get("jenis", "")) == "bulatan":
+			draw_circle(lapisan["pusat"], float(lapisan["jejari"]), lapisan["warna"], true, -1.0, true)
+		else:
+			draw_colored_polygon(lapisan["titik"], lapisan["warna"])
+
 	var lebar := 14.0
 	var tinggi := 1.8
 	var asas_y := -13.0
