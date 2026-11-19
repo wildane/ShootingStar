@@ -510,10 +510,10 @@ func _ikut_laluan(delta: float) -> bool:
 			var dekat_titik := global_position.distance_to(pos_pintu) <= 10.0
 			var dekat_pintu := global_position.distance_to(pintu.global_position) <= jarak_pintu
 			# Baru sahaja melalui pintu ini: jangan teleport berulang-ulang.
-			var larang := _masa_larang_pintu > 0.0 and pintu == _pintu_terakhir
+			var larang: bool = _masa_larang_pintu > 0.0 and bool(pintu == _pintu_terakhir)
 			if (dekat_titik or dekat_pintu) and not larang:
 				pintu.call("lalu_automatik", self)
-				_pintu_terakhir = pintu
+				_pintu_terakhir = pintu as Node2D
 				_laluan_indeks += 1
 				_masa_laluan_baki = 0.0
 				_masa_larang_pintu = 3.0
