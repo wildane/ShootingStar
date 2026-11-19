@@ -13,6 +13,8 @@ const INSIDE_POS := Vector2(144, 128)
 
 
 func _ready():
+	# Robot pekerja cari pintu melalui group ini.
+	add_to_group("Pintu")
 	area.body_entered.connect(_on_enter)
 	area.body_exited.connect(_on_exit)
 	area.input_event.connect(_on_input)
@@ -22,7 +24,7 @@ func _ready():
 # ENTER RANGE
 # =========================
 func _on_enter(body):
-	if body is CharacterBody2D:
+	if _ialah_pemain(body):
 		player_in_range = true
 		if sprite:
 			sprite.modulate = Color(0.3, 1.0, 0.3) # GREEN
@@ -32,10 +34,18 @@ func _on_enter(body):
 # EXIT RANGE
 # =========================
 func _on_exit(body):
-	if body is CharacterBody2D:
+	if _ialah_pemain(body):
 		player_in_range = false
 		if sprite:
 			sprite.modulate = Color(1, 1, 1)
+
+
+# Robot pekerja juga CharacterBody2D, jadi klik pintu mesti kekal milik
+# pemain sahaja. Tanpa semakan ini, klik pemain boleh teleport robot.
+func _ialah_pemain(body) -> bool:
+	if body == null or not is_instance_valid(body):
+		return false
+	return body.is_in_group("Player") or body.name == "Player" or body.name == "SpaceShip"
 
 
 # =========================
@@ -87,11 +97,26 @@ func _on_input(_viewport, event, _shape_idx):
 
 
 # =========================
+# ROBOT LALU SENDIRI (tanpa klik pemain)
+# =========================
+# Robot pekerja panggil fungsi ini bila ia sampai di pintu. Teleport
+# mengikut sisi yang sama seperti klik pemain, jadi robot boleh masuk
+# dan keluar kawasan walaupun pintu itu asalnya perlu diklik.
+func lalu_automatik(body: Node2D) -> void:
+	if body == null or not is_instance_valid(body):
+		return
+	if body.global_position.y > global_position.y:
+		body.global_position = INSIDE_POS
+	else:
+		body.global_position = OUTSIDE_POS
+
+
+# =========================
 # GET PLAYER IN AREA
 # =========================
 func _get_player():
 	for body in area.get_overlapping_bodies():
-		if body is CharacterBody2D:
+		if _ialah_pemain(body):
 			return body
 	return null
 
