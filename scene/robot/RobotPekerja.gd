@@ -85,8 +85,11 @@ var _baki_elak: float = 0.0
 var _arah_elak: Vector2 = Vector2.ZERO
 
 var _kilat_baki: float = 0.0
-# Jam animasi ringkas (jalan / melombong / cas).
+# Jam animasi ringkas (terbang / melombong / cas).
 var _masa_anim: float = 0.0
+# Arah badan robot (radian): 0 = kepala ke atas, PI = kepala ke bawah.
+# Badan berpusing ikut arah gerakan, jadi robot menghadap arah ia terbang.
+var _arah_badan: float = 0.0
 var _sudah_mati: bool = false
 
 # Warna teras robot: biasa / melombong / cas / baiki.
@@ -112,6 +115,18 @@ func _sambung_penderia_bahaya() -> void:
 	penderia.area_exited.connect(_on_bahaya_keluar)
 
 
+# Pusing badan perlahan-lahan ke arah gerakan semasa.
+func _kemas_arah(delta: float) -> void:
+	if velocity.length() < 1.0:
+		return
+	# Sudut diukur daripada arah "atas" badan (kepala).
+	#   kanan  -> atan2(+x, 0)  = +PI/2 (kepala ke kanan)
+	#   bawah  -> atan2(0, -1)  = PI    (kepala ke bawah)
+	#   kiri   -> -PI/2
+	var sasaran := atan2(velocity.x, -velocity.y)
+	_arah_badan = lerp_angle(_arah_badan, sasaran, minf(1.0, delta * 7.0))
+
+
 func _process(_delta: float) -> void:
 	if _sudah_mati:
 		return
@@ -125,6 +140,7 @@ func _physics_process(delta: float) -> void:
 	_kemas_bahaya(delta)
 	_kemas_kilat(delta)
 	_masa_anim += delta
+	_kemas_arah(delta)
 	_kemas_bilik(delta)
 	if _masa_larang_pintu > 0.0:
 		_masa_larang_pintu = maxf(0.0, _masa_larang_pintu - delta)
@@ -741,10 +757,14 @@ func _draw() -> void:
 
 	# Terapung perlahan sepanjang masa (tiada graviti).
 	var angkat := -absf(sin(_masa_anim * 2.4)) * 0.9
-	# Senget ke arah gerakan mengufuk, macam robot terbang condong.
-	var condong := clampf(velocity.x / maxf(1.0, kelajuan), -1.0, 1.0) * 0.14
 
-	draw_set_transform(Vector2(gegar, angkat), condong, Vector2.ONE)
+	# Seluruh badan berpusing ikut arah gerakan (kepala menghala ke hadapan
+	# perjalanan). Semasa melombong badan condong sedikit ke bawah.
+	var pusing := _arah_badan
+	if _sedang_lombong:
+		pusing += 0.06
+
+	draw_set_transform(Vector2(gegar, angkat), pusing, Vector2.ONE)
 	for lapisan in SkripReka.bentuk(SKALA_BADAN, _warna_aksen, kilat, terbang, gerudi, degup):
 		if str(lapisan.get("jenis", "")) == "bulatan":
 			draw_circle(lapisan["pusat"], float(lapisan["jejari"]), lapisan["warna"], true, -1.0, true)
