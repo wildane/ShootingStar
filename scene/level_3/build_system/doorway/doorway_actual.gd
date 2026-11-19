@@ -99,6 +99,12 @@ func _on_input(_viewport, event, _shape_idx):
 # =========================
 # ROBOT LALU SENDIRI (tanpa klik pemain)
 # =========================
+# Dua sisi pintu ini. Sistem navigasi robot guna titik ini untuk menyambung
+# laluan, jadi robot tahu pintu mana yang perlu dilalui.
+func titik_pintasan() -> Array[Vector2]:
+	return [INSIDE_POS, OUTSIDE_POS]
+
+
 # Robot pekerja panggil fungsi ini bila ia sampai di pintu. Teleport
 # mengikut sisi yang sama seperti klik pemain, jadi robot boleh masuk
 # dan keluar kawasan walaupun pintu itu asalnya perlu diklik.

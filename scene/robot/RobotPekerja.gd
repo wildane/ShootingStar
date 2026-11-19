@@ -1,5 +1,7 @@
 extends CharacterBody2D
 
+const SkripPeta := preload("res://scene/level_3/navigation/PetaNavigasi.gd")
+
 ## Robot pekerja perlombongan.
 ## Dibuat di Fabricator. Selepas itu ia bekerja sendiri tanpa pemain:
 ## cari meteorit terdekat, terbang ke sana, lombong sampai hancur, cas
@@ -49,6 +51,13 @@ var _sasaran_dilombong: bool = false
 var _stesen_cas: Node2D = null
 var _masa_stesen_baki: float = 0.0
 var _pos_base: Vector2 = Vector2.ZERO
+# Laluan yang dikira oleh sistem navigasi (grid + pintu).
+var _laluan: Array = []
+var _laluan_indeks: int = 0
+var _laluan_destinasi: Vector2 = Vector2(INF, INF)
+var _masa_laluan_baki: float = 0.0
+var _peta = null
+var _masa_peta: float = 0.0
 var _masa_lombong: float = 0.0
 var _masa_larang_pintu: float = 0.0
 var _masa_semak_bilik: float = 0.0
@@ -109,6 +118,10 @@ func _physics_process(delta: float) -> void:
 	_kemas_bilik(delta)
 	if _masa_larang_pintu > 0.0:
 		_masa_larang_pintu = maxf(0.0, _masa_larang_pintu - delta)
+	if _masa_peta > 0.0:
+		_masa_peta = maxf(0.0, _masa_peta - delta)
+	if _masa_laluan_baki > 0.0:
+		_masa_laluan_baki = maxf(0.0, _masa_laluan_baki - delta)
 
 	# Panel solar kecil (lalai 0): tenaga robot hanya pulih di stesen cas.
 	if cas_tenang_sesaat > 0.0 and tenaga < tenaga_maks:
@@ -165,6 +178,11 @@ func _physics_process(delta: float) -> void:
 	var jarak := global_position.distance_to(_sasaran.global_position)
 	if jarak > julat_lombong:
 		_sedang_lombong = false
+		# Meteor di sebalik dinding: ikut laluan yang dikira sistem navigasi.
+		if not _ada_jarak_lihat(_sasaran.global_position) and _minta_laluan(_sasaran.global_position):
+			if _ikut_laluan(delta):
+				_kemas_visual()
+				return
 		_bergerak_ke(_sasaran.global_position, delta)
 		_kemas_visual()
 		return
@@ -281,6 +299,7 @@ func _kemas_cas(delta: float) -> void:
 	_sedang_lombong = false
 	_sasaran = null
 	_sasaran_dilombong = false
+	_perlu_pintasan = false
 
 	if not is_instance_valid(_stesen_cas) or _stesen_cas.is_queued_for_deletion():
 		_stesen_cas = null
@@ -293,7 +312,12 @@ func _kemas_cas(delta: float) -> void:
 	if is_instance_valid(_stesen_cas):
 		titik_cas = _stesen_cas.global_position
 
-	# Destinasi di sebalik dinding: masuk/keluar melalui pintu dahulu.
+	# 1. Laluan penuh (termasuk pintu) dikira oleh sistem navigasi.
+	if _minta_laluan(titik_cas):
+		if _ikut_laluan(delta):
+			return
+
+	# 2. Sandaran: kalau grid tiada laluan, guna logik pintu lama.
 	_perlu_pintasan = global_position.distance_to(titik_cas) > jarak_cas and not _ada_jarak_lihat(titik_cas)
 	if _cuba_lalu_pintu(delta):
 		return
@@ -312,7 +336,9 @@ func _kemas_cas(delta: float) -> void:
 		_perlu_cas = false
 		_kira_meteor = 0
 		_sedang_rehat = false
+		_perlu_pintasan = false
 		_masa_scan_baki = 0.0
+		_bersih_laluan()
 
 
 func _cari_stesen_cas() -> Node2D:
@@ -370,9 +396,113 @@ func _ada_jarak_lihat(posisi: Vector2) -> bool:
 
 
 # ==========================================================
+# LALUAN (dikira oleh sistem navigasi)
+# ==========================================================
+# Minta laluan penuh dari kedudukan sekarang ke destinasi. Sistem akan
+# imbas kawasan, kira jalan terpendek, dan sertakan pintu sebagai pautan.
+func _minta_laluan(ke: Vector2) -> bool:
+	var destinasi_sama: bool = _laluan_destinasi.distance_to(ke) < 12.0
+	if destinasi_sama:
+		if _laluan.size() > 0 and _laluan_indeks < _laluan.size():
+			return true
+		# Jangan kira semula setiap frame; tunggu kitaran seterusnya.
+		if _masa_laluan_baki > 0.0:
+			return false
+	elif _masa_laluan_baki > 0.0 and _laluan.size() > 0 and _laluan_indeks < _laluan.size() and _laluan_destinasi.distance_to(ke) < 40.0:
+		return true
+
+	var ruang := get_world_2d().direct_space_state
+	if ruang == null:
+		return false
+	var senarai_pintu: Array = get_tree().get_nodes_in_group("Pintu")
+	var kawasan := _kawasan_laluan(ke, senarai_pintu)
+	if _peta == null or _masa_peta <= 0.0 or not _peta.kotak.encloses(kawasan):
+		_peta = SkripPeta.new()
+		_peta.bina(ruang, kawasan.grow(8.0), [get_rid()])
+		_masa_peta = 3.0
+
+	var laluan_baru: Array = _peta.cari_laluan(global_position, ke, senarai_pintu)
+	if laluan_baru.is_empty():
+		# Cuba semula dengan kawasan lebih luas sebelum menyerah.
+		_peta = SkripPeta.new()
+		_peta.bina(ruang, kawasan.grow(64.0), [get_rid()])
+		_masa_peta = 3.0
+		laluan_baru = _peta.cari_laluan(global_position, ke, senarai_pintu)
+
+	_masa_laluan_baki = 0.5
+	_laluan_destinasi = ke
+	_laluan_indeks = 0
+	if laluan_baru.is_empty():
+		_laluan = []
+		return false
+	_laluan = laluan_baru
+	return true
+
+
+# Ikut laluan yang sudah dikira. Titik yang ada "pintu" bermaksud robot
+# kena panggil lalu_automatik() pada pintu itu.
+func _ikut_laluan(delta: float) -> bool:
+	while _laluan_indeks < _laluan.size():
+		var langkah: Dictionary = _laluan[_laluan_indeks]
+		var pintu = langkah.get("pintu")
+		if pintu != null and is_instance_valid(pintu):
+			if not pintu.has_method("lalu_automatik"):
+				_laluan_indeks += 1
+				continue
+			if global_position.distance_to(pintu.global_position) <= jarak_pintu:
+				pintu.call("lalu_automatik", self)
+				_laluan_indeks += 1
+				_masa_laluan_baki = 0.0
+				_masa_larang_pintu = 2.0
+				_berhenti()
+				return true
+			_bergerak_ke(pintu.global_position, delta, false)
+			return true
+
+		var pos: Vector2 = langkah["pos"]
+		if global_position.distance_to(pos) <= 7.0:
+			_laluan_indeks += 1
+			continue
+		_bergerak_ke(pos, delta, false)
+		return true
+	return false
+
+
+func _bersih_laluan() -> void:
+	_laluan = []
+	_laluan_indeks = 0
+	_masa_laluan_baki = 0.0
+	_peta = null
+	_masa_peta = 0.0
+
+
+# Kotak kawasan yang perlu diimbas: merangkumi robot, destinasi dan
+# semua sisi pintu, ditambah margin supaya jalan memutar pun dapat dicari.
+func _kawasan_laluan(ke: Vector2, senarai_pintu: Array) -> Rect2:
+	var min_x: float = minf(global_position.x, ke.x)
+	var max_x: float = maxf(global_position.x, ke.x)
+	var min_y: float = minf(global_position.y, ke.y)
+	var max_y: float = maxf(global_position.y, ke.y)
+	for nod in senarai_pintu:
+		if not (nod is Node2D) or not nod.has_method("titik_pintasan"):
+			continue
+		for titik in nod.call("titik_pintasan"):
+			var p: Vector2 = titik
+			min_x = minf(min_x, p.x)
+			max_x = maxf(max_x, p.x)
+			min_y = minf(min_y, p.y)
+			max_y = maxf(max_y, p.y)
+	var kotak := Rect2(Vector2(min_x, min_y), Vector2(max_x - min_x, max_y - min_y))
+	kotak = kotak.grow(36.0)
+	if kotak.size.x < 48.0 or kotak.size.y < 48.0:
+		kotak = kotak.grow(24.0)
+	return kotak
+
+
+# ==========================================================
 # PERGERAKAN
 # ==========================================================
-func _bergerak_ke(posisi: Vector2, delta: float) -> void:
+func _bergerak_ke(posisi: Vector2, delta: float, elak: bool = true) -> void:
 	var arah := posisi - global_position
 	if arah.length() < 2.0:
 		_berhenti()
@@ -381,7 +511,7 @@ func _bergerak_ke(posisi: Vector2, delta: float) -> void:
 	if _baki_elak > 0.0:
 		_baki_elak -= delta
 		arah = _arah_elak
-	elif not _menuju_pintu:
+	elif elak and not _menuju_pintu:
 		# Mengelilingi dinding, bukan merempuh dinding.
 		arah = _elak_dinding(arah)
 	velocity = arah * kelajuan
@@ -419,12 +549,15 @@ func _semak_tersangkut(delta: float, arah: Vector2) -> void:
 	if _masa_semak < 0.9:
 		return
 	if global_position.distance_to(_pos_semak) < 2.0:
-		# Tersangkut juga: tukar sisi ikut dinding dan cuba laluan lain.
+		# Tersangkut: tukar sisi ikut dinding, buang laluan lama dan minta
+		# laluan baru dari sistem navigasi.
 		_sisi_elak = -_sisi_elak
 		_baki_elak = 0.8
 		_arah_elak = arah.orthogonal() * _sisi_elak
-	_pos_semak = global_position
-	_masa_semak = 0.0
+		_pos_semak = global_position
+		_masa_semak = 0.0
+		if not _laluan.is_empty():
+			_bersih_laluan()
 
 
 # ==========================================================
