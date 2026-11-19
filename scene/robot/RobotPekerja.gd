@@ -17,11 +17,16 @@ extends CharacterBody2D
 
 @export_group("Tenaga")
 @export var tenaga_maks: float = 100.0
-@export var kos_gerak_sesaat: float = 1.4
-@export var kos_lombong: float = 2.5
-@export var cas_tenang_sesaat: float = 3.0
+@export var kos_gerak_sesaat: float = 1.2
+@export var kos_lombong: float = 5.0   # 5 ketukan = 25 tenaga untuk satu meteorit
+@export var cas_tenang_sesaat: float = 0.0
 @export var cas_rehat_sesaat: float = 12.0
 @export var ambang_rehat: float = 18.0
+# Robot balik ke base mencari Charging Station selepas melombong bilangan
+# meteorit ini, cas sampai penuh, baru keluar semula mencari meteorit.
+@export var meteor_sebelum_cas: int = 3
+@export var jarak_cas: float = 26.0
+@export var kadar_cas_stesen: float = 25.0
 
 @export_group("HP dan Pembaikan")
 @export var hp_maks: float = 60.0
@@ -37,11 +42,19 @@ var _sasaran: Node2D = null
 var _pintu: Node2D = null
 var _masa_scan_baki: float = 0.0
 var _masa_pintu_baki: float = 0.0
+# Kiraan meteorit yang sudah dihancurkan semenjak cas penuh terakhir.
+var _kira_meteor: int = 0
+var _sasaran_dilombong: bool = false
+# Stesen cas terdekat (group "StesenCas") dan titik base asal robot.
+var _stesen_cas: Node2D = null
+var _masa_stesen_baki: float = 0.0
+var _pos_base: Vector2 = Vector2.ZERO
 var _masa_lombong: float = 0.0
 var _masa_larang_pintu: float = 0.0
 var _masa_semak_bilik: float = 0.0
 var _bilik_terkurung: bool = false
 var _menuju_pintu: bool = false
+var _perlu_pintasan: bool = false
 var _sisi_elak: float = 1.0
 var _perlu_cas: bool = false
 var _sedang_baiki: bool = false
@@ -67,6 +80,7 @@ func _ready() -> void:
 	tenaga = tenaga_maks
 	hp = hp_maks
 	_pos_semak = global_position
+	_pos_base = global_position
 	_sambung_penderia_bahaya()
 
 
@@ -96,27 +110,19 @@ func _physics_process(delta: float) -> void:
 	if _masa_larang_pintu > 0.0:
 		_masa_larang_pintu = maxf(0.0, _masa_larang_pintu - delta)
 
-	# Panel solar kecil: cas perlahan sepanjang masa.
-	if tenaga < tenaga_maks:
+	# Panel solar kecil (lalai 0): tenaga robot hanya pulih di stesen cas.
+	if cas_tenang_sesaat > 0.0 and tenaga < tenaga_maks:
 		tenaga = minf(tenaga_maks, tenaga + cas_tenang_sesaat * delta)
 
-	# 1. Cas sendiri bila tenaga rendah, sampai penuh dulu.
+	# 1. Kuota meteorit penuh atau tenaga rendah: balik ke base dulu,
+	#    cari Charging Station dan cas sampai penuh.
 	if _perlu_cas:
-		_sedang_rehat = true
-		_sedang_baiki = false
-		_sedang_lombong = false
-		_berhenti()
-		tenaga = minf(tenaga_maks, tenaga + cas_rehat_sesaat * delta)
-		if tenaga >= tenaga_maks:
-			_perlu_cas = false
+		_kemas_cas(delta)
 		_kemas_visual()
 		return
 	if tenaga <= ambang_rehat:
 		_perlu_cas = true
-		_sedang_rehat = true
-		_sedang_baiki = false
-		_sedang_lombong = false
-		_berhenti()
+		_kemas_cas(delta)
 		_kemas_visual()
 		return
 
@@ -138,9 +144,15 @@ func _physics_process(delta: float) -> void:
 		_masa_scan_baki = masa_scan
 		_pilih_sasaran()
 
-	if not is_instance_valid(_sasaran):
+	if not is_instance_valid(_sasaran) or _sasaran.is_queued_for_deletion():
 		_sasaran = null
 		_sedang_lombong = false
+		# Meteorit yang sedang dilombong sudah hancur: kira satu.
+		if _sasaran_dilombong:
+			_sasaran_dilombong = false
+			_kira_meteor += 1
+			if _kira_meteor >= meteor_sebelum_cas:
+				_perlu_cas = true
 		_berhenti()
 		_kemas_visual()
 		return
@@ -159,6 +171,7 @@ func _physics_process(delta: float) -> void:
 
 	# Sudah dekat: berhenti dan ketuk meteor setiap 1 saat.
 	_sedang_lombong = true
+	_sasaran_dilombong = true
 	_berhenti()
 	_masa_lombong += delta
 	if _masa_lombong >= 1.0 and tenaga >= kos_lombong:
@@ -209,7 +222,8 @@ func _pilih_sasaran() -> void:
 # lagi mengejar meteorit yang di belakang dinding: ia periksa dinding di
 # sekeliling, cari pintu, lalu keluar dari bilik dahulu.
 func _cuba_lalu_pintu(delta: float) -> bool:
-	if not _bilik_terkurung:
+	# Terkurung dalam bilik, atau destinasi (base/stesen) terhalang dinding.
+	if not _bilik_terkurung and not _perlu_pintasan:
 		return false
 	if _masa_larang_pintu > 0.0:
 		return false
@@ -230,6 +244,7 @@ func _cuba_lalu_pintu(delta: float) -> bool:
 		# Jangan terus pusing balik masuk pintu yang sama.
 		_masa_larang_pintu = 4.0
 		_bilik_terkurung = false
+		_perlu_pintasan = false
 		_masa_semak_bilik = 0.4
 		_berhenti()
 		return true
@@ -248,6 +263,64 @@ func _cari_pintu() -> Node2D:
 	var senarai_pintu: Array = get_tree().get_nodes_in_group("Pintu")
 	for nod in senarai_pintu:
 		if not (nod is Node2D) or not is_instance_valid(nod):
+			continue
+		var jarak: float = global_position.distance_squared_to((nod as Node2D).global_position)
+		if jarak < jarak_terbaik:
+			jarak_terbaik = jarak
+			terbaik = nod
+	return terbaik
+
+
+# ==========================================================
+# CAS DI BASE: robot balik ke Charging Station (atau titik base) dan
+# tunggu sampai tenaga penuh sebelum bekerja semula.
+# ==========================================================
+func _kemas_cas(delta: float) -> void:
+	_sedang_rehat = true
+	_sedang_baiki = false
+	_sedang_lombong = false
+	_sasaran = null
+	_sasaran_dilombong = false
+
+	if not is_instance_valid(_stesen_cas) or _stesen_cas.is_queued_for_deletion():
+		_stesen_cas = null
+		_masa_stesen_baki -= delta
+		if _masa_stesen_baki <= 0.0:
+			_masa_stesen_baki = 0.6
+			_stesen_cas = _cari_stesen_cas()
+
+	var titik_cas: Vector2 = _pos_base
+	if is_instance_valid(_stesen_cas):
+		titik_cas = _stesen_cas.global_position
+
+	# Destinasi di sebalik dinding: masuk/keluar melalui pintu dahulu.
+	_perlu_pintasan = global_position.distance_to(titik_cas) > jarak_cas and not _ada_jarak_lihat(titik_cas)
+	if _cuba_lalu_pintu(delta):
+		return
+
+	if global_position.distance_to(titik_cas) > jarak_cas:
+		_bergerak_ke(titik_cas, delta)
+		return
+
+	# Sudah di stesen: cas sampai penuh.
+	_berhenti()
+	var kadar := cas_rehat_sesaat
+	if is_instance_valid(_stesen_cas) and ("has_power" in _stesen_cas) and bool(_stesen_cas.has_power):
+		kadar = kadar_cas_stesen
+	tenaga = minf(tenaga_maks, tenaga + kadar * delta)
+	if tenaga >= tenaga_maks:
+		_perlu_cas = false
+		_kira_meteor = 0
+		_sedang_rehat = false
+		_masa_scan_baki = 0.0
+
+
+func _cari_stesen_cas() -> Node2D:
+	var terbaik: Node2D = null
+	var jarak_terbaik := INF
+	var senarai: Array = get_tree().get_nodes_in_group("StesenCas")
+	for nod in senarai:
+		if not (nod is Node2D) or not is_instance_valid(nod) or nod.is_queued_for_deletion():
 			continue
 		var jarak: float = global_position.distance_squared_to((nod as Node2D).global_position)
 		if jarak < jarak_terbaik:
