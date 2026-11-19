@@ -2,7 +2,7 @@ extends CharacterBody2D
 
 const SkripPeta := preload("res://scene/level_3/navigation/PetaNavigasi.gd")
 const SkripReka := preload("res://scene/robot/RekaRobot.gd")
-# Saiz lukisan badan robot (bentuk humanoid setinggi ~38 x 22 unit).
+# Saiz lukisan badan robot (pose terbang mendatar, ~46 x 16 unit).
 const SKALA_BADAN: float = 0.5
 
 ## Robot pekerja perlombongan.
@@ -119,11 +119,9 @@ func _sambung_penderia_bahaya() -> void:
 func _kemas_arah(delta: float) -> void:
 	if velocity.length() < 1.0:
 		return
-	# Sudut diukur daripada arah "atas" badan (kepala).
-	#   kanan  -> atan2(+x, 0)  = +PI/2 (kepala ke kanan)
-	#   bawah  -> atan2(0, -1)  = PI    (kepala ke bawah)
-	#   kiri   -> -PI/2
-	var sasaran := atan2(velocity.x, -velocity.y)
+	# Pose reka bentuk menghala ke +x, jadi sudut badan = sudut vektor laju:
+	#   kanan  -> 0, bawah -> +PI/2, kiri -> PI, atas -> -PI/2
+	var sasaran := atan2(velocity.y, velocity.x)
 	_arah_badan = lerp_angle(_arah_badan, sasaran, minf(1.0, delta * 7.0))
 
 
@@ -730,11 +728,10 @@ func _draw() -> void:
 	# Badan robot dari skrip reka bentuk yang sama dengan ikon Fabricator.
 	var kilat := 1.0 if _kilat_baki > 0.0 else 0.0
 
-	# Robot ini terapung di angkasa (pandangan hadapan), jadi tiada langkah
-	# kaki. Animasi ikut keadaan:
-	#   terbang — api penyembur di kaki, lebih panjang bila bergerak
-	#   condong — badan senget sedikit ke arah gerakan mengufuk
-	#   lombong — gerudi menolak ke bawah berulang, badan gegar halus
+	# Robot terbang mendatar gaya superman; animasi ikut keadaan:
+	#   terbang — api penyembur di belakang kaki, lebih panjang bila bergerak
+	#   haba    — badan terapung naik-turun halus sepanjang masa
+	#   lombong — gerudi menolak ke hadapan berulang, badan gegar halus
 	#   cas     — teras berdenyut dan badan terapung lebih perlahan
 	var bergerak := velocity.length() > 1.0
 	var terbang := 0.45
@@ -758,13 +755,9 @@ func _draw() -> void:
 	# Terapung perlahan sepanjang masa (tiada graviti).
 	var angkat := -absf(sin(_masa_anim * 2.4)) * 0.9
 
-	# Seluruh badan berpusing ikut arah gerakan (kepala menghala ke hadapan
-	# perjalanan). Semasa melombong badan condong sedikit ke bawah.
-	var pusing := _arah_badan
-	if _sedang_lombong:
-		pusing += 0.06
-
-	draw_set_transform(Vector2(gegar, angkat), pusing, Vector2.ONE)
+	# Seluruh badan berpusing ikut arah gerakan: kepala dan gerudi sentiasa
+	# menghala ke arah ia terbang.
+	draw_set_transform(Vector2(gegar, angkat), _arah_badan, Vector2.ONE)
 	for lapisan in SkripReka.bentuk(SKALA_BADAN, _warna_aksen, kilat, terbang, gerudi, degup):
 		if str(lapisan.get("jenis", "")) == "bulatan":
 			draw_circle(lapisan["pusat"], float(lapisan["jejari"]), lapisan["warna"], true, -1.0, true)
@@ -775,7 +768,7 @@ func _draw() -> void:
 
 	var lebar := 14.0
 	var tinggi := 1.8
-	var asas_y := -13.0
+	var asas_y := -14.0
 
 	draw_rect(Rect2(Vector2(-lebar * 0.5, asas_y), Vector2(lebar, tinggi)), Color(0.0, 0.0, 0.0, 0.7))
 	var nisbah_hp := clampf(hp / maxf(1.0, hp_maks), 0.0, 1.0)
