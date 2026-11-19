@@ -81,8 +81,8 @@ var resipi_robot: Array[Dictionary] = [
 		"robot": true,
 		"ikon_slot": IKON_ROBOT,
 		"warna": WARNA_ROBOT,
-		"keterangan": "An autonomous worker. It flies to the nearest meteorite and mines it, recharges its own energy, repairs 30 HP in 3 seconds, and passes through doorways without a click.",
-		"statistik_teks": "Meteorite miner\nEnergy 100  ·  HP 60",
+		"keterangan": "An autonomous worker. It flies to the nearest meteorite and mines it, repairs 30 HP in 3 seconds, and passes through doorways without a click. After 3 meteorites (or when its energy runs low) it returns to the base and recharges at a Charging Station until full.",
+		"statistik_teks": "Meteorite miner\n3 meteors per trip\nEnergy 100  ·  HP 60",
 		"bahan": [
 			{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 10, "ikon": "res://scene/Item/0001BasicIronOre/Image_959.png"},
 			{"id": "item_0003", "nama": "Raw Silica", "kuantiti": 4, "ikon": "res://scene/Item/0003RawSilica/Image_495.png"},
