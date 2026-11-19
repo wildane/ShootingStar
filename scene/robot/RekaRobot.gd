@@ -18,14 +18,14 @@ const AKSEN_BAIKI: Color = Color(0.55, 1.0, 0.6)
 ## atau {"jenis": "bulatan", "pusat": Vector2, "jejari": float, "warna": Color}.
 ##
 ## Parameter animasi (semua pilihan; nilai lalai = pose statik untuk ikon):
-##   hayun  — fasa langkah -1..1: kaki kiri dan kanan bergilir terangkat
-##   gerudi — jarak gerudi ditolak ke bawah semasa melombong
-##   degup  — 0..1, denyutan teras tenaga semasa mengecas
+##   terbang — 0..1, panjang api penyembur di bawah kaki (0 = api padam)
+##   gerudi  — jarak gerudi ditolak ke bawah semasa melombong
+##   degup   — 0..1, denyutan teras tenaga semasa mengecas
 static func bentuk(
 	skala: float,
 	aksen: Color = AKSEN,
 	kilat: float = 0.0,
-	hayun: float = 0.0,
+	terbang: float = 0.0,
 	gerudi: float = 0.0,
 	degup: float = 0.0
 ) -> Array:
@@ -37,37 +37,47 @@ static func bentuk(
 	var senarai: Array = []
 
 	# --- Lengan belakang (kiri skrin), di belakang badan ---
-	# Lengan berayun sedikit bertentangan dengan kaki.
-	var bahu_belakang := Vector2(-7.0, -4.0)
-	var sudut_belakang: float = -hayun * 0.18
-	senarai.append(_poli(_putar(PackedVector2Array([
+	senarai.append(_poli(PackedVector2Array([
 		Vector2(-6.8, -4.8), Vector2(-8.9, -2.8),
 		Vector2(-11.0, 2.2), Vector2(-8.4, 3.4),
-	]), bahu_belakang, sudut_belakang), skala, gelap))
+	]), skala, gelap))
 	# Jalur besi pada lengan belakang supaya bentuknya jelas pada latar gelap.
-	senarai.append(_poli(_putar(PackedVector2Array([
+	senarai.append(_poli(PackedVector2Array([
 		Vector2(-8.1, -3.5), Vector2(-9.1, -2.7),
 		Vector2(-10.3, 0.7), Vector2(-9.3, 1.0),
-	]), bahu_belakang, sudut_belakang), skala, besi))
-	senarai.append(_bulat(_putar_titik(Vector2(-9.4, 2.7), bahu_belakang, sudut_belakang), 1.9, skala, gelap))
+	]), skala, besi))
+	senarai.append(_bulat(Vector2(-9.4, 2.7), 1.9, skala, gelap))
 
 	# --- Kaki: peha gelap, plat kering besi, kasut ---
-	# Kaki bergilir terangkat (langkah kecil); hujung atas kekal terlindung
-	# di belakang pinggul supaya tidak nampak bercelah.
+	# API PENYEMBUR: robot terapung di angkasa, jadi tiada langkah kaki.
+	# Api ni yang menunjukkan ia bergerak, panjangnya ikut nilai terbang.
+	if terbang > 0.0:
+		for sisi in [-1.0, 1.0]:
+			var x: float = 4.4 * sisi
+			var panjang: float = 6.2 * terbang
+			senarai.append(_poli(PackedVector2Array([
+				Vector2(x - 1.5, 18.2), Vector2(x + 1.5, 18.2),
+				Vector2(x, 18.2 + panjang),
+			]), skala, Color(0.45, 0.85, 1.0, 0.55)))
+			senarai.append(_poli(PackedVector2Array([
+				Vector2(x - 0.8, 18.3), Vector2(x + 0.8, 18.3),
+				Vector2(x, 18.3 + panjang * 0.6),
+			]), skala, _warna(Color(0.85, 0.97, 1.0, 0.9), kilat)))
+
+	# Kaki lurus dan tergantung; hujung atas terlindung di belakang pinggul.
 	for sisi in [-1.0, 1.0]:
-		var angkat_kaki := Vector2(0.0, -maxf(0.0, hayun * -sisi) * 4.0)
-		senarai.append(_poli(_alih(PackedVector2Array([
+		senarai.append(_poli(PackedVector2Array([
 			Vector2(1.4 * sisi, 1.8), Vector2(6.4 * sisi, 1.8),
 			Vector2(5.8 * sisi, 15.2), Vector2(1.8 * sisi, 15.2),
-		]), angkat_kaki), skala, gelap))
-		senarai.append(_poli(_alih(PackedVector2Array([
+		]), skala, gelap))
+		senarai.append(_poli(PackedVector2Array([
 			Vector2(2.4 * sisi, 5.0), Vector2(5.6 * sisi, 5.0),
 			Vector2(5.2 * sisi, 14.4), Vector2(2.7 * sisi, 14.4),
-		]), angkat_kaki), skala, besi))
-		senarai.append(_poli(_alih(PackedVector2Array([
+		]), skala, besi))
+		senarai.append(_poli(PackedVector2Array([
 			Vector2(1.6 * sisi, 15.4), Vector2(7.2 * sisi, 15.4),
 			Vector2(7.2 * sisi, 18.4), Vector2(1.6 * sisi, 18.4),
-		]), angkat_kaki), skala, gelap))
+		]), skala, gelap))
 
 	# --- Pinggul ---
 	senarai.append(_poli(PackedVector2Array([
@@ -132,23 +142,21 @@ static func bentuk(
 	senarai.append(_bulat(Vector2(0.0, -18.2), 1.3, skala, cahaya))
 
 	# --- Lengan depan (kanan skrin) memegang gerudi perlombongan ---
-	var bahu_depan := Vector2(7.0, -4.0)
-	var sudut_depan: float = hayun * 0.18
-	senarai.append(_poli(_putar(PackedVector2Array([
+	senarai.append(_poli(PackedVector2Array([
 		Vector2(7.0, -4.6), Vector2(8.8, -3.0),
 		Vector2(10.4, 2.4), Vector2(8.4, 3.2),
-	]), bahu_depan, sudut_depan), skala, gelap))
-	senarai.append(_bulat(_putar_titik(Vector2(9.4, 3.0), bahu_depan, sudut_depan), 1.9, skala, besi))
+	]), skala, gelap))
+	senarai.append(_bulat(Vector2(9.4, 3.0), 1.9, skala, besi))
 
 	# Gerudi: hujung tirus ke bawah, mata gerudi berwarna lombong. Semasa
 	# melombong gerudi ditolak ke bawah (gerudi > 0).
 	var tolak := Vector2(0.0, gerudi)
-	senarai.append(_poli(_putar(_alih(PackedVector2Array([
+	senarai.append(_poli(_alih(PackedVector2Array([
 		Vector2(7.8, 4.0), Vector2(11.6, 4.0), Vector2(9.7, 14.0),
-	]), tolak), bahu_depan, sudut_depan), skala, gelap))
-	senarai.append(_poli(_putar(_alih(PackedVector2Array([
+	]), tolak), skala, gelap))
+	senarai.append(_poli(_alih(PackedVector2Array([
 		Vector2(8.6, 4.4), Vector2(10.8, 4.4), Vector2(9.7, 11.8),
-	]), tolak), bahu_depan, sudut_depan), skala, _warna(AKSEN_LOMBONG, kilat)))
+	]), tolak), skala, _warna(AKSEN_LOMBONG, kilat)))
 	return senarai
 
 
@@ -222,22 +230,6 @@ static func _poli(titik: PackedVector2Array, skala: float, warna: Color) -> Dict
 
 static func _bulat(pusat: Vector2, jejari: float, skala: float, warna: Color) -> Dictionary:
 	return {"jenis": "bulatan", "pusat": pusat * skala, "jejari": jejari * skala, "warna": warna}
-
-
-# Putar satu titik sekitar pusat (dalam unit reka bentuk).
-static func _putar_titik(titik: Vector2, pusat: Vector2, sudut: float) -> Vector2:
-	if sudut == 0.0:
-		return titik
-	return pusat + (titik - pusat).rotated(sudut)
-
-
-static func _putar(titik: PackedVector2Array, pusat: Vector2, sudut: float) -> PackedVector2Array:
-	if sudut == 0.0:
-		return titik
-	var hasil := PackedVector2Array()
-	for titik_satu in titik:
-		hasil.append(_putar_titik(titik_satu, pusat, sudut))
-	return hasil
 
 
 static func _alih(titik: PackedVector2Array, jarak: Vector2) -> PackedVector2Array:

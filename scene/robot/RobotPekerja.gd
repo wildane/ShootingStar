@@ -714,28 +714,38 @@ func _draw() -> void:
 	# Badan robot dari skrip reka bentuk yang sama dengan ikon Fabricator.
 	var kilat := 1.0 if _kilat_baki > 0.0 else 0.0
 
-	# Animasi ringkas ikut keadaan:
-	#   jalan   — kaki dan lengan berayun, badan naik-turun sedikit
+	# Robot ini terapung di angkasa (pandangan hadapan), jadi tiada langkah
+	# kaki. Animasi ikut keadaan:
+	#   terbang — api penyembur di kaki, lebih panjang bila bergerak
+	#   condong — badan senget sedikit ke arah gerakan mengufuk
 	#   lombong — gerudi menolak ke bawah berulang, badan gegar halus
-	#   cas     — teras berdenyut dan badan terapung perlahan
-	var bergerak := velocity.length() > 1.0 and not _sedang_lombong
-	var hayun := 0.0
+	#   cas     — teras berdenyut dan badan terapung lebih perlahan
+	var bergerak := velocity.length() > 1.0
+	var terbang := 0.45
+	if _sedang_lombong:
+		terbang = 0.6
+	elif bergerak:
+		terbang = 1.0
+	# Api berkerdip sedikit supaya nampak hidup.
+	terbang *= 0.85 + 0.15 * sin(_masa_anim * 27.0)
+
 	var gerudi := 0.0
-	var degup := 0.0
-	var angkat := 0.0
 	var gegar := 0.0
 	if _sedang_lombong:
 		gerudi = absf(sin(_masa_anim * 7.0)) * 1.6
 		gegar = sin(_masa_anim * 38.0) * 0.35
-	elif bergerak:
-		hayun = sin(_masa_anim * 11.0)
-		angkat = -absf(sin(_masa_anim * 11.0)) * 0.9
+
+	var degup := 0.0
 	if _sedang_rehat:
 		degup = 0.5 + 0.5 * sin(_masa_anim * 3.2)
-		angkat -= absf(sin(_masa_anim * 2.0)) * 0.7
 
-	draw_set_transform(Vector2(gegar, angkat), 0.0, Vector2.ONE)
-	for lapisan in SkripReka.bentuk(SKALA_BADAN, _warna_aksen, kilat, hayun, gerudi, degup):
+	# Terapung perlahan sepanjang masa (tiada graviti).
+	var angkat := -absf(sin(_masa_anim * 2.4)) * 0.9
+	# Senget ke arah gerakan mengufuk, macam robot terbang condong.
+	var condong := clampf(velocity.x / maxf(1.0, kelajuan), -1.0, 1.0) * 0.14
+
+	draw_set_transform(Vector2(gegar, angkat), condong, Vector2.ONE)
+	for lapisan in SkripReka.bentuk(SKALA_BADAN, _warna_aksen, kilat, terbang, gerudi, degup):
 		if str(lapisan.get("jenis", "")) == "bulatan":
 			draw_circle(lapisan["pusat"], float(lapisan["jejari"]), lapisan["warna"], true, -1.0, true)
 		else:
