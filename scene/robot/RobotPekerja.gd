@@ -11,7 +11,7 @@ const SkripPeta := preload("res://scene/level_3/navigation/PetaNavigasi.gd")
 @export_group("Pergerakan")
 @export var kelajuan: float = 34.0
 @export var julat_lombong: float = 20.0
-@export var jarak_pintu: float = 22.0
+@export var jarak_pintu: float = 30.0
 @export var masa_scan: float = 0.6
 # Kalau dinding kedap dalam jarak ini pada keempat-empat arah, robot
 # anggap ia terkurung dalam bilik dan cari pintu untuk keluar dulu.
@@ -449,14 +449,20 @@ func _ikut_laluan(delta: float) -> bool:
 			if not pintu.has_method("lalu_automatik"):
 				_laluan_indeks += 1
 				continue
-			if global_position.distance_to(pintu.global_position) <= jarak_pintu:
+			# Langkah pintu: teleport sebaik robot sampai di titik sisi pintu
+			# itu. Jarak ke pusat pintu tak boleh dijadikan ukuran tunggal
+			# kerana dinding tebal menghalang robot menghampirinya.
+			var pos_pintu: Vector2 = langkah["pos"]
+			var dekat_titik := global_position.distance_to(pos_pintu) <= 10.0
+			var dekat_pintu := global_position.distance_to(pintu.global_position) <= jarak_pintu
+			if dekat_titik or dekat_pintu:
 				pintu.call("lalu_automatik", self)
 				_laluan_indeks += 1
 				_masa_laluan_baki = 0.0
 				_masa_larang_pintu = 2.0
 				_berhenti()
 				return true
-			_bergerak_ke(pintu.global_position, delta, false)
+			_bergerak_ke(pos_pintu, delta, false)
 			return true
 
 		var pos: Vector2 = langkah["pos"]
