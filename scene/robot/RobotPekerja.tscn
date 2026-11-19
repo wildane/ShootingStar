@@ -12,7 +12,7 @@ radius = 9.0
 [node name="RobotPekerja" type="CharacterBody2D"]
 y_sort_enabled = true
 collision_layer = 0
-collision_mask = 2
+collision_mask = 10
 script = ExtResource("1_robot")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

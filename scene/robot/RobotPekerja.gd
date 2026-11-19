@@ -13,10 +13,13 @@ const SKALA_BADAN: float = 0.5
 
 @export_group("Pergerakan")
 @export var kelajuan: float = 34.0
-@export var julat_lombong: float = 20.0
-# Jarak berdiri semasa melombong: robot berhenti di sini dahulu supaya ia
-# tidak bertindih dengan meteorit.
-@export var jarak_berdiri: float = 18.0
+# Meteorit berjejari ~26 unit dan robot sendiri ~5 unit, jadi robot tidak
+# boleh mendekat lebih daripada ~31 unit (collision). Julat ini mesti lebih
+# besar daripada jarak berdiri, kalau tidak robot akan terus menolak meteor.
+@export var julat_lombong: float = 40.0
+# Jarak berdiri semasa melombong: badan robot berhenti di luar permukaan
+# meteorit, hanya hujung gerudi yang masuk sedikit ke dalam batu.
+@export var jarak_berdiri: float = 34.0
 @export var jarak_pintu: float = 30.0
 @export var masa_scan: float = 0.6
 # Kalau dinding kedap dalam jarak ini pada keempat-empat arah, robot
