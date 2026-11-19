@@ -50,12 +50,12 @@ static func bentuk(
 		for sisi in [-1.0, 1.0]:
 			var y: float = 2.1 * sisi
 			senarai.append(_poli(PackedVector2Array([
-				Vector2(-21.6, y - 1.5), Vector2(-21.6, y + 1.5),
-				Vector2(-21.6 - panjang, y),
+				Vector2(-15.7, y - 1.5), Vector2(-15.7, y + 1.5),
+				Vector2(-15.7 - panjang, y),
 			]), skala, api))
 			senarai.append(_poli(PackedVector2Array([
-				Vector2(-21.7, y - 0.8), Vector2(-21.7, y + 0.8),
-				Vector2(-21.7 - panjang * 0.6, y),
+				Vector2(-15.8, y - 0.8), Vector2(-15.8, y + 0.8),
+				Vector2(-15.8 - panjang * 0.6, y),
 			]), skala, api_teras))
 
 	# --- Lengan belakang: terjuntai ke belakang dan ke atas badan ---
@@ -72,16 +72,16 @@ static func bentuk(
 	# --- Kaki terjuntai ke belakang, sedikit terpisah ---
 	for sisi in [-1.0, 1.0]:
 		senarai.append(_poli(PackedVector2Array([
-			Vector2(-6.0, 4.0 * sisi), Vector2(-5.6, 1.0 * sisi),
-			Vector2(-18.0, 0.8 * sisi), Vector2(-18.4, 3.0 * sisi),
+			Vector2(-6.0, 4.2 * sisi), Vector2(-5.6, 0.8 * sisi),
+			Vector2(-12.6, 0.8 * sisi), Vector2(-13.0, 3.8 * sisi),
 		]), skala, gelap))
 		senarai.append(_poli(PackedVector2Array([
-			Vector2(-9.0, 3.3 * sisi), Vector2(-9.0, 1.2 * sisi),
-			Vector2(-17.6, 1.0 * sisi), Vector2(-17.6, 2.8 * sisi),
+			Vector2(-8.5, 3.4 * sisi), Vector2(-8.5, 1.0 * sisi),
+			Vector2(-12.4, 1.0 * sisi), Vector2(-12.4, 3.4 * sisi),
 		]), skala, besi))
 		senarai.append(_poli(PackedVector2Array([
-			Vector2(-21.2, 3.0 * sisi), Vector2(-18.0, 3.0 * sisi),
-			Vector2(-18.0, 0.8 * sisi), Vector2(-21.2, 0.8 * sisi),
+			Vector2(-15.6, 3.8 * sisi), Vector2(-12.6, 3.8 * sisi),
+			Vector2(-12.6, 0.6 * sisi), Vector2(-15.6, 0.6 * sisi),
 		]), skala, gelap))
 
 	# --- Pinggul ---
