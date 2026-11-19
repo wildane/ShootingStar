@@ -28,10 +28,8 @@ const SKALA_BADAN: float = 0.5
 
 @export_group("Tenaga")
 @export var tenaga_maks: float = 100.0
-@export var kos_gerak_sesaat: float = 1.2
+# Terbang/berjalan tidak memakai tenaga: hanya melombong dan membaiki HP.
 @export var kos_lombong: float = 5.0   # 5 ketukan = 25 tenaga untuk satu meteorit
-@export var cas_tenang_sesaat: float = 0.0
-@export var cas_rehat_sesaat: float = 12.0
 @export var ambang_rehat: float = 18.0
 # Robot balik ke base mencari Charging Station selepas melombong bilangan
 # meteorit ini, cas sampai penuh, baru keluar semula mencari meteorit.
@@ -153,9 +151,7 @@ func _physics_process(delta: float) -> void:
 	if _masa_laluan_baki > 0.0:
 		_masa_laluan_baki = maxf(0.0, _masa_laluan_baki - delta)
 
-	# Panel solar kecil (lalai 0): tenaga robot hanya pulih di stesen cas.
-	if cas_tenang_sesaat > 0.0 and tenaga < tenaga_maks:
-		tenaga = minf(tenaga_maks, tenaga + cas_tenang_sesaat * delta)
+	# Tiada cas pasif: tenaga robot hanya pulih di Charging Station.
 
 	# 1. Kuota meteorit penuh atau tenaga rendah: balik ke base dulu,
 	#    cari Charging Station dan cas sampai penuh.
@@ -380,11 +376,14 @@ func _kemas_cas(delta: float) -> void:
 		_bergerak_ke(titik_cas, delta)
 		return
 
-	# Sudah di stesen: cas sampai penuh.
+	# Sudah di stesen: cas sampai penuh. Hanya Charging Station yang
+	# berkuasa memberi tenaga - tiada cas pasif di tempat lain.
 	_berhenti()
-	var kadar := cas_rehat_sesaat
-	if is_instance_valid(_stesen_cas) and ("has_power" in _stesen_cas) and bool(_stesen_cas.has_power):
-		kadar = kadar_cas_stesen
+	var kadar := 0.0
+	if is_instance_valid(_stesen_cas):
+		var stesen_berkuasa: bool = not ("has_power" in _stesen_cas) or bool(_stesen_cas.has_power)
+		if stesen_berkuasa:
+			kadar = kadar_cas_stesen
 	tenaga = minf(tenaga_maks, tenaga + kadar * delta)
 	if tenaga >= tenaga_maks:
 		_perlu_cas = false
@@ -586,7 +585,7 @@ func _bergerak_ke(posisi: Vector2, delta: float, elak: bool = true) -> void:
 		# Mengelilingi dinding, bukan merempuh dinding.
 		arah = _elak_dinding(arah)
 	velocity = arah * kelajuan
-	tenaga = maxf(0.0, tenaga - kos_gerak_sesaat * delta)
+	# Terbang ke sasaran tidak memakai tenaga (hanya melombong/membaiki).
 	move_and_slide()
 	_semak_tersangkut(delta, arah)
 
