@@ -65,6 +65,32 @@ var resipi_dron: Array[Dictionary] = [
 	},
 ]
 
+# ==========================================================
+# 🤖 RESIPI ROBOT PEKERJA
+# ==========================================================
+# Robot terus muncul di sebelah Fabricator selepas dibuat, kemudian
+# bekerja sendiri (lombong meteorit + cas tenaga sendiri).
+const ADEGAN_ROBOT: String = "res://scene/robot/RobotPekerja.tscn"
+const IKON_ROBOT: String = "res://scene/WeaponAttachment/Drone/Image_836.png"
+const WARNA_ROBOT: Color = Color(0.45, 1.0, 0.55)
+
+var resipi_robot: Array[Dictionary] = [
+	{
+		"id": "robot_mining",
+		"nama": "Mining Robot",
+		"robot": true,
+		"ikon_slot": IKON_ROBOT,
+		"warna": WARNA_ROBOT,
+		"keterangan": "An autonomous worker. It flies to the nearest meteorite and mines it, recharges its own energy, repairs 30 HP in 3 seconds, and passes through doorways without a click.",
+		"statistik_teks": "Meteorite miner\nEnergy 100  ·  HP 60",
+		"bahan": [
+			{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 10, "ikon": "res://scene/Item/0001BasicIronOre/Image_959.png"},
+			{"id": "item_0003", "nama": "Raw Silica", "kuantiti": 4, "ikon": "res://scene/Item/0003RawSilica/Image_495.png"},
+			{"id": "item_0004", "nama": "Rock Anomaly (Geode)", "kuantiti": 2, "ikon": "res://scene/Item/0004Geode/Image_129.png"},
+		],
+	},
+]
+
 # UI craft dron (semua di dalam menu Fabricator, tiada panel bertindih)
 var _butang_dron: Button = null
 var _grid_kraf: GridContainer = null
@@ -230,7 +256,7 @@ func _bina_ui_craft() -> void:
 	_butang_dron.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_butang_dron.icon = load(IKON_DRON)
 	_butang_dron.self_modulate = Color(0.62, 0.66, 0.72, 0.95)
-	_butang_dron.tooltip_text = "Craft drone"
+	_butang_dron.tooltip_text = "Craft drones & robot"
 	_butang_dron.pressed.connect(_buka_craft)
 	slot_dron.add_child(_butang_dron)
 
@@ -248,7 +274,7 @@ func _bina_ui_craft() -> void:
 		if not inv.inventory_dikemaskini.is_connected(_kemas_kini_craft):
 			inv.inventory_dikemaskini.connect(_kemas_kini_craft)
 
-	print("Fabricator: Butang craft dron sedia (", resipi_dron.size(), " resipi)")
+	print("Fabricator: Butang craft sedia (", _semua_resipi().size(), " resipi)")
 
 
 # Kandungan craft: header (back + tajuk + tutup), grid slot dron, kotak info
@@ -274,7 +300,7 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 	header.add_child(butang_back)
 
 	var tajuk := Label.new()
-	tajuk.text = "Craft Drone"
+	tajuk.text = "Craft"
 	tajuk.add_theme_font_size_override("font_size", 9)
 	tajuk.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tajuk.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -306,7 +332,8 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 	badan.add_child(_grid_dron)
 
 	# Slot kotak kecil (macam ikon inventory): PanelContainer + butang ikon
-	for i in resipi_dron.size():
+	var senarai := _semua_resipi()
+	for i in senarai.size():
 		var slot := PanelContainer.new()
 		slot.custom_minimum_size = Vector2(26, 26)
 		slot.add_theme_stylebox_override("panel", _gaya_slot(false, false))
@@ -314,11 +341,11 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 
 		var b := Button.new()
 		b.flat = true
-		b.icon = load(IKON_DRON)
+		b.icon = load(str(senarai[i].get("ikon_slot", IKON_DRON)))
 		b.expand_icon = true
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		b.self_modulate = resipi_dron[i]["warna"]
-		b.tooltip_text = str(resipi_dron[i]["nama"])
+		b.self_modulate = senarai[i]["warna"]
+		b.tooltip_text = str(senarai[i]["nama"])
 		b.pressed.connect(_pilih_craft.bind(i))
 		slot.add_child(b)
 
@@ -441,10 +468,26 @@ func _tutup_craft() -> void:
 
 # Pilih satu dron dalam grid -> kotak info di kanan bertukar
 func _pilih_craft(i: int) -> void:
-	if i < 0 or i >= resipi_dron.size():
+	if i < 0 or i >= _semua_resipi().size():
 		return
 	_pilihan_craft = i
 	_kemas_kini_craft()
+
+
+# Semua resipi (dron + robot) dikongsi dalam satu menu craft.
+func _semua_resipi() -> Array[Dictionary]:
+	var senarai: Array[Dictionary] = []
+	senarai.append_array(resipi_dron)
+	senarai.append_array(resipi_robot)
+	return senarai
+
+
+# Robot dianggap sudah dibuat bila sudah ada di dalam babak.
+func _robot_wujud() -> bool:
+	for nod in get_tree().get_nodes_in_group("RobotPekerja"):
+		if is_instance_valid(nod) and not nod.is_queued_for_deletion():
+			return true
+	return false
 
 
 func _bilangan_dalam_beg(id_item: String) -> int:
@@ -455,6 +498,8 @@ func _bilangan_dalam_beg(id_item: String) -> int:
 
 
 func _sudah_punya(id_item: String) -> bool:
+	if id_item == "robot_mining":
+		return _robot_wujud()
 	return _bilangan_dalam_beg(id_item) > 0
 
 
@@ -470,27 +515,32 @@ func _kemas_kini_craft() -> void:
 	if _kotak_craft == null:
 		return
 
+	var senarai := _semua_resipi()
 	for i in _slot_dron.size():
 		var slot: PanelContainer = _slot_dron[i]
-		if not is_instance_valid(slot):
+		if not is_instance_valid(slot) or i >= senarai.size():
 			continue
-		var sudah := _sudah_punya(resipi_dron[i]["id"])
+		var sudah := _sudah_punya(senarai[i]["id"])
 		slot.add_theme_stylebox_override("panel", _gaya_slot(i == _pilihan_craft, sudah))
 		var isi := slot.get_child(0) as Button
 		if isi:
-			isi.self_modulate = Color(0.35, 1.0, 0.45) if sudah else resipi_dron[i]["warna"]
+			isi.self_modulate = Color(0.35, 1.0, 0.45) if sudah else senarai[i]["warna"]
 			isi.modulate = Color.WHITE if i == _pilihan_craft else Color(0.6, 0.6, 0.6, 0.9)
 
-	if _pilihan_craft < 0 or _pilihan_craft >= resipi_dron.size():
+	if _pilihan_craft < 0 or _pilihan_craft >= senarai.size():
 		return
-	var resipi: Dictionary = resipi_dron[_pilihan_craft]
+	var resipi: Dictionary = senarai[_pilihan_craft]
 	var sudah := _sudah_punya(resipi["id"])
 
 	_label_nama.text = str(resipi["nama"])
 
-	var stat: Dictionary = resipi.get("statistik", {})
-	var dmg: String = str(int(stat.get("dmg", 0))) if int(stat.get("dmg", 0)) > 0 else "-"
-	_label_statistik.text = "Range " + str(int(stat.get("range", 0))) + "\nDMG " + dmg + "  ·  Energy " + str(stat.get("tenaga", 0)) + "\nCooldown " + str(stat.get("cooldown", 0)) + "s"
+	var teks_khas: String = str(resipi.get("statistik_teks", ""))
+	if teks_khas != "":
+		_label_statistik.text = teks_khas
+	else:
+		var stat: Dictionary = resipi.get("statistik", {})
+		var dmg: String = str(int(stat.get("dmg", 0))) if int(stat.get("dmg", 0)) > 0 else "-"
+		_label_statistik.text = "Range " + str(int(stat.get("range", 0))) + "\nDMG " + dmg + "  ·  Energy " + str(stat.get("tenaga", 0)) + "\nCooldown " + str(stat.get("cooldown", 0)) + "s"
 
 	_kemas_kini_harga(resipi)
 
@@ -544,9 +594,10 @@ func _kemas_kini_harga(resipi: Dictionary) -> void:
 
 
 func _on_butang_craft_pressed() -> void:
-	if _pilihan_craft < 0 or _pilihan_craft >= resipi_dron.size():
+	var senarai := _semua_resipi()
+	if _pilihan_craft < 0 or _pilihan_craft >= senarai.size():
 		return
-	var resipi: Dictionary = resipi_dron[_pilihan_craft]
+	var resipi: Dictionary = senarai[_pilihan_craft]
 
 	if _sudah_punya(resipi["id"]):
 		_tulis_info(str(resipi["nama"]) + " is already crafted")
@@ -570,6 +621,13 @@ func _on_butang_craft_pressed() -> void:
 	for bahan in resipi["bahan"]:
 		inv.tolak_item(bahan["id"], int(bahan["kuantiti"]))
 
+	# Robot: terus muncul di sebelah Fabricator dan mula bekerja sendiri.
+	if bool(resipi.get("robot", false)):
+		_cipta_robot()
+		_kemas_kini_craft()
+		_tulis_info(str(resipi["nama"]) + " built! It is heading out to mine meteorites.")
+		return
+
 	# 2. Masukkan item dron ke dalam beg (ini yang membuka pilihan dron di HUD)
 	inv.tambah_item({
 		"id": resipi["id"],
@@ -581,6 +639,28 @@ func _on_butang_craft_pressed() -> void:
 	_kemas_kini_craft()
 	_tulis_info(str(resipi["nama"]) + " crafted! Select it from the drone button.")
 	print("Fabricator: ", resipi["nama"], " selesai dibuat")
+
+
+# Spawn robot pekerja berhampiran Fabricator ini.
+func _cipta_robot() -> void:
+	if not ResourceLoader.exists(ADEGAN_ROBOT):
+		print("Fabricator: Scene robot tidak dijumpai -> ", ADEGAN_ROBOT)
+		return
+	var adegan := load(ADEGAN_ROBOT) as PackedScene
+	if adegan == null:
+		return
+	var robot := adegan.instantiate()
+	var adegan_utama := get_tree().current_scene
+	if adegan_utama == null:
+		return
+	var induk := adegan_utama.get_node_or_null("Y_Sort_Container")
+	if induk == null:
+		induk = adegan_utama
+	induk.add_child(robot)
+	robot.global_position = global_position + Vector2(24, 0)
+	print("Fabricator: Robot pekerja diaktifkan di ", robot.global_position)
+	if get_node_or_null("/root/SaveManager"):
+		SaveManager.save_game()
 
 
 func _tulis_info(teks: String) -> void:
