@@ -69,6 +69,9 @@ var _peta = null
 var _masa_peta: float = 0.0
 var _masa_lombong: float = 0.0
 var _masa_larang_pintu: float = 0.0
+# Pintu terakhir yang baru dilalui: jangan teleport melalui pintu yang sama
+# berulang kali dalam tempoh larangan.
+var _pintu_terakhir: Node2D = null
 var _masa_semak_bilik: float = 0.0
 var _bilik_terkurung: bool = false
 var _menuju_pintu: bool = false
@@ -282,6 +285,12 @@ func _cuba_lalu_pintu(delta: float) -> bool:
 	# Terkurung dalam bilik, atau destinasi (base/stesen) terhalang dinding.
 	if not _bilik_terkurung and not _perlu_pintasan:
 		return false
+	# Teleport pintu hanya dibenarkan semasa robot benar-benar mengikut
+	# laluan navigasi. Tanpa semakan ini, robot yang cuma terbang biasa
+	# (contohnya pulang ke stesen cas) akan teleport masuk dan keluar pintu
+	# berulang-ulang kerana _perlu_pintasan dikira semula setiap frame.
+	if not _dalam_mod_laluan():
+		return false
 	if _masa_larang_pintu > 0.0:
 		return false
 
@@ -299,6 +308,7 @@ func _cuba_lalu_pintu(delta: float) -> bool:
 			return false
 		_pintu.call("lalu_automatik", self)
 		# Jangan terus pusing balik masuk pintu yang sama.
+		_pintu_terakhir = _pintu
 		_masa_larang_pintu = 4.0
 		_bilik_terkurung = false
 		_perlu_pintasan = false
@@ -312,6 +322,11 @@ func _cuba_lalu_pintu(delta: float) -> bool:
 	_bergerak_ke(_pintu.global_position, delta)
 	_menuju_pintu = false
 	return true
+
+
+# Robot sedang mengikut laluan yang dikira sistem navigasi?
+func _dalam_mod_laluan() -> bool:
+	return not _laluan.is_empty() and _laluan_indeks < _laluan.size()
 
 
 func _cari_pintu() -> Node2D:
@@ -494,11 +509,14 @@ func _ikut_laluan(delta: float) -> bool:
 			var pos_pintu: Vector2 = langkah["pos"]
 			var dekat_titik := global_position.distance_to(pos_pintu) <= 10.0
 			var dekat_pintu := global_position.distance_to(pintu.global_position) <= jarak_pintu
-			if dekat_titik or dekat_pintu:
+			# Baru sahaja melalui pintu ini: jangan teleport berulang-ulang.
+			var larang := _masa_larang_pintu > 0.0 and pintu == _pintu_terakhir
+			if (dekat_titik or dekat_pintu) and not larang:
 				pintu.call("lalu_automatik", self)
+				_pintu_terakhir = pintu
 				_laluan_indeks += 1
 				_masa_laluan_baki = 0.0
-				_masa_larang_pintu = 2.0
+				_masa_larang_pintu = 3.0
 				_berhenti()
 				return true
 			_bergerak_ke(pos_pintu, delta, false)
