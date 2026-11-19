@@ -1,9 +1,9 @@
 extends RefCounted
 ## Reka bentuk vektor robot pekerja (gaya rata / flat vector): pose TERBANG
 ## mendatar seperti "superman". Kepala dan gerudi menghala ke +x (arah
-## gerakan), badan mendatar, kaki terjuntai ke belakang (-x).
+## gerakan), badan mendatar, api penyembur menembak ke belakang (-x).
 ##
-## Semua bentuk dijana dalam ruang reka bentuk sekitar x -27..+23, y -7..+6
+## Semua bentuk dijana dalam ruang reka bentuk sekitar x -14..+24, y -9..+8
 ## (unit reka bentuk), kemudian diskalakan. Fail ini menghasilkan dua
 ## perkara daripada satu lukisan:
 ##   1. badan robot di skrin (draw_colored_polygon / draw_circle), dan
@@ -21,7 +21,7 @@ const AKSEN_BAIKI: Color = Color(0.55, 1.0, 0.6)
 ## atau {"jenis": "bulatan", "pusat": Vector2, "jejari": float, "warna": Color}.
 ##
 ## Parameter animasi (semua pilihan; nilai lalai = pose statik untuk ikon):
-##   terbang — 0..1, panjang api penyembur di belakang kaki (0 = api padam)
+##   terbang — 0..1, panjang api penyembur dari belakang badan (0 = api padam)
 ##   gerudi  — jarak gerudi ditolak ke hadapan semasa melombong
 ##   degup   — 0..1, denyutan teras tenaga semasa mengecas
 ##   pusing  — putaran seluruh reka bentuk (radian), digunakan untuk ikon
@@ -44,18 +44,18 @@ static func bentuk(
 	var api_teras := _warna(Color(0.85, 0.97, 1.0, 0.9), kilat)
 	var senarai: Array = []
 
-	# --- API PENYEMBUR: menembak ke belakang dari bawah kaki ---
+	# --- API PENYEMBUR: terus keluar dari belakang badan ---
 	if terbang > 0.0:
 		var panjang: float = 6.2 * terbang
 		for sisi in [-1.0, 1.0]:
-			var y: float = 2.1 * sisi
+			var y: float = 2.0 * sisi
 			senarai.append(_poli(PackedVector2Array([
-				Vector2(-15.7, y - 1.5), Vector2(-15.7, y + 1.5),
-				Vector2(-15.7 - panjang, y),
+				Vector2(-6.4, y - 1.7), Vector2(-6.4, y + 1.7),
+				Vector2(-6.4 - panjang, y),
 			]), skala, api))
 			senarai.append(_poli(PackedVector2Array([
-				Vector2(-15.8, y - 0.8), Vector2(-15.8, y + 0.8),
-				Vector2(-15.8 - panjang * 0.6, y),
+				Vector2(-6.5, y - 0.9), Vector2(-6.5, y + 0.9),
+				Vector2(-6.5 - panjang * 0.6, y),
 			]), skala, api_teras))
 
 	# --- Lengan belakang: terjuntai ke belakang dan ke atas badan ---
@@ -68,21 +68,6 @@ static func bentuk(
 		Vector2(-2.6, -6.6), Vector2(-3.8, -5.2),
 	]), skala, besi))
 	senarai.append(_bulat(Vector2(-4.2, -6.6), 1.8, skala, gelap))
-
-	# --- Kaki terjuntai ke belakang, sedikit terpisah ---
-	for sisi in [-1.0, 1.0]:
-		senarai.append(_poli(PackedVector2Array([
-			Vector2(-6.0, 4.2 * sisi), Vector2(-5.6, 0.8 * sisi),
-			Vector2(-12.6, 0.8 * sisi), Vector2(-13.0, 3.8 * sisi),
-		]), skala, gelap))
-		senarai.append(_poli(PackedVector2Array([
-			Vector2(-8.5, 3.4 * sisi), Vector2(-8.5, 1.0 * sisi),
-			Vector2(-12.4, 1.0 * sisi), Vector2(-12.4, 3.4 * sisi),
-		]), skala, besi))
-		senarai.append(_poli(PackedVector2Array([
-			Vector2(-15.6, 3.8 * sisi), Vector2(-12.6, 3.8 * sisi),
-			Vector2(-12.6, 0.6 * sisi), Vector2(-15.6, 0.6 * sisi),
-		]), skala, gelap))
 
 	# --- Pinggul ---
 	senarai.append(_poli(PackedVector2Array([
@@ -175,7 +160,7 @@ static func bentuk(
 static func buat_ikon(saiz: int = 48, aksen: Color = AKSEN) -> ImageTexture:
 	var imej := Image.create_empty(saiz, saiz, false, Image.FORMAT_RGBA8)
 	imej.fill(Color(0.0, 0.0, 0.0, 0.0))
-	var senarai := bentuk(float(saiz) / 58.0, aksen, 0.0, 0.0, 0.0, 0.0, -PI * 0.34)
+	var senarai := bentuk(float(saiz) / 48.0, aksen, 0.0, 0.0, 0.0, 0.0, -PI * 0.34)
 	var tengah := float(saiz) * 0.5
 	var sampel := 2
 	var bilangan_sampel := float(sampel * sampel)

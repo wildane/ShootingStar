@@ -2,7 +2,7 @@ extends CharacterBody2D
 
 const SkripPeta := preload("res://scene/level_3/navigation/PetaNavigasi.gd")
 const SkripReka := preload("res://scene/robot/RekaRobot.gd")
-# Saiz lukisan badan robot (pose terbang mendatar, ~46 x 16 unit).
+# Saiz lukisan badan robot (pose terbang mendatar, ~38 x 17 unit).
 const SKALA_BADAN: float = 0.5
 
 ## Robot pekerja perlombongan.
