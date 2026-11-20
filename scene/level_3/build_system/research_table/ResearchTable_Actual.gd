@@ -127,7 +127,7 @@ func _input(event: InputEvent) -> void:
 
 # Zon klik perabot ikut CollisionShape2D pada Area2D, dengan sedikit toleransi.
 func _klik_dalam_kawasan(pos_skrin: Vector2) -> bool:
-	var titik := area_penderia.to_local(get_canvas_transform().affine_inverse() * pos_skrin)
+	var titik: Vector2 = area_penderia.to_local(get_canvas_transform().affine_inverse() * pos_skrin)
 	var ada_bentuk := false
 	for anak in area_penderia.get_children():
 		if anak is CollisionShape2D and anak.shape is RectangleShape2D:
