@@ -16,6 +16,7 @@
 [ext_resource type="Script" uid="uid://beflntar2msst" path="res://scene/level_3/build_system/BuildButton.gd" id="14_rnch0"]
 [ext_resource type="Script" path="res://scene/level_3/build_system/ChargingStation/charging_station.gd" id="40_cs"]
 [ext_resource type="Texture2D" path="res://scene/level_3/build_system/ChargingStation/ChargingStation.png" id="41_cs"]
+[ext_resource type="Script" path="res://scene/level_3/build_system/RobotPod/pod.gd" id="50_pod"]
 [ext_resource type="Texture2D" uid="uid://ccrv5i42dn76h" path="res://scene/level_3/build_system/SolarModule/Image_43.png" id="15_ad8n0"]
 [ext_resource type="Texture2D" uid="uid://b63du44vwlasy" path="res://scene/level_3/build_system/PowerInverter/Image_127.png" id="16_2w3p3"]
 [ext_resource type="Texture2D" uid="uid://bg5enkd6gvggt" path="res://scene/WeaponAttachment/Drone/Image_836.png" id="16_hr2ua"]
@@ -277,6 +278,14 @@ flat = true
 icon_alignment = 1
 expand_icon = true
 script = ExtResource("40_cs")
+
+[node name="RobotPodButton" type="Button" parent="CanvasLayer/MarginContainer/VBoxContainer/BuildSystem/HBoxContainer/ItemsPanel/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+flat = true
+icon_alignment = 1
+expand_icon = true
+script = ExtResource("50_pod")
 
 [node name="InventoryButton" type="Button" parent="CanvasLayer/MarginContainer/VBoxContainer" unique_id=1263275639 node_paths=PackedStringArray("inventory_ui")]
 custom_minimum_size = Vector2(32, 32)
