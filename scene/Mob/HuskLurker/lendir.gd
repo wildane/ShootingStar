@@ -25,7 +25,7 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 
 func tembak(hala: Vector2, dmg: int = 1) -> void:
-	Sfx.mainkan("lendir", -10.0)
+	Sfx.mainkan_di("lendir", global_position, -10.0)
 	arah = hala.normalized()
 	kerosakan = dmg
 	rotation = arah.angle()

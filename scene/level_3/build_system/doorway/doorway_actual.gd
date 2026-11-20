@@ -126,8 +126,10 @@ func lalu_automatik(body: Node2D) -> void:
 func _teleport_badan(body: Node2D, pos_baru: Vector2) -> void:
 	var pos_lama: Vector2 = body.global_position
 	_main_kesan(body, pos_lama, false)
+	Sfx.mainkan_di("teleport", pos_lama, -5.0)
 	body.global_position = pos_baru
 	_main_kesan(body, pos_baru, true)
+	Sfx.mainkan_di("teleport", pos_baru, -10.0, 1.08)
 	_kelip_badan(body)
 
 

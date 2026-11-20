@@ -46,7 +46,7 @@ func _ready() -> void:
 		skala_glow_asas = glow.scale
 
 func tembak(hala: Vector2, dmg: int = 2) -> void:
-	Sfx.mainkan("lendir_boss", -8.0)
+	Sfx.mainkan_di("lendir_boss", global_position, -8.0)
 	arah = hala.normalized()
 	kerosakan = dmg
 	rotation = arah.angle()

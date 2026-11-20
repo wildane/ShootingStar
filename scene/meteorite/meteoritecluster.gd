@@ -119,7 +119,7 @@ func take_damage() -> void:
 	_kemas_kini_keretakan()
 	_kilat()
 	_gegar_kuat = maxf(_gegar_kuat, GEGAR_KETUKAN)
-	Sfx.mainkan("lombong", -4.0)
+	Sfx.mainkan_di("lombong", global_position, -4.0)
 	
 	if hp <= 0:
 		destroy()
@@ -149,7 +149,7 @@ func _on_objek_keluar(target: Node2D) -> void:
 
 func destroy() -> void:
 	print("Sistem Meteor: Meteor hancur! Mencari DropComponent...")
-	Sfx.mainkan("pecah", -3.0)
+	Sfx.mainkan_di("pecah", global_position, -3.0)
 	
 	# Mencari DropComponent di dalam nod anak meteorcluster
 	var drop_comp = find_child("DropComponent", true, false)

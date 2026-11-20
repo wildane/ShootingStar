@@ -314,7 +314,7 @@ func take_damage(amount: float) -> void:
 
 func _mati() -> void:
 	sedang_mati = true
-	Sfx.mainkan("letupan", -8.0)
+	Sfx.mainkan_di("letupan", global_position, -8.0)
 	set_deferred("collision_layer", 0)
 	set_deferred("collision_mask", 0)
 	velocity = Vector2.ZERO

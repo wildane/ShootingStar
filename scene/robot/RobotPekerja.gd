@@ -664,7 +664,7 @@ func take_damage(amount: float) -> void:
 		return
 	hp = maxf(0.0, hp - amount)
 	_kilat()
-	Sfx.mainkan("lombong", -9.0, 0.8)
+	Sfx.mainkan_di("lombong", global_position, -9.0, 0.8)
 	if hp <= 0.0:
 		_mati()
 
@@ -679,7 +679,7 @@ func _mati() -> void:
 	_sedang_rehat = false
 	set_physics_process(false)
 	queue_redraw()
-	Sfx.mainkan("pecah", -6.0)
+	Sfx.mainkan_di("pecah", global_position, -6.0)
 
 	var induk := get_parent()
 	if induk != null:
