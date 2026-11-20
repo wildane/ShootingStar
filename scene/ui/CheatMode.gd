@@ -10,6 +10,13 @@ const SPAWN_SETIAP_FRAME := 6
 var aktif := false
 # Bilangan visual yang belum selesai dikredit ke inventori.
 var _baki_inventori := 0
+# id_barang -> jadual drop penuh (Array[PackedScene]).
+# Jadual dikumpul daripada setiap DropComponent yang pernah masuk tree,
+# jadi cheat tidak bergantung pada musuh yang masih hidup di sebelah item.
+var _jadual_drop: Dictionary = {}
+# Cache data barang ikut resource_path supaya scene item tidak
+# di-instantiate berulang kali setiap kali musuh baru muncul.
+var _cache_data: Dictionary = {}
 var _status: Label
 var _rng := RandomNumberGenerator.new()
 
@@ -50,6 +57,7 @@ func _ready() -> void:
 	susunan.add_child(_status)
 	_kemas_status()
 	get_tree().node_added.connect(_on_node_added)
+	call_deferred("_imbas_jadual_drop")
 
 func _togol() -> void:
 	aktif = not aktif
@@ -61,18 +69,55 @@ func _kemas_status() -> void:
 		_status.add_theme_color_override("font_color", Color(0.3, 1.0, 0.55) if aktif else Color(1.0, 0.45, 0.45))
 
 func _on_node_added(nod: Node) -> void:
+	# Jadual drop didaftar walaupun cheat belum dihidupkan.
+	if "drop_scenes" in nod:
+		_daftar_jadual(nod)
 	if not aktif or not (nod is Area2D) or not ("id_barang" in nod):
 		return
 	if nod.has_meta("cheat_visual_item"):
 		return
 	call_deferred("_ganjar_semua_drop", nod)
 
+# Imbas adegan semasa untuk DropComponent yang sudah wujud sebelum cheat
+# menyambung isyarat node_added.
+func _imbas_jadual_drop() -> void:
+	for _cubaan in range(3):
+		var adegan_semasa := get_tree().current_scene
+		if adegan_semasa != null:
+			var menunggu: Array[Node] = [adegan_semasa]
+			while not menunggu.is_empty():
+				var nod: Node = menunggu.pop_back()
+				if "drop_scenes" in nod:
+					_daftar_jadual(nod)
+				menunggu.append_array(nod.get_children())
+			return
+		await get_tree().process_frame
+
+func _daftar_jadual(komponen: Node) -> void:
+	var jadual: Array[PackedScene] = []
+	for adegan: PackedScene in komponen.get("drop_scenes"):
+		if adegan != null:
+			jadual.append(adegan)
+	if jadual.is_empty():
+		return
+	for adegan in jadual:
+		var data := _data_barang(adegan)
+		var id := str(data.get("id", ""))
+		if id.is_empty() or _jadual_drop.has(id):
+			continue
+		_jadual_drop[id] = jadual
+
 func _ganjar_semua_drop(item_drop: Node) -> void:
 	if not aktif or not is_instance_valid(item_drop) or not item_drop.is_inside_tree():
 		return
 	var id_drop := str(item_drop.get("id_barang"))
-	var komponen := _cari_sumber_drop(item_drop, id_drop)
-	if komponen == null:
+	var jadual: Array = _jadual_drop.get(id_drop, [])
+	if jadual.is_empty():
+		var komponen := _cari_sumber_drop(item_drop, id_drop)
+		if komponen == null:
+			return
+		jadual = komponen.get("drop_scenes")
+	if jadual.is_empty():
 		return
 	var inventori := get_node_or_null("/root/InventoryManager")
 	if inventori == null or not inventori.has_method("tambah_item"):
@@ -87,7 +132,7 @@ func _ganjar_semua_drop(item_drop: Node) -> void:
 	# Kumpul semua item dahulu. Visual kemudian dibina sedikit demi sedikit
 	# antara frame supaya satu frame tidak terpaksa instantiate puluhan item.
 	var senarai: Array[Dictionary] = []
-	for adegan: PackedScene in komponen.get("drop_scenes"):
+	for adegan in jadual:
 		if adegan == null:
 			continue
 		var data := _data_barang(adegan)
@@ -164,6 +209,8 @@ func _posisi_inventori(item_drop: Node) -> Vector2:
 		return pemain.global_position
 	return sasaran
 
+# Fallback lama: cari DropComponent pada musuh yang masih ada di kedudukan
+# item. Hanya digunakan kalau jadual id tersebut belum pernah didaftar.
 func _cari_sumber_drop(item_drop: Node, id_drop: String) -> Node:
 	for nama_kumpulan in ["enemy", "enemies"]:
 		for musuh in get_tree().get_nodes_in_group(nama_kumpulan):
@@ -183,6 +230,10 @@ func _cari_sumber_drop(item_drop: Node, id_drop: String) -> Node:
 func _data_barang(adegan: PackedScene) -> Dictionary:
 	if adegan == null:
 		return {}
+	var kunci := adegan.resource_path
+	if not kunci.is_empty() and _cache_data.has(kunci):
+		var data_cache: Dictionary = _cache_data[kunci]
+		return data_cache.duplicate()
 	var contoh := adegan.instantiate()
 	if contoh == null or not ("id_barang" in contoh):
 		if is_instance_valid(contoh):
@@ -195,4 +246,6 @@ func _data_barang(adegan: PackedScene) -> Dictionary:
 		"scene_path": adegan.resource_path,
 	}
 	contoh.free()
+	if not kunci.is_empty():
+		_cache_data[kunci] = data.duplicate()
 	return data
