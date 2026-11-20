@@ -1,13 +1,13 @@
 extends Button
-## Butang bina Robot Pod dalam panel bina. Ikon pod dijana secara vektor.
+## Butang bina Robot Pod dalam panel bina. Ikon diambil daripada PNG pod.
 
 const PREVIEW: String = "res://scene/level_3/build_system/RobotPod/PodPreview.tscn"
 const ACTUAL: String = "res://scene/level_3/build_system/RobotPod/PodActual.tscn"
-const SkripReka := preload("res://scene/level_3/build_system/RobotPod/RekaPod.gd")
+const IKON: Texture2D = preload("res://scene/level_3/build_system/RobotPod/pod.png")
 
 func _ready() -> void:
 	if icon == null:
-		icon = SkripReka.buat_ikon(64)
+		icon = IKON
 		expand_icon = true
 		icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
