@@ -320,6 +320,11 @@ func _mati() -> void:
 	velocity = Vector2.ZERO
 	print("HuskLurker: musnah")
 
+	# Drop 1 Husk Slime (100% chance)
+	var drop := get_node_or_null("DropComponent")
+	if drop != null and drop.has_method("trigger_drop"):
+		drop.trigger_drop()
+
 	if sprite:
 		var tw := create_tween()
 		tw.set_parallel(true)

@@ -3,6 +3,8 @@
 [ext_resource type="Script" path="res://scene/Mob/HuskLurker/HuskLurker.gd" id="1_husk"]
 [ext_resource type="Texture2D" path="res://scene/Mob/HuskLurker/Image_husk.png" id="2_img"]
 [ext_resource type="PackedScene" path="res://scene/Mob/HuskLurker/Lendir.tscn" id="3_lendir"]
+[ext_resource type="Script" path="res://scene/Mob/DropComponent.gd" id="4_drop"]
+[ext_resource type="PackedScene" path="res://scene/Item/0008HuskSlime/HuskSlime.tscn" id="5_slime"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_husk"]
 radius = 9.0
@@ -21,3 +23,8 @@ texture = ExtResource("2_img")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 rotation = 1.5707964
 shape = SubResource("CircleShape2D_husk")
+
+[node name="DropComponent" type="Node2D" parent="."]
+script = ExtResource("4_drop")
+drop_scenes = Array[PackedScene]([ExtResource("5_slime")])
+drop_percentages = Array[float]([100.0])

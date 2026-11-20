@@ -1,0 +1,22 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://crer5nkkgo3n5" path="res://scene/Item/item.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://scene/Item/0008HuskSlime/Image_husk_slime.png" id="2_ikon"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_a4krb"]
+size = Vector2(362.5003, 385.06396)
+
+[node name="Barang" type="Area2D"]
+scale = Vector2(0.05, 0.05)
+script = ExtResource("1_item")
+id_barang = "item_0008"
+nama_barang = "Husk Slime"
+category = "Common"
+description = "Thick viridian slime scraped off a husk lurker. It reeks of the cave, but crafters still pay for it."
+ikon_barang = ExtResource("2_ikon")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_ikon")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_a4krb")
