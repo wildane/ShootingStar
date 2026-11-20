@@ -51,6 +51,8 @@ var _sasaran_dilombong: bool = false
 # Stesen cas terdekat (group "StesenCas") dan titik base asal robot.
 var _stesen_cas: Node2D = null
 var _masa_stesen_baki: float = 0.0
+# Pod tempat robot sedang baring dan mengecas (null bila tidak mengecas).
+var _pod_dock: Node2D = null
 var _pos_base: Vector2 = Vector2.ZERO
 # Laluan yang dikira oleh sistem navigasi (grid + pintu).
 var _laluan: Array = []
@@ -336,6 +338,18 @@ func _kemas_cas(delta: float) -> void:
 	_sasaran_dilombong = false
 	_perlu_pintasan = false
 
+	# Robot sedang baring dalam pod: terus cas di situ sehingga penuh.
+	if is_instance_valid(_pod_dock):
+		_kemas_dalam_pod(delta)
+		return
+
+	# Stesen semasa tiada kuasa tetapi ada stesen lain yang berkuasa: tukar.
+	if is_instance_valid(_stesen_cas) and "has_power" in _stesen_cas and not bool(_stesen_cas.has_power):
+		var ganti := _cari_stesen_cas()
+		if is_instance_valid(ganti) and ganti != _stesen_cas:
+			_stesen_cas = ganti
+			_bersih_laluan()
+
 	if not is_instance_valid(_stesen_cas) or _stesen_cas.is_queued_for_deletion():
 		_stesen_cas = null
 		_masa_stesen_baki -= delta
@@ -364,6 +378,13 @@ func _kemas_cas(delta: float) -> void:
 	# Sudah di stesen: cas sampai penuh. Hanya Charging Station yang
 	# berkuasa memberi tenaga - tiada cas pasif di tempat lain.
 	_berhenti()
+	# Pod robot: robot masuk dan baring dalam pod sementara mengecas. Bar
+	# tenaga di atas pod menunjukkan kemajuan cas.
+	if is_instance_valid(_stesen_cas) and _stesen_cas.has_method("masuk_pod"):
+		var pod_berkuasa: bool = not ("has_power" in _stesen_cas) or bool(_stesen_cas.has_power)
+		if pod_berkuasa:
+			_masuk_pod(_stesen_cas)
+			return
 	var kadar := 0.0
 	if is_instance_valid(_stesen_cas):
 		var stesen_berkuasa: bool = not ("has_power" in _stesen_cas) or bool(_stesen_cas.has_power)
@@ -381,6 +402,8 @@ func _kemas_cas(delta: float) -> void:
 func _cari_stesen_cas() -> Node2D:
 	var terbaik: Node2D = null
 	var jarak_terbaik := INF
+	var berkuasa: Node2D = null
+	var jarak_berkuasa := INF
 	var senarai: Array = get_tree().get_nodes_in_group("StesenCas")
 	for nod in senarai:
 		if not (nod is Node2D) or not is_instance_valid(nod) or nod.is_queued_for_deletion():
@@ -389,7 +412,58 @@ func _cari_stesen_cas() -> Node2D:
 		if jarak < jarak_terbaik:
 			jarak_terbaik = jarak
 			terbaik = nod
-	return terbaik
+		# Utamakan stesen yang ada kuasa supaya robot tidak menunggu sia-sia.
+		var ada_kuasa: bool = not ("has_power" in nod) or bool(nod.has_power)
+		if ada_kuasa and jarak < jarak_berkuasa:
+			jarak_berkuasa = jarak
+			berkuasa = nod
+	return berkuasa if berkuasa != null else terbaik
+
+
+# ==========================================================
+# POD: robot masuk ke dalam pod, baring dan mengecas sampai penuh.
+# ==========================================================
+func _masuk_pod(pod: Node2D) -> void:
+	_pod_dock = pod
+	if pod.has_method("masuk_pod"):
+		pod.call("masuk_pod", self)
+	if pod.has_method("posisi_parkir"):
+		global_position = pod.call("posisi_parkir")
+	velocity = Vector2.ZERO
+	visible = false
+	_bersih_laluan()
+
+
+func _kemas_dalam_pod(delta: float) -> void:
+	if not is_instance_valid(_pod_dock) or _pod_dock.is_queued_for_deletion():
+		_lepas_pod()
+		return
+	var berkuasa: bool = not ("has_power" in _pod_dock) or bool(_pod_dock.has_power)
+	if not berkuasa:
+		_lepas_pod()
+		return
+	tenaga = minf(tenaga_maks, tenaga + kadar_cas_stesen * delta)
+	if tenaga >= tenaga_maks:
+		_lepas_pod()
+		_perlu_cas = false
+		_sedang_rehat = false
+		_perlu_pintasan = false
+		_masa_scan_baki = 0.0
+		_bersih_laluan()
+
+
+func _lepas_pod() -> void:
+	if is_instance_valid(_pod_dock):
+		global_position = _pod_dock.global_position + Vector2(0.0, -34.0)
+		if _pod_dock.has_method("keluar_pod"):
+			_pod_dock.call("keluar_pod")
+	_pod_dock = null
+	visible = true
+
+
+# Dipanggil pod (contohnya bila kuasa terputus atau pod dimusnahkan).
+func keluar_dari_pod() -> void:
+	_lepas_pod()
 
 
 # ----------------------------------------------------------
@@ -657,6 +731,9 @@ func _mati() -> void:
 	if _sudah_mati:
 		return
 	_sudah_mati = true
+	# Kalau robot mati semasa baring dalam pod, keluar dulu supaya ia tidak
+	# kekal tersembunyi.
+	_lepas_pod()
 	velocity = Vector2.ZERO
 	_sedang_lombong = false
 	_sedang_baiki = false

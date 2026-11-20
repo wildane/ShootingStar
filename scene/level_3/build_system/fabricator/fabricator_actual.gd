@@ -65,34 +65,6 @@ var resipi_dron: Array[Dictionary] = [
 	},
 ]
 
-# ==========================================================
-# 🤖 RESIPI ROBOT PEKERJA
-# ==========================================================
-# Robot terus muncul di sebelah Fabricator selepas dibuat, kemudian
-# bekerja sendiri (lombong meteorit + cas tenaga sendiri).
-const ADEGAN_ROBOT: String = "res://scene/robot/RobotPekerja.tscn"
-const SkripRekaRobot := preload("res://scene/robot/RekaRobot.gd")
-# Ikon robot dilukis secara vektor (tiada fail imej baru), jadi tint neutral
-# supaya warnanya kekal seperti yang dilukis.
-const WARNA_ROBOT: Color = Color(1.0, 1.0, 1.0)
-
-var resipi_robot: Array[Dictionary] = [
-	{
-		"id": "robot_mining",
-		"nama": "Mining Robot",
-		"robot": true,
-		"ikon_slot": "",
-		"warna": WARNA_ROBOT,
-		"keterangan": "An autonomous worker. It flies to the nearest meteorite and mines it, repairs 30 HP in 3 seconds, and passes through doorways without a click. After 3 meteorites (or when its energy runs low) it returns to the base and recharges at a Charging Station until full.",
-		"statistik_teks": "Meteorite miner\n3 meteors per trip\nEnergy 100  ·  HP 60",
-		"bahan": [
-			{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 10, "ikon": "res://scene/Item/0001BasicIronOre/Image_959.png"},
-			{"id": "item_0003", "nama": "Raw Silica", "kuantiti": 4, "ikon": "res://scene/Item/0003RawSilica/Image_495.png"},
-			{"id": "item_0004", "nama": "Rock Anomaly (Geode)", "kuantiti": 2, "ikon": "res://scene/Item/0004Geode/Image_129.png"},
-		],
-	},
-]
-
 # UI craft dron (semua di dalam menu Fabricator, tiada panel bertindih)
 var _butang_dron: Button = null
 var _grid_kraf: GridContainer = null
@@ -108,10 +80,6 @@ var _bekas_harga: VBoxContainer = null
 var _label_keterangan: RichTextLabel = null
 var _butang_craft: Button = null
 var _pilihan_craft: int = 0
-# Ikon robot vektor: dijana sekali sahaja (48x48) dan dikongsi semua slot.
-static var _ikon_robot_cache: Texture2D = null
-
-
 func _ready():
 	# 1. Masuk group perabot
 	add_to_group("Furniture") 
@@ -303,7 +271,7 @@ func _bina_ui_craft() -> void:
 	_butang_dron.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_butang_dron.icon = load(IKON_DRON)
 	_butang_dron.self_modulate = Color(0.62, 0.66, 0.72, 0.95)
-	_butang_dron.tooltip_text = "Craft drones & robot"
+	_butang_dron.tooltip_text = "Craft drones"
 	_butang_dron.pressed.connect(_buka_craft)
 	slot_dron.add_child(_butang_dron)
 
@@ -521,20 +489,12 @@ func _pilih_craft(i: int) -> void:
 	_kemas_kini_craft()
 
 
-# Semua resipi (dron + robot) dikongsi dalam satu menu craft.
+# Semua resipi dron dalam satu menu craft. Robot pekerja kini dibuat di
+# Robot Pod, bukan di Fabricator.
 func _semua_resipi() -> Array[Dictionary]:
 	var senarai: Array[Dictionary] = []
 	senarai.append_array(resipi_dron)
-	senarai.append_array(resipi_robot)
 	return senarai
-
-
-# Robot dianggap sudah dibuat bila sudah ada di dalam babak.
-func _robot_wujud() -> bool:
-	for nod in get_tree().get_nodes_in_group("RobotPekerja"):
-		if is_instance_valid(nod) and not nod.is_queued_for_deletion():
-			return true
-	return false
 
 
 func _bilangan_dalam_beg(id_item: String) -> int:
@@ -545,18 +505,11 @@ func _bilangan_dalam_beg(id_item: String) -> int:
 
 
 func _sudah_punya(id_item: String) -> bool:
-	if id_item == "robot_mining":
-		return _robot_wujud()
 	return _bilangan_dalam_beg(id_item) > 0
 
 
-# Ikon slot: robot guna ikon vektor yang dijana dalam kod, resipi lain guna
-# fail imej masing-masing.
+# Ikon slot dron guna fail imej resipi masing-masing.
 func _ikon_resipi(resipi: Dictionary) -> Texture2D:
-	if bool(resipi.get("robot", false)):
-		if _ikon_robot_cache == null:
-			_ikon_robot_cache = SkripRekaRobot.buat_ikon(48)
-		return _ikon_robot_cache
 	var laluan: String = str(resipi.get("ikon_slot", IKON_DRON))
 	if laluan != "" and ResourceLoader.exists(laluan):
 		return load(laluan)
@@ -681,13 +634,6 @@ func _on_butang_craft_pressed() -> void:
 	for bahan in resipi["bahan"]:
 		inv.tolak_item(bahan["id"], int(bahan["kuantiti"]))
 
-	# Robot: terus muncul di sebelah Fabricator dan mula bekerja sendiri.
-	if bool(resipi.get("robot", false)):
-		_cipta_robot()
-		_kemas_kini_craft()
-		_tulis_info(str(resipi["nama"]) + " built! It is heading out to mine meteorites.")
-		return
-
 	# 2. Masukkan item dron ke dalam beg (ini yang membuka pilihan dron di HUD)
 	inv.tambah_item({
 		"id": resipi["id"],
@@ -699,28 +645,6 @@ func _on_butang_craft_pressed() -> void:
 	_kemas_kini_craft()
 	_tulis_info(str(resipi["nama"]) + " crafted! Select it from the drone button.")
 	print("Fabricator: ", resipi["nama"], " selesai dibuat")
-
-
-# Spawn robot pekerja berhampiran Fabricator ini.
-func _cipta_robot() -> void:
-	if not ResourceLoader.exists(ADEGAN_ROBOT):
-		print("Fabricator: Scene robot tidak dijumpai -> ", ADEGAN_ROBOT)
-		return
-	var adegan := load(ADEGAN_ROBOT) as PackedScene
-	if adegan == null:
-		return
-	var robot := adegan.instantiate()
-	var adegan_utama := get_tree().current_scene
-	if adegan_utama == null:
-		return
-	var induk := adegan_utama.get_node_or_null("Y_Sort_Container")
-	if induk == null:
-		induk = adegan_utama
-	induk.add_child(robot)
-	robot.global_position = global_position + Vector2(24, 0)
-	print("Fabricator: Robot pekerja diaktifkan di ", robot.global_position)
-	if get_node_or_null("/root/SaveManager"):
-		SaveManager.save_game()
 
 
 func _tulis_info(teks: String) -> void:
