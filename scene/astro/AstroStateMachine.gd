@@ -26,6 +26,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not state_sekarang:
 		return
 
+	# Tap pada pintu/perabot ialah interaksi objek, bukan arahan bergerak.
+	# Tanpa semakan ini, tap pada pintu turut menetapkan sasaran click-to-move
+	# ke pintu, jadi pemain terbang semula ke pintu selepas teleport.
+	if event is InputEventScreenTouch and event.pressed:
+		if _titik_kena_objek_interaktif(event.position):
+			return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		if _titik_kena_objek_interaktif(event.position):
+			return
+
 	# --- SOKONGAN MOUSE ---
 	# Klik kiri + heret mouse ditukar jadi sentuhan maya (jari 0),
 	# jadi joystick sentuh sedia ada terus berfungsi tanpa ubah state lain.
@@ -48,6 +58,30 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	state_sekarang.kendalikan_input(event)
+
+# Adakah titik skrin ini terkena pintu atau perabot interaktif? Semakan guna
+# physics point query kerana physics picking mungkin belum berjalan.
+func _titik_kena_objek_interaktif(pos_skrin: Vector2) -> bool:
+	var dunia: Vector2 = get_viewport().get_canvas_transform().affine_inverse() * pos_skrin
+	var params := PhysicsPointQueryParameters2D.new()
+	params.position = dunia
+	params.collide_with_areas = true
+	params.collide_with_bodies = false
+	for hasil in get_viewport().get_world_2d().direct_space_state.intersect_point(params, 16):
+		var kolider := hasil.get("collider") as Node
+		if kolider != null and _objek_interaktif(kolider):
+			return true
+	return false
+
+func _objek_interaktif(nod: Node) -> bool:
+	var semasa: Node = nod
+	for _i in range(3):
+		if semasa == null:
+			return false
+		if semasa.is_in_group("Pintu") or semasa.is_in_group("Furniture"):
+			return true
+		semasa = semasa.get_parent()
+	return false
 
 func _mouse_di_atas_ui() -> bool:
 	# Jangan rampas klik yang sepatutnya pergi ke butang/panel UI
