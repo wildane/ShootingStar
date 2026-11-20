@@ -3,6 +3,9 @@ extends Node
 signal semua_data_siap_di_load
 const SAVE_PATH_JSON = "user://savegame.json"
 
+# Data pemain terakhir yang dibaca dari fail (posisi, HP, tenaga).
+var data_player: Dictionary = {}
+
 func _notification(what):
 	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_WINDOW_FOCUS_OUT, NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_WM_CLOSE_REQUEST, NOTIFICATION_WM_GO_BACK_REQUEST]:
 		semak_dan_auto_save()
@@ -29,6 +32,21 @@ func save_game():
 		for barang: Dictionary in inv_manager.senarai_barang:
 			data_keseluruhan["inventory_items"].append({"scene_path": barang.get("scene_path", ""), "kuantiti": barang.get("kuantiti", 1)})
 
+	# 1b. Simpan data pemain: kedudukan, HP dan tenaga.
+	var pemain := get_tree().get_first_node_in_group("Player") as Node2D
+	if is_instance_valid(pemain):
+		var data_pemain := {
+			"pos_x": pemain.global_position.x,
+			"pos_y": pemain.global_position.y
+		}
+		var hp_pemain = pemain.get_node_or_null("HealthComponent")
+		if hp_pemain != null:
+			data_pemain["hp"] = hp_pemain.get("hp")
+		var tenaga_pemain = pemain.get_node_or_null("EnergyComponent")
+		if tenaga_pemain != null:
+			data_pemain["tenaga"] = tenaga_pemain.get("tenaga")
+		data_keseluruhan["player_data"] = data_pemain
+
 	# 2. Simpan Semua Objek Menggunakan SaveComponent
 	var y_sort_node = scene_utama.get_node_or_null("Y_Sort_Container")
 	if y_sort_node:
@@ -51,6 +69,8 @@ func save_game():
 		file.close()
 
 func load_game(scene_aktif: Node = null):
+	# Buang data pemain lama supaya fail tanpa player_data tidak guna nilai basi.
+	data_player = {}
 	if not FileAccess.file_exists(SAVE_PATH_JSON):
 		semua_data_siap_di_load.emit()
 		return
@@ -61,6 +81,9 @@ func load_game(scene_aktif: Node = null):
 	if not saved_data:
 		semua_data_siap_di_load.emit()
 		return
+
+	# Data pemain dipakai semasa spawn (lihat posisi_awal_player / pakai_data_player).
+	data_player = saved_data.get("player_data", {})
 		
 	var scene_utama = scene_aktif if scene_aktif != null else Engine.get_main_loop().current_scene
 	
@@ -96,6 +119,8 @@ func load_game(scene_aktif: Node = null):
 				obj_instance.global_position = Vector2(data.get("pos_x", 0.0), data.get("pos_y", 0.0))
 				obj_instance.scene_file_path = path_fail
 				y_sort_node.add_child(obj_instance)
+				# Pulihkan HP/tenaga objek (contoh: robot pekerja) selepas _ready.
+				_pakai_data_objek(obj_instance, data)
 
 	# 3. KEMAS KINI MUTLAK: Mengagihkan semula data kedudukan kepada MobSpawner dan MeteoriteSpawner
 	if scene_utama and saved_data.has("spawner_data"):
@@ -107,4 +132,49 @@ func load_game(scene_aktif: Node = null):
 				if node.has_method("muat_data_save"):
 					node.muat_data_save(data_spawners[node.spawner_id])
 
+	# 4. Kalau pemain sudah wujud, pulihkan posisi/HP/tenaga terus.
+	var pemain_sedia := get_tree().get_first_node_in_group("Player") as Node2D
+	if is_instance_valid(pemain_sedia):
+		pakai_data_player(pemain_sedia)
+
 	semua_data_siap_di_load.emit()
+
+# ==========================================
+# DATA PEMAIN (posisi, HP, tenaga)
+# ==========================================
+# Posisi spawn pemain: guna data simpanan kalau ada, kalau tidak nilai lalai.
+func posisi_awal_player(nilai_lalai: Vector2) -> Vector2:
+	if data_player.is_empty():
+		return nilai_lalai
+	return Vector2(
+		float(data_player.get("pos_x", nilai_lalai.x)),
+		float(data_player.get("pos_y", nilai_lalai.y))
+	)
+
+
+# Pakai data pemain yang disimpan pada player yang baru di-spawn.
+func pakai_data_player(pemain: Node2D) -> void:
+	if not is_instance_valid(pemain) or data_player.is_empty():
+		return
+	if data_player.has("pos_x") and data_player.has("pos_y"):
+		pemain.global_position = Vector2(float(data_player["pos_x"]), float(data_player["pos_y"]))
+	var hp_komp := pemain.get_node_or_null("HealthComponent")
+	if hp_komp != null and data_player.has("hp"):
+		var hp_maks := int(hp_komp.get("max_hp"))
+		hp_komp.set("hp", maxi(1, mini(int(float(data_player["hp"])), hp_maks)))
+		hp_komp.set("is_dead", false)
+	var tenaga_komp := pemain.get_node_or_null("EnergyComponent")
+	if tenaga_komp != null and data_player.has("tenaga"):
+		tenaga_komp.set("tenaga", clampf(float(data_player["tenaga"]), 0.0, float(tenaga_komp.get("max_energy"))))
+
+
+# Pulihkan HP/tenaga objek dunia (robot pekerja) daripada data simpanan.
+func _pakai_data_objek(nod: Node, data: Dictionary) -> void:
+	if nod == null:
+		return
+	if "hp" in nod and data.has("hp"):
+		var hp_maks: float = float(nod.get("hp_maks")) if "hp_maks" in nod else float(data["hp"])
+		nod.set("hp", clampf(float(data["hp"]), 1.0, hp_maks))
+	if "tenaga" in nod and data.has("tenaga"):
+		var tenaga_maks: float = float(nod.get("tenaga_maks")) if "tenaga_maks" in nod else float(data["tenaga"])
+		nod.set("tenaga", clampf(float(data["tenaga"]), 1.0, tenaga_maks))
