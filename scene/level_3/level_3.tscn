@@ -35,6 +35,7 @@
 [ext_resource type="PackedScene" uid="uid://drnj2n6g6njc1" path="res://scene/Area/TheAquaHusk/TheAquaHusk.tscn" id="32_2381u"]
 [ext_resource type="PackedScene" path="res://scene/Mob/HuskLurker/HuskLurker.tscn" id="33_husk"]
 [ext_resource type="PackedScene" path="res://scene/Mob/AquaHuskMiniBoss/AquaHuskMiniBoss.tscn" id="34_boss"]
+[ext_resource type="Script" path="res://scene/ui/CheatMode.gd" id="42_cheat"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_fs2q3"]
 
@@ -321,6 +322,9 @@ anchor_right = 0.5
 grow_horizontal = 2
 size_flags_vertical = 4
 metadata/_edit_lock_ = true
+
+[node name="CheatMode" type="Control" parent="CanvasLayer"]
+script = ExtResource("42_cheat")
 
 [node name="InfoPanel" type="TextureRect" parent="CanvasLayer" unique_id=1910231538]
 anchors_preset = 2
