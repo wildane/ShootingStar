@@ -52,6 +52,42 @@ func _ialah_pemain(body) -> bool:
 
 
 # =========================
+# KLIK MOUSE PADA PC
+# =========================
+# AstroStateMachine menukar setiap klik kiri mouse menjadi sentuhan maya dan
+# menandakan event sebagai "handled" dalam _unhandled_input. Bila event sudah
+# handled, physics picking untuk Area2D dibatalkan, jadi input_event pintu
+# tidak pernah dicetus pada PC. Tangkap klik mouse di sini kerana _input
+# berjalan sebelum _unhandled_input, kemudian hantar ke pengendali yang sama.
+func _input(event: InputEvent) -> void:
+	var klik := event as InputEventMouseButton
+	if klik == null:
+		return
+	if not klik.pressed or klik.button_index != MOUSE_BUTTON_LEFT:
+		return
+	if not player_in_range or cooldown > 0:
+		return
+	# Jangan rampas klik yang sepatutnya milik butang/panel UI.
+	var kawalan := get_viewport().gui_get_hovered_control()
+	if kawalan != null and kawalan.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+		return
+	if _klik_dalam_kawasan(event.position) and _get_player() != null:
+		var sentuhan := InputEventScreenTouch.new()
+		sentuhan.index = 0
+		sentuhan.position = event.position
+		sentuhan.pressed = true
+		_on_input(get_viewport(), sentuhan, 0)
+		get_viewport().set_input_as_handled()
+
+
+# Zon klik pintu mengikut dua CollisionShape2D pada Area2D, dengan sedikit
+# toleransi supaya hujung bucu sprite tetap boleh diklik.
+func _klik_dalam_kawasan(pos_skrin: Vector2) -> bool:
+	var titik := to_local(get_canvas_transform().affine_inverse() * pos_skrin)
+	return Rect2(Vector2(-11.0, -41.0), Vector2(22.0, 45.0)).has_point(titik)
+
+
+# =========================
 # CLICK / TAP TO TELEPORT
 # =========================
 func _on_input(_viewport, event, _shape_idx):

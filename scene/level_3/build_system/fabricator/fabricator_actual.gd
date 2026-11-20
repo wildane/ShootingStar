@@ -200,6 +200,49 @@ func _on_body_exited(body: Node2D):
 		_tutup_menu()
 
 # 🔴 Input Klik / Sentuhan Objek
+# =========================
+# Klik mouse pada PC
+# =========================
+# AstroStateMachine menandakan setiap klik kiri mouse sebagai "handled" dalam
+# _unhandled_input, jadi physics picking Area2D dibatalkan dan input_event
+# perabot tidak pernah dicetus pada PC. _input berjalan lebih awal, jadi klik
+# dihantar ke pengendali sedia ada sebagai sentuhan maya.
+func _input(event: InputEvent) -> void:
+	var klik := event as InputEventMouseButton
+	if klik == null or not klik.pressed or klik.button_index != MOUSE_BUTTON_LEFT:
+		return
+	if not player_dekat or area_penderia == null:
+		return
+	# Jangan rampas klik yang sepatutnya milik butang/panel UI.
+	var kawalan := get_viewport().gui_get_hovered_control()
+	if kawalan != null and kawalan.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+		return
+	if not _klik_dalam_kawasan(klik.position):
+		return
+	var sentuhan := InputEventScreenTouch.new()
+	sentuhan.index = 0
+	sentuhan.position = klik.position
+	sentuhan.pressed = true
+	_on_area_input_event(get_viewport(), sentuhan, 0)
+	get_viewport().set_input_as_handled()
+
+
+# Zon klik perabot ikut CollisionShape2D pada Area2D, dengan sedikit toleransi.
+func _klik_dalam_kawasan(pos_skrin: Vector2) -> bool:
+	var titik := area_penderia.to_local(get_canvas_transform().affine_inverse() * pos_skrin)
+	var ada_bentuk := false
+	for anak in area_penderia.get_children():
+		if anak is CollisionShape2D and anak.shape is RectangleShape2D:
+			ada_bentuk = true
+			var jejari: Vector2 = anak.shape.size * 0.5 + Vector2(2.0, 2.0)
+			if Rect2(anak.position - jejari, jejari * 2.0).has_point(titik):
+				return true
+	if ada_bentuk:
+		return false
+	return titik.length() < 24.0
+
+
+# =========================
 func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int):
 	var ada_sentuhan = (event is InputEventScreenTouch and event.pressed) or (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed)
 	if ada_sentuhan and player_dekat:
