@@ -6,6 +6,10 @@
 [ext_resource type="Script" uid="uid://dq8xh2v4xrros" path="res://scene/Mob/DropComponent.gd" id="4_ld77o"]
 [ext_resource type="Script" uid="uid://dnty725v1mdnj" path="res://scene/Mob/Piranha/AttackComponent.gd" id="5_k24y1"]
 
+[ext_resource type="PackedScene" uid="uid://dh24exe0ct35l" path="res://scene/Item/0005SpaceFishFillet/0005SpaceFishFillet.tscn" id="6_drop5"]
+[ext_resource type="PackedScene" uid="uid://cmevb5uuqjbbh" path="res://scene/Item/0006BioluminescentOil/0006BioluminescentOil.tscn" id="7_drop6"]
+[ext_resource type="PackedScene" uid="uid://cdy4iqwhp16pb" path="res://scene/Item/0007CosmicScale/0007CosmicScale.tscn" id="8_drop7"]
+
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ogkhe"]
 height = 40.0
 
@@ -36,6 +40,8 @@ shape = SubResource("CapsuleShape2D_ogkhe")
 
 [node name="DropComponent" type="Node2D" parent="." unique_id=1146555015]
 script = ExtResource("4_ld77o")
+drop_scenes = Array[PackedScene]([ExtResource("6_drop5"), ExtResource("7_drop6"), ExtResource("8_drop7")])
+drop_percentages = Array[float]([60.0, 35.0, 5.0])
 
 [node name="HealthComponent" type="Node2D" parent="." unique_id=1991635099]
 script = ExtResource("3_xp3ep")
