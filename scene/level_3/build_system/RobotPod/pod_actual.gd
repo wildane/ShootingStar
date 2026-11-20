@@ -6,8 +6,9 @@ extends StaticBody2D
 ## - Semasa robot mengecas, robot itu masuk ke dalam pod, disembunyikan, dan
 ##   pod melukisnya baring di dalam kanopi kaca dengan bar tenaga di atas.
 
-const SkripReka := preload("res://scene/level_3/build_system/RobotPod/RekaPod.gd")
-const SkripRekaRobot := preload("res://scene/robot/RekaRobot.gd")
+const TEKSTUR_POD: Texture2D = preload("res://scene/level_3/build_system/RobotPod/pod.png")
+const TEKSTUR_POD_MATI: Texture2D = preload("res://scene/level_3/build_system/RobotPod/pod_tiada_kuasa.png")
+const TEKSTUR_ROBOT_BARING: Texture2D = preload("res://scene/level_3/build_system/RobotPod/robot_baring.png")
 const ADEGAN_ROBOT: String = "res://scene/robot/RobotPekerja.tscn"
 
 @onready var save_component = $SaveComponent
@@ -18,6 +19,8 @@ const ADEGAN_ROBOT: String = "res://scene/robot/RobotPekerja.tscn"
 @onready var butang_craft = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/ButtonCraft")
 @onready var butang_tutup = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonTutup")
 @onready var butang_demolish = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonDemolish")
+@onready var sprite_pod = get_node_or_null("SpritePod")
+@onready var sprite_robot_baring = get_node_or_null("SpriteRobotBaring")
 
 @export_category("Sistem Kuasa")
 @export var power_required: float = 40.0
@@ -68,6 +71,7 @@ func _ready() -> void:
 			inv.inventory_dikemaskini.connect(_kemas_kini_menu)
 
 	_kemas_kini_warna_visual()
+	_kemas_kini_robot()
 	_kemas_kini_menu()
 	_auto_save_selepas_wujud()
 
@@ -76,43 +80,30 @@ func _process(delta: float) -> void:
 	_masa_anim += delta
 	if _robot_dock != null and (not is_instance_valid(_robot_dock) or _robot_dock.is_queued_for_deletion()):
 		_robot_dock = null
+		_kemas_kini_robot()
+	if _robot_dock != null and is_instance_valid(sprite_robot_baring) and not sprite_robot_baring.visible:
+		_kemas_kini_robot()
 	queue_redraw()
+
+
+## Imej robot baring (robot + kanopi kaca) hanya dipaparkan semasa mengecas.
+func _kemas_kini_robot() -> void:
+	if is_instance_valid(sprite_robot_baring):
+		sprite_robot_baring.visible = is_instance_valid(_robot_dock)
 
 
 # ==========================================================
 # LUKISAN POD + ROBOT YANG SEDANG MENCAS
 # ==========================================================
 func _draw() -> void:
-	for lapisan in SkripReka.lapisan_belakang(has_power):
-		_lukis(lapisan)
-
-	var ada_robot: bool = is_instance_valid(_robot_dock)
 	var degup: float = 0.5 + 0.5 * sin(_masa_anim * 3.5)
-	if ada_robot:
+	if is_instance_valid(_robot_dock):
 		var nisbah: float = clampf(
 			float(_robot_dock.tenaga) / maxf(1.0, float(_robot_dock.tenaga_maks)), 0.0, 1.0
 		)
-		# Halo tenaga di sekitar robot.
+		# Halo tenaga di sekitar robot (imej robot sendiri ada dalam SpriteRobotBaring).
 		draw_circle(Vector2(0.0, -12.5), 9.0 + degup * 2.0, Color(0.45, 0.85, 1.0, 0.10))
-
-		# Robot baring di dalam pod (pose mendatar RekaRobot sudah baring).
-		draw_set_transform(Vector2(-1.5, -12.5), 0.0, Vector2(0.46, 0.46))
-		for lapisan in SkripRekaRobot.bentuk(1.0, SkripRekaRobot.AKSEN_CAS, 0.0, 0.0, 0.0, degup):
-			_lukis(lapisan)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-
-		# Kanopi kaca menutup robot: nampak seperti baring dalam pod.
-		for lapisan in SkripReka.lapisan_kaca():
-			_lukis(lapisan)
-
 		_lukis_bar_tenaga(nisbah)
-
-
-func _lukis(lapisan: Dictionary) -> void:
-	if str(lapisan.get("jenis", "")) == "bulatan":
-		draw_circle(lapisan["pusat"], float(lapisan["jejari"]), lapisan["warna"], true, -1.0, true)
-	else:
-		draw_colored_polygon(lapisan["titik"], lapisan["warna"])
 
 
 # Bar tenaga di atas pod semasa robot mengecas.
@@ -135,12 +126,14 @@ func _lukis_bar_tenaga(nisbah: float) -> void:
 # Dipanggil RobotPekerja bila ia sampai dan mula mengecas.
 func masuk_pod(robot: Node2D) -> void:
 	_robot_dock = robot
+	_kemas_kini_robot()
 	queue_redraw()
 
 
 # Dipanggil RobotPekerja bila cas penuh / robot keluar.
 func keluar_pod() -> void:
 	_robot_dock = null
+	_kemas_kini_robot()
 	queue_redraw()
 
 
@@ -170,6 +163,8 @@ func set_power_status(status_elektrik: bool, pembekal: Node2D = null) -> void:
 
 
 func _kemas_kini_warna_visual() -> void:
+	if is_instance_valid(sprite_pod):
+		sprite_pod.texture = TEKSTUR_POD if has_power else TEKSTUR_POD_MATI
 	if player_dekat:
 		modulate = Color(0.85, 1.0, 0.9, 1.0)
 	elif has_power:
