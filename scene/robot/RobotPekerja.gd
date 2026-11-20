@@ -30,10 +30,6 @@ const SKALA_BADAN: float = 0.5
 @export var tenaga_maks: float = 100.0
 # Terbang/berjalan tidak memakai tenaga: hanya melombong dan membaiki HP.
 @export var kos_lombong: float = 5.0   # 5 ketukan = 25 tenaga untuk satu meteorit
-@export var ambang_rehat: float = 18.0
-# Robot balik ke base mencari Charging Station selepas melombong bilangan
-# meteorit ini, cas sampai penuh, baru keluar semula mencari meteorit.
-@export var meteor_sebelum_cas: int = 3
 @export var jarak_cas: float = 26.0
 @export var kadar_cas_stesen: float = 25.0
 
@@ -51,8 +47,6 @@ var _sasaran: Node2D = null
 var _pintu: Node2D = null
 var _masa_scan_baki: float = 0.0
 var _masa_pintu_baki: float = 0.0
-# Kiraan meteorit yang sudah dihancurkan semenjak cas penuh terakhir.
-var _kira_meteor: int = 0
 var _sasaran_dilombong: bool = false
 # Stesen cas terdekat (group "StesenCas") dan titik base asal robot.
 var _stesen_cas: Node2D = null
@@ -153,14 +147,10 @@ func _physics_process(delta: float) -> void:
 
 	# Tiada cas pasif: tenaga robot hanya pulih di Charging Station.
 
-	# 1. Kuota meteorit penuh atau tenaga rendah: balik ke base dulu,
-	#    cari Charging Station dan cas sampai penuh.
-	if _perlu_cas:
-		_kemas_cas(delta)
-		_kemas_visual()
-		return
-	if tenaga <= ambang_rehat:
+	# Pulang ke Charging Station hanya apabila tenaga habis sepenuhnya.
+	if tenaga <= 0.0:
 		_perlu_cas = true
+	if _perlu_cas:
 		_kemas_cas(delta)
 		_kemas_visual()
 		return
@@ -186,12 +176,7 @@ func _physics_process(delta: float) -> void:
 	if not is_instance_valid(_sasaran) or _sasaran.is_queued_for_deletion():
 		_sasaran = null
 		_sedang_lombong = false
-		# Meteorit yang sedang dilombong sudah hancur: kira satu.
-		if _sasaran_dilombong:
-			_sasaran_dilombong = false
-			_kira_meteor += 1
-			if _kira_meteor >= meteor_sebelum_cas:
-				_perlu_cas = true
+		_sasaran_dilombong = false
 		_berhenti()
 		_kemas_visual()
 		return
@@ -230,7 +215,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		_berhenti()
 	_masa_lombong += delta
-	if _masa_lombong >= 1.0 and tenaga >= kos_lombong:
+	if _masa_lombong >= 1.0 and tenaga > 0.0:
 		_masa_lombong = 0.0
 		tenaga = maxf(0.0, tenaga - kos_lombong)
 		_kilat()
@@ -387,7 +372,6 @@ func _kemas_cas(delta: float) -> void:
 	tenaga = minf(tenaga_maks, tenaga + kadar * delta)
 	if tenaga >= tenaga_maks:
 		_perlu_cas = false
-		_kira_meteor = 0
 		_sedang_rehat = false
 		_perlu_pintasan = false
 		_masa_scan_baki = 0.0
