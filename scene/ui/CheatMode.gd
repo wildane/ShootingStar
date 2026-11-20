@@ -54,18 +54,20 @@ func _kemas_status() -> void:
 func _on_node_added(nod: Node) -> void:
 	if not aktif or not (nod is Area2D) or not ("id_barang" in nod):
 		return
-	var komponen := _cari_sumber_drop(nod, str(nod.get("id_barang")))
+	var id_drop := str(nod.get("id_barang"))
+	var komponen := _cari_sumber_drop(nod, id_drop)
 	if komponen != null:
-		call_deferred("_ganjar_semua_drop", nod, komponen)
+		var senarai_drop: Array = komponen.get("drop_scenes").duplicate()
+		call_deferred("_ganjar_semua_drop", nod, id_drop, senarai_drop)
 
-func _ganjar_semua_drop(item_drop: Node, komponen: Node) -> void:
-	if not aktif or not is_instance_valid(item_drop) or not is_instance_valid(komponen):
+func _ganjar_semua_drop(item_drop: Node, id_drop: String, senarai_drop: Array) -> void:
+	if not aktif or not is_instance_valid(item_drop):
 		return
 	var inventori := get_node_or_null("/root/InventoryManager")
 	if inventori == null or not inventori.has_method("tambah_item"):
 		return
 
-	for adegan: PackedScene in komponen.get("drop_scenes"):
+	for adegan: PackedScene in senarai_drop:
 		if adegan == null:
 			continue
 		var data := _data_barang(adegan)
