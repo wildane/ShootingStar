@@ -17,6 +17,7 @@ const INSIDE_POS := Vector2(144, 128)
 func _ready():
 	# Robot pekerja cari pintu melalui group ini.
 	add_to_group("Pintu")
+	area.input_pickable = true
 	area.body_entered.connect(_on_enter)
 	area.body_exited.connect(_on_exit)
 	area.input_event.connect(_on_input)
