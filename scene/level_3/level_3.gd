@@ -80,9 +80,12 @@ func spawn_local() -> void:
 		
 	local_player = player_scene.instantiate()
 	local_player.set_meta("local", true)
-	local_player.global_position = Vector2(141, 250)
+	# Guna kedudukan simpanan; kalau tiada, titik mula asal.
+	local_player.global_position = SaveManager.posisi_awal_player(Vector2(141, 250))
 	
 	ysort.add_child(local_player)
+	# Pulihkan HP dan tenaga pemain yang disimpan.
+	SaveManager.pakai_data_player(local_player)
 	print("[World] Local spawned ✔")
 
 # Memudar skrin hitam kepada terang semula (Fade Out skrin hitam)
