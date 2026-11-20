@@ -1,6 +1,7 @@
 extends Control
 
 const IKON_TENGKORAK: Texture2D = preload("res://scene/ui/cheat_skull.svg")
+const MASA_TERBANG_CHEAT := 0.24
 
 var aktif := false
 var _status: Label
@@ -54,19 +55,24 @@ func _kemas_status() -> void:
 func _on_node_added(nod: Node) -> void:
 	if not aktif or not (nod is Area2D) or not ("id_barang" in nod):
 		return
-	var id_drop := str(nod.get("id_barang"))
-	var komponen := _cari_sumber_drop(nod, id_drop)
-	if komponen != null:
-		var senarai_drop: Array = komponen.get("drop_scenes").duplicate()
-		call_deferred("_ganjar_semua_drop", nod, id_drop, senarai_drop)
+	if nod.has_meta("cheat_visual_item"):
+		return
+	call_deferred("_ganjar_semua_drop", nod)
 
-func _ganjar_semua_drop(item_drop: Node, id_drop: String, senarai_drop: Array) -> void:
-	if not aktif or not is_instance_valid(item_drop):
+func _ganjar_semua_drop(item_drop: Node2D) -> void:
+	if not aktif or not is_instance_valid(item_drop) or not item_drop.is_inside_tree():
+		return
+	var id_drop := str(item_drop.get("id_barang"))
+	var komponen := _cari_sumber_drop(item_drop, id_drop)
+	if komponen == null:
 		return
 	var inventori := get_node_or_null("/root/InventoryManager")
 	if inventori == null or not inventori.has_method("tambah_item"):
 		return
 
+	var senarai_drop: Array = komponen.get("drop_scenes").duplicate()
+	var posisi_mula := item_drop.global_position
+	var posisi_sasaran := _posisi_inventori(item_drop)
 	for adegan: PackedScene in senarai_drop:
 		if adegan == null:
 			continue
@@ -74,17 +80,53 @@ func _ganjar_semua_drop(item_drop: Node, id_drop: String, senarai_drop: Array) -
 		if data.is_empty():
 			continue
 		var bilangan := 9 if str(data.get("id")) == id_drop else 10
-		_tambah_kuantiti(inventori, data, bilangan)
-	inventori.inventory_dikemaskini.emit()
-	SaveManager.save_game()
+		for _i in range(bilangan):
+			if not aktif:
+				return
+			var item_baru := adegan.instantiate() as Node2D
+			if item_baru == null:
+				continue
+			item_baru.set_meta("cheat_visual_item", true)
+			var induk := get_tree().current_scene
+			if induk == null:
+				item_baru.free()
+				return
+			induk.add_child(item_baru)
+			item_baru.global_position = posisi_mula
+			if item_baru.has_node("CollisionShape2D"):
+				item_baru.get_node("CollisionShape2D").set_deferred("disabled", true)
+			item_baru.set_deferred("monitoring", false)
+			item_baru.set_deferred("monitorable", false)
+			item_baru.set_process(false)
+			item_baru.set_physics_process(false)
 
-func _tambah_kuantiti(inventori: Node, data: Dictionary, kuantiti: int) -> void:
-	for barang in inventori.senarai_barang:
-		if str(barang.get("id", "")) == str(data.get("id", "")):
-			barang["kuantiti"] = int(barang.get("kuantiti", 0)) + kuantiti
-			return
-	data["kuantiti"] = kuantiti
-	inventori.senarai_barang.append(data)
+			var tween := get_tree().create_tween().set_parallel(true)
+			tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+			tween.tween_property(item_baru, "global_position", posisi_sasaran, MASA_TERBANG_CHEAT)
+			tween.tween_property(item_baru, "scale", Vector2.ZERO, MASA_TERBANG_CHEAT)
+			await tween.finished
+			if is_instance_valid(item_baru):
+				item_baru.queue_free()
+			inventori.tambah_item(data.duplicate())
+
+func _posisi_inventori(item_drop: Node2D) -> Vector2:
+	var sasaran := item_drop.global_position
+	var adegan_semasa := get_tree().current_scene
+	if adegan_semasa == null:
+		return sasaran
+
+	var kanvas := adegan_semasa.find_child("CanvasLayer", true, false)
+	var butang_inventori := kanvas.find_child("InventoryButton", true, false) as Control if kanvas else null
+	if butang_inventori and butang_inventori.is_visible_in_tree():
+		var posisi_skrin := butang_inventori.global_position + butang_inventori.size / 2.0
+		return item_drop.get_canvas_transform().affine_inverse() * posisi_skrin
+
+	var pemain := adegan_semasa.find_child("SpaceShip", true, false)
+	if not pemain:
+		pemain = adegan_semasa.find_child("Player", true, false)
+	if pemain is Node2D:
+		sasaran = pemain.global_position
+	return sasaran
 
 func _cari_sumber_drop(item_drop: Node, id_drop: String) -> Node:
 	for nama_kumpulan in ["enemy", "enemies"]:
