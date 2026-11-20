@@ -1,12 +1,15 @@
 extends Control
 
 const IKON_TENGKORAK: Texture2D = preload("res://scene/ui/cheat_skull.svg")
-const MASA_TERBANG_CHEAT := 0.24
+const JEJARI_TABURAN := 42.0
+const MASA_PENERBANGAN := 0.6
 
 var aktif := false
 var _status: Label
+var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
+	_rng.randomize()
 	set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	offset_left = -88.0
 	offset_top = -66.0
@@ -59,7 +62,7 @@ func _on_node_added(nod: Node) -> void:
 		return
 	call_deferred("_ganjar_semua_drop", nod)
 
-func _ganjar_semua_drop(item_drop: Node2D) -> void:
+func _ganjar_semua_drop(item_drop: Node) -> void:
 	if not aktif or not is_instance_valid(item_drop) or not item_drop.is_inside_tree():
 		return
 	var id_drop := str(item_drop.get("id_barang"))
@@ -69,11 +72,14 @@ func _ganjar_semua_drop(item_drop: Node2D) -> void:
 	var inventori := get_node_or_null("/root/InventoryManager")
 	if inventori == null or not inventori.has_method("tambah_item"):
 		return
+	var adegan_semasa := get_tree().current_scene
+	if adegan_semasa == null:
+		return
 
-	var senarai_drop: Array = komponen.get("drop_scenes").duplicate()
-	var posisi_mula := item_drop.global_position
+	var pusat_drop := (item_drop as Node2D).global_position
 	var posisi_sasaran := _posisi_inventori(item_drop)
-	for adegan: PackedScene in senarai_drop:
+
+	for adegan: PackedScene in komponen.get("drop_scenes"):
 		if adegan == null:
 			continue
 		var data := _data_barang(adegan)
@@ -81,51 +87,55 @@ func _ganjar_semua_drop(item_drop: Node2D) -> void:
 			continue
 		var bilangan := 9 if str(data.get("id")) == id_drop else 10
 		for _i in range(bilangan):
-			if not aktif:
-				return
-			var item_baru := adegan.instantiate() as Node2D
-			if item_baru == null:
-				continue
-			item_baru.set_meta("cheat_visual_item", true)
-			var induk := get_tree().current_scene
-			if induk == null:
-				item_baru.free()
-				return
-			induk.add_child(item_baru)
-			item_baru.global_position = posisi_mula
-			if item_baru.has_node("CollisionShape2D"):
-				item_baru.get_node("CollisionShape2D").set_deferred("disabled", true)
-			item_baru.set_deferred("monitoring", false)
-			item_baru.set_deferred("monitorable", false)
-			item_baru.set_process(false)
-			item_baru.set_physics_process(false)
+			_tayang_item(adegan, data.duplicate(), pusat_drop, posisi_sasaran, inventori, adegan_semasa)
 
-			var tween := get_tree().create_tween().set_parallel(true)
-			tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-			tween.tween_property(item_baru, "global_position", posisi_sasaran, MASA_TERBANG_CHEAT)
-			tween.tween_property(item_baru, "scale", Vector2.ZERO, MASA_TERBANG_CHEAT)
-			await tween.finished
-			if is_instance_valid(item_baru):
-				item_baru.queue_free()
-			inventori.tambah_item(data.duplicate())
+func _tayang_item(adegan: PackedScene, data: Dictionary, pusat_drop: Vector2, posisi_sasaran: Vector2, inventori: Node, induk: Node) -> void:
+	var visual := adegan.instantiate() as Node2D
+	if visual == null:
+		inventori.tambah_item(data)
+		return
 
-func _posisi_inventori(item_drop: Node2D) -> Vector2:
-	var sasaran := item_drop.global_position
+	visual.set_meta("cheat_visual_item", true)
+	induk.add_child(visual)
+
+	var sudut := _rng.randf_range(0.0, TAU)
+	var jarak := _rng.randf_range(8.0, JEJARI_TABURAN)
+	visual.global_position = pusat_drop + Vector2.from_angle(sudut) * jarak
+
+	if visual.has_node("CollisionShape2D"):
+		visual.get_node("CollisionShape2D").set_deferred("disabled", true)
+	visual.set_deferred("monitoring", false)
+	visual.set_deferred("monitorable", false)
+	visual.set_process(false)
+	visual.set_physics_process(false)
+
+	var tween := get_tree().create_tween().set_parallel(true)
+	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_property(visual, "global_position", posisi_sasaran, MASA_PENERBANGAN)
+	tween.tween_property(visual, "scale", Vector2.ZERO, MASA_PENERBANGAN)
+	tween.chain().tween_callback(func() -> void:
+		if is_instance_valid(inventori):
+			inventori.tambah_item(data)
+		if is_instance_valid(visual):
+			visual.queue_free()
+	)
+
+func _posisi_inventori(item_drop: Node) -> Vector2:
+	var sasaran := (item_drop as Node2D).global_position
 	var adegan_semasa := get_tree().current_scene
 	if adegan_semasa == null:
 		return sasaran
 
 	var kanvas := adegan_semasa.find_child("CanvasLayer", true, false)
-	var butang_inventori := kanvas.find_child("InventoryButton", true, false) as Control if kanvas else null
-	if butang_inventori and butang_inventori.is_visible_in_tree():
-		var posisi_skrin := butang_inventori.global_position + butang_inventori.size / 2.0
-		return item_drop.get_canvas_transform().affine_inverse() * posisi_skrin
+	var butang := kanvas.find_child("InventoryButton", true, false) as Control if kanvas else null
+	if butang and butang.is_visible_in_tree():
+		return (item_drop as Node2D).get_canvas_transform().affine_inverse() * (butang.global_position + butang.size / 2.0)
 
 	var pemain := adegan_semasa.find_child("SpaceShip", true, false)
 	if not pemain:
 		pemain = adegan_semasa.find_child("Player", true, false)
 	if pemain is Node2D:
-		sasaran = pemain.global_position
+		return pemain.global_position
 	return sasaran
 
 func _cari_sumber_drop(item_drop: Node, id_drop: String) -> Node:
