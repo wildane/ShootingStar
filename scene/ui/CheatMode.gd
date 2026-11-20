@@ -3,6 +3,9 @@ extends Control
 const IKON_TENGKORAK: Texture2D = preload("res://scene/ui/cheat_skull.svg")
 const JEJARI_TABURAN := 42.0
 const MASA_PENERBANGAN := 0.6
+# Bilangan visual dibina setiap frame. Membina semua item serentak
+# memakan satu frame yang sangat panjang (fps drop).
+const SPAWN_SETIAP_FRAME := 6
 
 var aktif := false
 var _status: Label
@@ -79,6 +82,9 @@ func _ganjar_semua_drop(item_drop: Node) -> void:
 	var pusat_drop := (item_drop as Node2D).global_position
 	var posisi_sasaran := _posisi_inventori(item_drop)
 
+	# Kumpul semua item dahulu. Visual kemudian dibina sedikit demi sedikit
+	# antara frame supaya satu frame tidak terpaksa instantiate puluhan item.
+	var senarai: Array[Dictionary] = []
 	for adegan: PackedScene in komponen.get("drop_scenes"):
 		if adegan == null:
 			continue
@@ -87,7 +93,16 @@ func _ganjar_semua_drop(item_drop: Node) -> void:
 			continue
 		var bilangan := 9 if str(data.get("id")) == id_drop else 10
 		for _i in range(bilangan):
-			_tayang_item(adegan, data.duplicate(), pusat_drop, posisi_sasaran, inventori, adegan_semasa)
+			senarai.append({"adegan": adegan, "data": data.duplicate()})
+
+	var dikira := 0
+	for entri in senarai:
+		if not aktif or not is_instance_valid(inventori):
+			return
+		_tayang_item(entri["adegan"], entri["data"], pusat_drop, posisi_sasaran, inventori, adegan_semasa)
+		dikira += 1
+		if dikira % SPAWN_SETIAP_FRAME == 0:
+			await get_tree().process_frame
 
 func _tayang_item(adegan: PackedScene, data: Dictionary, pusat_drop: Vector2, posisi_sasaran: Vector2, inventori: Node, induk: Node) -> void:
 	var visual := adegan.instantiate() as Node2D
@@ -96,18 +111,20 @@ func _tayang_item(adegan: PackedScene, data: Dictionary, pusat_drop: Vector2, po
 		return
 
 	visual.set_meta("cheat_visual_item", true)
+	# Matikan skrip/fizik visual SEBELUM masuk tree supaya ia tidak sempat
+	# memproses apa-apa pada frame ia di-spawn.
+	visual.set_process(false)
+	visual.set_physics_process(false)
+	if "monitoring" in visual:
+		visual.set("monitoring", false)
+		visual.set("monitorable", false)
 	induk.add_child(visual)
+	if visual.has_node("CollisionShape2D"):
+		visual.get_node("CollisionShape2D").set_deferred("disabled", true)
 
 	var sudut := _rng.randf_range(0.0, TAU)
 	var jarak := _rng.randf_range(8.0, JEJARI_TABURAN)
 	visual.global_position = pusat_drop + Vector2.from_angle(sudut) * jarak
-
-	if visual.has_node("CollisionShape2D"):
-		visual.get_node("CollisionShape2D").set_deferred("disabled", true)
-	visual.set_deferred("monitoring", false)
-	visual.set_deferred("monitorable", false)
-	visual.set_process(false)
-	visual.set_physics_process(false)
 
 	var tween := get_tree().create_tween().set_parallel(true)
 	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
