@@ -8,6 +8,8 @@ const MASA_PENERBANGAN := 0.6
 const SPAWN_SETIAP_FRAME := 6
 
 var aktif := false
+# Bilangan visual yang belum selesai dikredit ke inventori.
+var _baki_inventori := 0
 var _status: Label
 var _rng := RandomNumberGenerator.new()
 
@@ -126,15 +128,22 @@ func _tayang_item(adegan: PackedScene, data: Dictionary, pusat_drop: Vector2, po
 	var jarak := _rng.randf_range(8.0, JEJARI_TABURAN)
 	visual.global_position = pusat_drop + Vector2.from_angle(sudut) * jarak
 
+	_baki_inventori += 1
 	var tween := get_tree().create_tween().set_parallel(true)
 	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tween.tween_property(visual, "global_position", posisi_sasaran, MASA_PENERBANGAN)
 	tween.tween_property(visual, "scale", Vector2.ZERO, MASA_PENERBANGAN)
 	tween.chain().tween_callback(func() -> void:
 		if is_instance_valid(inventori):
-			inventori.tambah_item(data)
+			# senyap: UI/simpanan dikemas kini sekali sahaja bila semua habis.
+			inventori.tambah_item(data, true)
 		if is_instance_valid(visual):
 			visual.queue_free()
+		_baki_inventori -= 1
+		if _baki_inventori <= 0:
+			_baki_inventori = 0
+			if is_instance_valid(inventori) and inventori.has_method("kemas_kini_selepas_batch"):
+				inventori.kemas_kini_selepas_batch()
 	)
 
 func _posisi_inventori(item_drop: Node) -> Vector2:

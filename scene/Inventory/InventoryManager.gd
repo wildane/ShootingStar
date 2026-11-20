@@ -14,7 +14,7 @@ func bilangan_item(id_barang: String) -> int:
 			return int(barang.get("kuantiti", 0))
 	return 0
 
-func tambah_item(data_barang: Dictionary) -> bool:
+func tambah_item(data_barang: Dictionary, senyap: bool = false) -> bool:
 	# 1. SEMAK JIKA BARANG SUDAH WUJUD
 	for barang in senarai_barang:
 		if barang.get("id") == data_barang.get("id"):
@@ -22,11 +22,14 @@ func tambah_item(data_barang: Dictionary) -> bool:
 			var kuantiti_semasa = int(barang.get("kuantiti", 1))
 			barang["kuantiti"] = kuantiti_semasa + 1
 			
-			inventory_dikemaskini.emit()
-			print("Sistem Stacking: Kuantiti ", barang.get("nama"), " bertambah menjadi ", barang["kuantiti"])
-			
-			# 🌟 AUTO-SAVE: Simpan game secara automatik selepas kuantiti bertambah
-			SaveManager.save_game()
+			# senyap = true: UI dan fail simpanan dikemas kini sekali sahaja di
+			# hujung (lihat kemas_kini_selepas_batch), bukan setiap item.
+			if not senyap:
+				inventory_dikemaskini.emit()
+				print("Sistem Stacking: Kuantiti ", barang.get("nama"), " bertambah menjadi ", barang["kuantiti"])
+
+				# 🌟 AUTO-SAVE: Simpan game secara automatik selepas kuantiti bertambah
+				SaveManager.save_game()
 			return true
             
 	# 2. JIKA BARANG BARU (BELUM ADA DALAM SLOT)
@@ -37,12 +40,21 @@ func tambah_item(data_barang: Dictionary) -> bool:
 		data_barang["kuantiti"] = 1
 		
 	senarai_barang.append(data_barang)
-	inventory_dikemaskini.emit()
-	print("Sistem: Barang baru dimasukkan ke slot kosong: ", data_barang.get("nama"))
-	
-	# 🌟 AUTO-SAVE: Simpan game secara automatik selepas barang baru masuk slot
-	SaveManager.save_game()
+	if not senyap:
+		inventory_dikemaskini.emit()
+		print("Sistem: Barang baru dimasukkan ke slot kosong: ", data_barang.get("nama"))
+
+		# 🌟 AUTO-SAVE: Simpan game secara automatik selepas barang baru masuk slot
+		SaveManager.save_game()
 	return true
+
+
+# Kemas kini UI + simpan sekali sahaja selepas banyak tambah_item(senyap = true).
+# Tanpa ini, menambah puluhan item serentak membina semula grid dan menulis
+# fail simpanan berpuluh kali (punca fps drop).
+func kemas_kini_selepas_batch() -> void:
+	inventory_dikemaskini.emit()
+	SaveManager.save_game()
 
 func tolak_item(id_barang: String, kuantiti_ditolak: int) -> bool:
 	# 1. GUNAKAN GELUNG KE BELAKANG (REVERSE LOOP) UNTUK PEMADAMAN SELAMAT
