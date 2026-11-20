@@ -82,6 +82,15 @@ func spawn_local() -> void:
 	local_player.set_meta("local", true)
 	# Guna kedudukan simpanan; kalau tiada, titik mula asal.
 	local_player.global_position = SaveManager.posisi_awal_player(Vector2(141, 250))
+	# Tetapkan state simpanan SEBELUM masuk tree supaya StateMachine tidak
+	# kembali ke BaseState selepas _ready.
+	var nama_state := SaveManager.nama_state_player()
+	if nama_state != "":
+		var sm = local_player.get_node_or_null("StateMachine")
+		if sm != null:
+			var state_simpan = sm.get_node_or_null(NodePath(nama_state))
+			if state_simpan != null:
+				sm.set("state_awal", state_simpan)
 	
 	ysort.add_child(local_player)
 	# Pulihkan HP dan tenaga pemain yang disimpan.

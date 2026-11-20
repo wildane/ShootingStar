@@ -45,6 +45,13 @@ func save_game():
 		var tenaga_pemain = pemain.get_node_or_null("EnergyComponent")
 		if tenaga_pemain != null:
 			data_pemain["tenaga"] = tenaga_pemain.get("tenaga")
+		# State pemain (BaseState / AngkasaState) supaya kawalan dan visual
+		# sama seperti sebelum keluar.
+		var state_machine = pemain.get_node_or_null("StateMachine")
+		if state_machine != null:
+			var state_semasa = state_machine.get("state_sekarang")
+			if state_semasa is Node:
+				data_pemain["state"] = str((state_semasa as Node).name)
 		data_keseluruhan["player_data"] = data_pemain
 
 	# 2. Simpan Semua Objek Menggunakan SaveComponent
@@ -166,6 +173,22 @@ func pakai_data_player(pemain: Node2D) -> void:
 	var tenaga_komp := pemain.get_node_or_null("EnergyComponent")
 	if tenaga_komp != null and data_player.has("tenaga"):
 		tenaga_komp.set("tenaga", clampf(float(data_player["tenaga"]), 0.0, float(tenaga_komp.get("max_energy"))))
+	# Pulihkan state StateMachine (BaseState / AngkasaState).
+	if data_player.has("state"):
+		var sm := pemain.get_node_or_null("StateMachine")
+		if sm != null:
+			var state_baru := sm.get_node_or_null(NodePath(str(data_player["state"])))
+			if state_baru != null:
+				if sm.get("state_sekarang") == null:
+					# State machine belum mula: biar ia guna state simpanan sebagai state awal.
+					sm.set("state_awal", state_baru)
+				elif sm.get("state_sekarang") != state_baru and sm.has_method("tukar_state"):
+					sm.call("tukar_state", state_baru)
+
+
+# Nama state pemain yang disimpan ("" kalau tiada).
+func nama_state_player() -> String:
+	return str(data_player.get("state", ""))
 
 
 # Pulihkan HP/tenaga objek dunia (robot pekerja) daripada data simpanan.
