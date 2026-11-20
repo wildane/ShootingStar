@@ -81,6 +81,10 @@ func show_inventory():
 func kemaskini_paparan_barang():
 	if grid_container == null:
 		return
+	# UI tertutup: tak perlu bina semula grid. Ia akan dibina apabila
+	# show_inventory() dipanggil, jadi tiada kos semasa bermain.
+	if not is_visible_in_tree():
+		return
 		
 	for child in grid_container.get_children():
 		child.queue_free()
