@@ -29,7 +29,7 @@ func take_damage(amount: float) -> void:
 
 func play_death_sequence() -> void:
 	parent_fish.is_dying = true
-	Sfx.mainkan("letupan", -10.0, 1.15)
+	Sfx.mainkan_di("letupan", parent_fish.global_position, -10.0, 1.15)
 	
 	if parent_fish.has_node("DetectionArea"):
 		var area = parent_fish.get_node("DetectionArea")

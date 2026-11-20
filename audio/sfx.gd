@@ -20,6 +20,7 @@ const ISIPADU_KAWASAN: float = -11.0
 
 var _pemain: Dictionary = {}
 var _giliran: Dictionary = {}
+var _aliran: Dictionary = {}
 var _ambien: AudioStreamPlayer = null
 var _ambien_kawasan: AudioStreamPlayer = null
 var _muzik_bos: AudioStreamPlayer = null
@@ -34,6 +35,7 @@ func _ready() -> void:
 	_sedia("letupan")
 	_sedia("lendir_boss")
 	_sedia("pecah")
+	_aliran["teleport"] = _jana_teleport()
 	_mula_ambien()
 	_mula_ambien_kawasan()
 	_mula_muzik_bos()
@@ -49,6 +51,26 @@ func mainkan(nama: String, isipadu_db: float = -6.0, pic: float = 1.0) -> void:
 	var pemain: AudioStreamPlayer = senarai[idx]
 	pemain.volume_db = isipadu_db
 	pemain.pitch_scale = pic * randf_range(0.94, 1.06)
+	pemain.play()
+
+
+# SFX aksi dimainkan dari kedudukan sumber supaya bunyi jauh semakin perlahan.
+func mainkan_di(nama: String, posisi: Vector2, isipadu_db: float = -6.0,
+		pic: float = 1.0) -> void:
+	if not _aliran.has(nama):
+		return
+	var pemain := AudioStreamPlayer2D.new()
+	pemain.stream = _aliran[nama]
+	pemain.volume_db = isipadu_db
+	pemain.pitch_scale = pic * randf_range(0.94, 1.06)
+	pemain.max_distance = 480.0
+	pemain.attenuation = 1.2
+	var induk := get_tree().current_scene
+	if induk == null:
+		induk = self
+	induk.add_child(pemain)
+	pemain.global_position = posisi
+	pemain.finished.connect(pemain.queue_free)
 	pemain.play()
 
 # ---- Ambien: ruang angkasa + kawasan AquaHusk ------------------------
@@ -162,6 +184,7 @@ func _sedia(nama: String) -> void:
 		add_child(pemain)
 		senarai.append(pemain)
 	_pemain[nama] = senarai
+	_aliran[nama] = stream
 	_giliran[nama] = 0
 
 # Penapis satu kutub ringkas (low-pass).
@@ -344,6 +367,36 @@ func _jana_ambien() -> AudioStreamWAV:
 	for i in gelung:
 		hasil[i] = s[i]
 	return _ke_stream(hasil, true, kadar)
+
+# ---- Bunyi teleport: whoosh tenaga + nada sci-fi ---------------------
+
+func _jana_teleport() -> AudioStreamWAV:
+	var tempoh: float = 0.48
+	var n: int = int(KADAR * tempoh)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var fasa: float = 0.0
+	var fasa_lapis: float = 0.0
+	var noise_lulus: float = 0.0
+	var a_noise: float = clampf(TAU * 1500.0 / float(KADAR), 0.0, 1.0)
+	for i in n:
+		var t: float = float(i) / float(KADAR)
+		var maju: float = t / tempoh
+		var f: float = lerpf(180.0, 1450.0, maju) if maju < 0.55 else lerpf(
+			1450.0, 300.0, (maju - 0.55) / 0.45
+		)
+		fasa += TAU * f / float(KADAR)
+		fasa_lapis += TAU * f * 1.51 / float(KADAR)
+		var sampul: float = sin(PI * maju)
+		var putih: float = randf_range(-1.0, 1.0)
+		noise_lulus += a_noise * (putih - noise_lulus)
+		var whoosh: float = (putih - noise_lulus) * sampul * 0.75
+		var nada: float = (sin(fasa) + 0.35 * sin(fasa_lapis)) * sampul
+		s[i] = whoosh + nada * 0.55
+	_lulus_rendah(s, 5200.0)
+	_gema(s, 0.075, 0.22)
+	_normal(s, 0.88)
+	return _ke_stream(s, false)
 
 # ---- Bunyi lendir: "blup" basah + percikan ----------------------------
 
