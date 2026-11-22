@@ -126,7 +126,7 @@ func _bina_butang_simpan() -> void:
 		return
 	var butang := Button.new()
 	butang.name = "ButangSimpan"
-	butang.text = "SIMPAN"
+	butang.text = "SAVE"
 	butang.add_theme_font_size_override("font_size", 9)
 	butang.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	butang.offset_left = 6
@@ -150,7 +150,7 @@ func _on_butang_simpan() -> void:
 	var maklum := get_node_or_null("CanvasLayer/MaklumSimpan") as Label
 	if maklum == null:
 		return
-	maklum.text = "Disimpan: %s" % SaveManager.nama_slot(SaveManager.slot_aktif)
+	maklum.text = "Saved: %s" % SaveManager.nama_slot(SaveManager.slot_aktif)
 	maklum.modulate.a = 1.0
 	var tween := create_tween()
 	tween.tween_interval(1.4)

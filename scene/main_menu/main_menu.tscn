@@ -156,15 +156,15 @@ horizontal_alignment = 1
 
 [node name="Teruskan" type="Button" parent="UIRoot/HalamanMenu/PanelLatar/Kotak"]
 layout_mode = 2
-text = "Teruskan Main"
+text = "Continue"
 
 [node name="PermainanBaru" type="Button" parent="UIRoot/HalamanMenu/PanelLatar/Kotak"]
 layout_mode = 2
-text = "Permainan Baru"
+text = "New Game"
 
 [node name="Muat" type="Button" parent="UIRoot/HalamanMenu/PanelLatar/Kotak"]
 layout_mode = 2
-text = "Muat Simpanan"
+text = "Load Game"
 
 [node name="HalamanMuat" type="Control" parent="UIRoot"]
 visible = false
@@ -210,7 +210,7 @@ theme_override_constants/separation = 8
 [node name="Tajuk" type="Label" parent="UIRoot/HalamanMuat/Panel/Isi"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
-text = "MUAT SIMPANAN"
+text = "LOAD GAME"
 horizontal_alignment = 1
 
 [node name="Skrol" type="ScrollContainer" parent="UIRoot/HalamanMuat/Panel/Isi"]
@@ -226,13 +226,13 @@ theme_override_constants/separation = 6
 [node name="Kosong" type="Label" parent="UIRoot/HalamanMuat/Panel/Isi"]
 visible = false
 layout_mode = 2
-text = "Belum ada simpanan."
+text = "No saves yet."
 horizontal_alignment = 1
 autowrap_mode = 2
 
 [node name="Kembali" type="Button" parent="UIRoot/HalamanMuat/Panel/Isi"]
 layout_mode = 2
-text = "Kembali"
+text = "Back"
 
 [node name="Mesej" type="Label" parent="UIRoot"]
 layout_mode = 1
@@ -243,5 +243,5 @@ anchor_bottom = 1.0
 offset_top = -30.0
 grow_horizontal = 2
 grow_vertical = 0
-text = "Mesej"
+text = ""
 horizontal_alignment = 1

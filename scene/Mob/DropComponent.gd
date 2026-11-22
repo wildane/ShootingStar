@@ -47,7 +47,7 @@ func trigger_drop() -> void:
 	var path_b = selected_scene.resource_path # Mengunci laluan fail untuk sistem Save Game
 	
 	if id_b == null: id_b = "item_unknown"
-	if nama_b == null: nama_b = "Item Tanpa Nama"
+	if nama_b == null: nama_b = "Unnamed Item"
 	
 	var data_barang = {
 		"id": id_b,

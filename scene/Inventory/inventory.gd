@@ -143,7 +143,7 @@ func kemaskini_paparan_barang():
 				
 			var data_klik = {
 				"id": barang.get("id", "unknown"), 
-				"nama": barang.get("nama", "Item Tanpa Nama"), 
+				"nama": barang.get("nama", "Unnamed Item"), 
 				"kuantiti": kuantiti_barang
 			}
 			slot_tapak.gui_input.connect(_on_slot_berisi_diklik.bind(data_klik))

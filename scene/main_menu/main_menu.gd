@@ -46,21 +46,21 @@ func _bina_overlay() -> void:
 
 func _bina_dialog() -> void:
 	_dialog_nama = ConfirmationDialog.new()
-	_dialog_nama.title = "Tukar Nama Simpanan"
-	_dialog_nama.ok_button_text = "Simpan"
-	_dialog_nama.cancel_button_text = "Batal"
+	_dialog_nama.title = "Rename Save"
+	_dialog_nama.ok_button_text = "Save"
+	_dialog_nama.cancel_button_text = "Cancel"
 	_input_nama = LineEdit.new()
 	_input_nama.custom_minimum_size = Vector2(200, 0)
 	_input_nama.max_length = 40
-	_input_nama.placeholder_text = "Nama simpanan"
+	_input_nama.placeholder_text = "Save name"
 	_dialog_nama.add_child(_input_nama)
 	_dialog_nama.confirmed.connect(_on_nama_disahkan)
 	add_child(_dialog_nama)
 
 	_dialog_hapus = ConfirmationDialog.new()
-	_dialog_hapus.title = "Padam Simpanan"
-	_dialog_hapus.ok_button_text = "Padam"
-	_dialog_hapus.cancel_button_text = "Batal"
+	_dialog_hapus.title = "Delete Save"
+	_dialog_hapus.ok_button_text = "Delete"
+	_dialog_hapus.cancel_button_text = "Cancel"
 	_dialog_hapus.confirmed.connect(_on_hapus_disahkan)
 	add_child(_dialog_hapus)
 
@@ -70,7 +70,7 @@ func _bina_dialog() -> void:
 func _on_teruskan() -> void:
 	var id := SaveManager.slot_terbaru()
 	if id == "":
-		_mesej("Tiada simpanan lagi")
+		_mesej("No saves yet")
 		return
 	SaveManager.tetapkan_slot(id)
 	print("[Menu] Teruskan simpanan: ", SaveManager.nama_slot(id))
@@ -85,7 +85,7 @@ func _ke_level() -> void:
 	if _sibuk:
 		return
 	if scene_sasaran == null:
-		_mesej("Scene sasaran belum ditetapkan")
+		_mesej("Target scene is not set")
 		return
 	_sibuk = true
 	_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -129,14 +129,14 @@ func _bina_baris_slot(slot: Dictionary) -> Control:
 	baris.add_child(butang_muat)
 
 	var butang_nama := Button.new()
-	butang_nama.text = "Nama"
+	butang_nama.text = "Rename"
 	butang_nama.add_theme_font_size_override("font_size", 9)
 	butang_nama.custom_minimum_size = Vector2(38, 34)
 	butang_nama.pressed.connect(_buka_dialog_nama.bind(id))
 	baris.add_child(butang_nama)
 
 	var butang_hapus := Button.new()
-	butang_hapus.text = "Padam"
+	butang_hapus.text = "Delete"
 	butang_hapus.add_theme_font_size_override("font_size", 9)
 	butang_hapus.custom_minimum_size = Vector2(44, 34)
 	butang_hapus.pressed.connect(_buka_dialog_hapus.bind(id))
@@ -163,20 +163,20 @@ func _buka_dialog_nama(id: String) -> void:
 func _on_nama_disahkan() -> void:
 	var nama := _input_nama.text.strip_edges()
 	if nama == "":
-		_mesej("Nama tidak boleh kosong")
+		_mesej("Name cannot be empty")
 		return
 	SaveManager.tukar_nama_slot(_id_dialog, nama)
-	_mesej("Nama simpanan dikemas kini")
+	_mesej("Save renamed")
 	_segarkan_senarai()
 
 func _buka_dialog_hapus(id: String) -> void:
 	_id_dialog = id
-	_dialog_hapus.dialog_text = "Padam simpanan \"%s\"?\nTindakan ini tidak boleh dibatalkan." % SaveManager.nama_slot(id)
+	_dialog_hapus.dialog_text = "Delete save \"%s\"?\nThis cannot be undone." % SaveManager.nama_slot(id)
 	_dialog_hapus.popup_centered(Vector2i(250, 130))
 
 func _on_hapus_disahkan() -> void:
 	SaveManager.hapus_slot(_id_dialog)
-	_mesej("Simpanan dipadam")
+	_mesej("Save deleted")
 	_segarkan_senarai()
 	butang_teruskan.disabled = not SaveManager.ada_simpanan()
 

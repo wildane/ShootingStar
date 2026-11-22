@@ -77,7 +77,7 @@ func senarai_slot() -> Array:
 			var laluan := _laluan_slot(id)
 			hasil.append({
 				"id": id,
-				"nama": str(meta.get("nama", "Simpanan %s" % id)),
+				"nama": str(meta.get("nama", "Save %s" % id)),
 				"masa": float(meta.get("masa", FileAccess.get_modified_time(laluan))),
 			})
 		nama_fail = dir.get_next()
@@ -110,7 +110,7 @@ func cipta_slot_baru(nama: String = "") -> String:
 		nombor += 1
 	var nama_akhir := nama.strip_edges()
 	if nama_akhir == "":
-		nama_akhir = "Simpanan %d" % (senarai_slot().size() + 1)
+		nama_akhir = "Save %d" % (senarai_slot().size() + 1)
 	katalog[id] = {"nama": nama_akhir, "masa": Time.get_unix_time_from_system()}
 	_tulis_katalog(katalog)
 	return id
@@ -155,7 +155,7 @@ func _kemas_kini_masa_slot(id: String, nama_lalai: String = "") -> void:
 	var katalog := _baca_katalog()
 	var meta: Dictionary = katalog.get(id, {})
 	if not meta.has("nama"):
-		meta["nama"] = nama_lalai if nama_lalai != "" else "Simpanan %s" % id
+		meta["nama"] = nama_lalai if nama_lalai != "" else "Save %s" % id
 	meta["masa"] = Time.get_unix_time_from_system()
 	katalog[id] = meta
 	_tulis_katalog(katalog)
@@ -172,7 +172,7 @@ func _migrasi_simpanan_lama() -> void:
 	var laluan := _laluan_slot(id)
 	DirAccess.rename_absolute(LALUAN_LAMA, laluan)
 	var katalog := _baca_katalog()
-	katalog[id] = {"nama": "Simpanan Lama", "masa": float(FileAccess.get_modified_time(laluan))}
+	katalog[id] = {"nama": "Legacy Save", "masa": float(FileAccess.get_modified_time(laluan))}
 	_tulis_katalog(katalog)
 	print("[Save] Simpanan versi lama dipindahkan ke slot 'lama'.")
 
