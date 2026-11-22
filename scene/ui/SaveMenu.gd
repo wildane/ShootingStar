@@ -18,6 +18,14 @@ var _butang_baru: Button
 var _butang_tutup: Button
 var _status: Label
 
+# Dialog dalam panel: nama simpanan baharu / pengesahan timpa.
+var _lapis_dialog: Control
+var _dialog_tajuk: Label
+var _dialog_mesej: Label
+var _input_nama: LineEdit
+var _butang_ya: Button
+var _id_sasaran: String = ""
+
 func _ready() -> void:
 	layer = 101
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -105,6 +113,84 @@ func _bina_ui() -> void:
 	_butang_tutup.pressed.connect(_tutup)
 	baris.add_child(_butang_tutup)
 
+	_bina_dialog()
+
+# Dialog kecil di atas panel untuk nama simpanan dan pengesahan overwrite.
+func _bina_dialog() -> void:
+	_lapis_dialog = Control.new()
+	_lapis_dialog.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_lapis_dialog.mouse_filter = Control.MOUSE_FILTER_STOP
+	_lapis_dialog.visible = false
+	add_child(_lapis_dialog)
+
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.55)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	_lapis_dialog.add_child(dim)
+
+	var kotak := NinePatchRect.new()
+	kotak.texture = load("res://scene/main_menu/panel_menu.png")
+	kotak.patch_margin_left = 40
+	kotak.patch_margin_top = 40
+	kotak.patch_margin_right = 40
+	kotak.patch_margin_bottom = 40
+	kotak.anchor_left = 0.5
+	kotak.anchor_top = 0.5
+	kotak.anchor_right = 0.5
+	kotak.anchor_bottom = 0.5
+	kotak.offset_left = -110.0
+	kotak.offset_top = -80.0
+	kotak.offset_right = 110.0
+	kotak.offset_bottom = 80.0
+	_lapis_dialog.add_child(kotak)
+
+	var isi := VBoxContainer.new()
+	isi.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	isi.offset_left = 14.0
+	isi.offset_top = 14.0
+	isi.offset_right = -14.0
+	isi.offset_bottom = -14.0
+	isi.add_theme_constant_override("separation", 6)
+	kotak.add_child(isi)
+
+	_dialog_tajuk = Label.new()
+	_dialog_tajuk.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_dialog_tajuk.add_theme_font_size_override("font_size", 11)
+	isi.add_child(_dialog_tajuk)
+
+	_dialog_mesej = Label.new()
+	_dialog_mesej.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_dialog_mesej.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_dialog_mesej.add_theme_font_size_override("font_size", 9)
+	_dialog_mesej.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_dialog_mesej.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	isi.add_child(_dialog_mesej)
+
+	_input_nama = LineEdit.new()
+	_input_nama.placeholder_text = "Save name"
+	_input_nama.custom_minimum_size = Vector2(0, 26)
+	_input_nama.add_theme_font_size_override("font_size", 10)
+	_input_nama.text_submitted.connect(_on_nama_dihantar)
+	isi.add_child(_input_nama)
+
+	var baris := HBoxContainer.new()
+	baris.add_theme_constant_override("separation", 8)
+	isi.add_child(baris)
+
+	_butang_ya = Button.new()
+	_butang_ya.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_butang_ya.add_theme_font_size_override("font_size", 10)
+	_butang_ya.pressed.connect(_dialog_ya)
+	baris.add_child(_butang_ya)
+
+	var butang_tidak := Button.new()
+	butang_tidak.text = "Cancel"
+	butang_tidak.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	butang_tidak.add_theme_font_size_override("font_size", 10)
+	butang_tidak.pressed.connect(_dialog_tidak)
+	baris.add_child(butang_tidak)
+
 func _bina_tema() -> Theme:
 	var tema := Theme.new()
 
@@ -190,11 +276,8 @@ func _format_tarikh(masa: float) -> String:
 # ==========================================
 func _on_slot(id: String) -> void:
 	if mod_semasa == MOD_SIMPAN:
-		if SaveManager.simpan_ke_slot(id):
-			segarkan_senarai()
-			_status.text = "Saved to %s" % SaveManager.nama_slot(id)
-		else:
-			_status.text = "Cannot save right now"
+		# Tanya pengesahan dahulu sebelum menimpa simpanan sedia ada.
+		_tanya_timpa(id)
 		return
 
 	# Mod Muat: pilih slot, tutup panel dan muat semula level.
@@ -204,12 +287,55 @@ func _on_slot(id: String) -> void:
 	get_tree().change_scene_to_file("res://scene/level_3/level_3.tscn")
 
 func _on_butang_baru() -> void:
-	var id := SaveManager.simpan_slot_baru()
+	_tanya_nama()
+
+# ==========================================
+# DIALOG NAMA / PENGESAHAN
+# ==========================================
+func _tanya_nama() -> void:
+	_id_sasaran = ""
+	_dialog_tajuk.text = "NEW SAVE"
+	_dialog_mesej.text = "Give this save a name:"
+	_butang_ya.text = "Save"
+	_input_nama.visible = true
+	_input_nama.text = "Save %d" % (SaveManager.senarai_slot().size() + 1)
+	_lapis_dialog.visible = true
+	_input_nama.grab_focus()
+	_input_nama.select_all()
+
+func _tanya_timpa(id: String) -> void:
+	_id_sasaran = id
+	_dialog_tajuk.text = "OVERWRITE SAVE"
+	_dialog_mesej.text = "Overwrite \"%s\"?\nCurrent progress in that slot will be replaced." % SaveManager.nama_slot(id)
+	_butang_ya.text = "Overwrite"
+	_input_nama.visible = false
+	_lapis_dialog.visible = true
+
+func _on_nama_dihantar(_teks: String) -> void:
+	if _lapis_dialog.visible and _input_nama.visible:
+		_dialog_ya()
+
+func _dialog_ya() -> void:
+	var id_sasaran := _id_sasaran
+	var nama := _input_nama.text
+	_id_sasaran = ""
+	_lapis_dialog.visible = false
+
+	var id := id_sasaran
+	if id == "":
+		id = SaveManager.simpan_slot_baru(nama)
+	elif not SaveManager.simpan_ke_slot(id):
+		id = ""
+
 	if id != "":
 		segarkan_senarai()
 		_status.text = "Saved to %s" % SaveManager.nama_slot(id)
 	else:
 		_status.text = "Cannot save right now"
+
+func _dialog_tidak() -> void:
+	_id_sasaran = ""
+	_lapis_dialog.visible = false
 
 func _tutup() -> void:
 	ditutup.emit()
