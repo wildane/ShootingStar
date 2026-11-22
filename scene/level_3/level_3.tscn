@@ -37,6 +37,8 @@
 [ext_resource type="PackedScene" path="res://scene/Mob/HuskLurker/HuskLurker.tscn" id="33_husk"]
 [ext_resource type="PackedScene" path="res://scene/Mob/AquaHuskMiniBoss/AquaHuskMiniBoss.tscn" id="34_boss"]
 [ext_resource type="Script" path="res://scene/ui/CheatMode.gd" id="42_cheat"]
+[ext_resource type="PackedScene" path="res://scene/asteroid/Asteroid.tscn" id="60_ast"]
+[ext_resource type="Script" path="res://scene/level_3/build_system/BuildGrid.gd" id="61_bgrid"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_fs2q3"]
 
@@ -396,6 +398,13 @@ metadata/_edit_lock_ = true
 position = Vector2(141, 228)
 shape = SubResource("RectangleShape2D_q54y3")
 metadata/_edit_lock_ = true
+
+[node name="Asteroid" parent="." instance=ExtResource("60_ast")]
+position = Vector2(-260, 380)
+jejari = 150.0
+
+[node name="BuildGrid" type="Node2D" parent="."]
+script = ExtResource("61_bgrid")
 
 [node name="Y_Sort_Container" type="Node2D" parent="." unique_id=1595145890]
 y_sort_enabled = true

@@ -115,7 +115,7 @@ func kendalikan_input(event: InputEvent) -> void:
 				ada_target = false # joystick ambil alih kawalan
 
 func mod_bina_aktif() -> bool:
-	return is_instance_valid(BuildManager) and BuildManager.mod_pembinaan
+	return (is_instance_valid(BuildManager) and BuildManager.mod_pembinaan) or BuildGrid.mod_aktif
 
 func _skrin_ke_dunia(pos_skrin: Vector2) -> Vector2:
 	# Tukar posisi skrin (klik) kepada posisi dunia (ikut kamera)
