@@ -30,7 +30,11 @@ const JARAK_BUKA_PINTU: float = 22.0
 
 # Aset tile: lantai, dinding dan pintu.
 const TEKSTUR_LANTAI: Texture2D = preload("res://scene/level_3/build_system/tile_floor.png")
-const TEKSTUR_DINDING: Texture2D = preload("res://scene/level_3/build_system/tile_wall.png")
+const TEKSTUR_DINDING: Texture2D = preload("res://scene/level_3/build_system/tile_wall_atlas.png")
+# Atlas dinding 4x4 jubin 64px: indeks = bitmask jiran dinding (1=N, 2=E, 4=S, 8=W).
+# Sisi yang tiada jiran dinding dilukis dengan rim, jadi lurus, belokan dan
+# dinding dua ketebalan semuanya bercantum tanpa garis dalaman.
+const SAIZ_JUBIN_DINDING: float = 64.0
 const TEKSTUR_PINTU: Texture2D = preload("res://scene/level_3/build_system/tile_door.png")
 const SKRIP_PINTU_GRID: Script = preload("res://scene/level_3/build_system/PintuGrid.gd")
 
@@ -401,14 +405,26 @@ func _draw() -> void:
 				draw_texture_rect(TEKSTUR_LANTAI, rect, false, Color(1, 1, 1, 0.95))
 				draw_rect(rect, Color(0.28, 0.66, 0.82, 0.22), false, 1.0)
 			JENIS_DINDING:
-				draw_texture_rect(TEKSTUR_DINDING, rect, false)
+				var topeng := _topeng_dinding(g)
+				var jubin := Rect2(
+					Vector2(float(topeng % 4), float(topeng / 4)) * SAIZ_JUBIN_DINDING,
+					Vector2(SAIZ_JUBIN_DINDING, SAIZ_JUBIN_DINDING))
+				draw_texture_rect_region(TEKSTUR_DINDING, rect, jubin)
 			JENIS_PINTU:
-				if bool(_pintu_dekat.get(g, false)):
-					# Pintu terbuka: panel dipudarkan, bingkai sian menyala.
-					draw_texture_rect(TEKSTUR_PINTU, rect, false, Color(0.6, 0.95, 1.0, 0.4))
-					draw_rect(rect, Color(0.5, 1.0, 1.0, 0.5), false, 1.0)
+				# Pintu dalam dinding menegak dipusing 90 darjah supaya bingkai
+				# atas/bawahnya sejajar dengan arah dinding.
+				var menegak: bool = _jiran_jenis(g, Vector2i(0, -1), JENIS_DINDING) \
+					and _jiran_jenis(g, Vector2i(0, 1), JENIS_DINDING)
+				var terbuka: bool = bool(_pintu_dekat.get(g, false))
+				var warna := Color(0.6, 0.95, 1.0, 0.4) if terbuka else Color(1, 1, 1)
+				if menegak:
+					draw_set_transform(rect.get_center(), PI * 0.5, Vector2.ONE)
+					draw_texture_rect(TEKSTUR_PINTU, Rect2(-saiz * 0.5, saiz), false, warna)
+					draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 				else:
-					draw_texture_rect(TEKSTUR_PINTU, rect, false)
+					draw_texture_rect(TEKSTUR_PINTU, rect, false, warna)
+				if terbuka:
+					draw_rect(rect, Color(0.5, 1.0, 1.0, 0.5), false, 1.0)
 
 	if _ada_hantu and _mod >= 0:
 		var rect := Rect2(Vector2(_hantu) * SAIZ_SEL, saiz)
@@ -429,3 +445,22 @@ func _sel_dari_dunia(pos: Vector2) -> Vector2i:
 
 func _tengah_sel(g: Vector2i) -> Vector2:
 	return Vector2(g) * SAIZ_SEL + Vector2(SAIZ_SEL, SAIZ_SEL) * 0.5
+
+func _jiran_jenis(g: Vector2i, arah: Vector2i, jenis: int) -> bool:
+	return int(_tile.get(g + arah, -1)) == jenis
+
+# Bitmask jiran dinding: pintu dikira sebagai sambungan dinding supaya tile
+# di sebelah pintu tidak melukis rim dan nampak bersambung.
+func _topeng_dinding(g: Vector2i) -> int:
+	var topeng := 0
+	var arah_bit := [
+		[Vector2i(0, -1), 1],
+		[Vector2i(1, 0), 2],
+		[Vector2i(0, 1), 4],
+		[Vector2i(-1, 0), 8],
+	]
+	for pasangan in arah_bit:
+		var j: int = int(_tile.get(g + pasangan[0], -1))
+		if j == JENIS_DINDING or j == JENIS_PINTU:
+			topeng |= int(pasangan[1])
+	return topeng

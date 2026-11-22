@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://18f3uawxw3b4"
-path="res://.godot/imported/tile_wall.png-c212316b8974d2a3c8611d8c788123de.ctex"
+uid="uid://5iiub8h2rtlg"
+path="res://.godot/imported/tile_wall_atlas.png-739442a050a357cb32156fd322325712.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://scene/level_3/build_system/tile_wall.png"
-dest_files=["res://.godot/imported/tile_wall.png-c212316b8974d2a3c8611d8c788123de.ctex"]
+source_file="res://scene/level_3/build_system/tile_wall_atlas.png"
+dest_files=["res://.godot/imported/tile_wall_atlas.png-739442a050a357cb32156fd322325712.ctex"]
 
 [params]
 
