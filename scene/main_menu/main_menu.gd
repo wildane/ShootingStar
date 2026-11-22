@@ -150,8 +150,7 @@ func _pilih_slot(id: String) -> void:
 	_ke_level()
 
 func _format_tarikh(masa: float) -> String:
-	var d := Time.get_datetime_dict_from_unix_time(int(masa))
-	return "%02d/%02d/%04d %02d:%02d:%02d" % [d.day, d.month, d.year, d.hour, d.minute, d.second]
+	return SaveManager.format_masa(masa)
 
 func _buka_dialog_nama(id: String) -> void:
 	_id_dialog = id

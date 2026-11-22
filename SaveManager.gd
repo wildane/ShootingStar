@@ -22,14 +22,39 @@ func _ready() -> void:
 	_sediakan_direktori()
 	_migrasi_simpanan_lama()
 
+# Jarak minimum antara dua autosave (saat). Android kadangkala menghantar
+# NOTIFICATION_APPLICATION_PAUSED dua kali untuk satu minimize; had ini
+# menghalang dua slot autosave daripada ditulis dengan keadaan yang sama.
+const JARAK_AUTOSAVE_MIN := 2.0
+
+var _masa_autosave_terakhir: float = -1000.0
+
 func _notification(what):
 	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_WINDOW_FOCUS_OUT, NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_WM_CLOSE_REQUEST, NOTIFICATION_WM_GO_BACK_REQUEST]:
 		semak_dan_auto_save()
 
+# Autosave hanya dalam level permainan (bukan menu), dan tidak berulang terlalu rapat.
 func semak_dan_auto_save():
 	var scene_utama = Engine.get_main_loop().current_scene
-	if scene_utama and scene_utama.scene_file_path.get_file() == "level_3.tscn":
-		save_autosave()
+	if not scene_utama or scene_utama.scene_file_path.get_file() != "level_3.tscn":
+		return
+	var kini := Time.get_ticks_msec() / 1000.0
+	if kini - _masa_autosave_terakhir < JARAK_AUTOSAVE_MIN:
+		return
+	_masa_autosave_terakhir = kini
+	save_autosave()
+
+# ==========================================
+# MASA TEMPATAN UNTUK CAP MASA
+# ==========================================
+# Simpanan menyimpan unix time (UTC). Untuk paparan, tambah bias zon waktu
+# peranti supaya jam yang ditunjuk sama dengan jam telefon (format 24 jam).
+func _bias_zohn_saat() -> int:
+	return int(Time.get_time_zone_from_system().get("bias", 0)) * 60
+
+func format_masa(masa: float) -> String:
+	var d := Time.get_datetime_dict_from_unix_time(int(masa) + _bias_zohn_saat())
+	return "%02d/%02d/%04d %02d:%02d:%02d" % [d.day, d.month, d.year, d.hour, d.minute, d.second]
 
 # ==========================================
 # SIMPANAN BERBILANG SLOT
