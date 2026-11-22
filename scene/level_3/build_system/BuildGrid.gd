@@ -11,12 +11,14 @@ extends Node2D
 ##
 ## Lantai tidak berkolider (pemain terapung/berjalan di atasnya), dinding
 ## menyekat pemain, pintu terbuka automatik bila pemain hampir.
+## Mod Erase membuang tile yang tersalah letak.
 
 const SAIZ_SEL: int = 16
 const JENIS_LANTAI: int = 0
 const JENIS_DINDING: int = 1
 const JENIS_PINTU: int = 2
-const NAMA_JENIS: Array[String] = ["Floor", "Wall", "Door"]
+const JENIS_ERASE: int = 3
+const NAMA_JENIS: Array[String] = ["Floor", "Wall", "Door", "Erase"]
 
 # Layer 4 (nilai 8) = environment, sama seperti meteorit dan asteroid.
 const LAYER_HALANGAN: int = 8
@@ -60,7 +62,7 @@ func _bina_hud() -> void:
 	kanvas.add_child(lajur)
 
 	var tema := _tema_butang()
-	for jenis in [JENIS_LANTAI, JENIS_DINDING, JENIS_PINTU]:
+	for jenis in [JENIS_LANTAI, JENIS_DINDING, JENIS_PINTU, JENIS_ERASE]:
 		var butang := Button.new()
 		butang.text = NAMA_JENIS[jenis]
 		butang.toggle_mode = true
@@ -82,7 +84,7 @@ func _bina_hud() -> void:
 	lajur.add_child(batal)
 
 	_label_status = Label.new()
-	_label_status.position = Vector2(6, 96 + 4 * 26 + 4)
+	_label_status.position = Vector2(6, lajur.position.y + lajur.get_child_count() * 26 + 4)
 	_label_status.custom_minimum_size = Vector2(150, 0)
 	_label_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_label_status.add_theme_font_size_override("font_size", 6)
@@ -123,7 +125,10 @@ func _pilih(jenis: int) -> void:
 	_ada_hantu = false
 	for i in range(_butang.size()):
 		_butang[i].set_pressed_no_signal(i == jenis)
-	_label_status.text = NAMA_JENIS[jenis] + ": tap inside the asteroid"
+	if jenis == JENIS_ERASE:
+		_label_status.text = "Erase: tap a tile to remove it"
+	else:
+		_label_status.text = NAMA_JENIS[jenis] + ": tap inside the asteroid"
 
 func _batal() -> void:
 	_mod = -1
@@ -155,6 +160,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if event is InputEventScreenDrag:
 		_gerak_hantu(event.position)
+		if _mod == JENIS_ERASE:
+			padam(_hantu)
 		get_viewport().set_input_as_handled()
 		return
 
@@ -165,6 +172,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if event is InputEventMouseMotion:
 		_gerak_hantu(event.position)
+		if _mod == JENIS_ERASE and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+			padam(_hantu)
 
 func _gerak_hantu(pos_skrin: Vector2) -> void:
 	_hantu = _sel_dari_dunia(_skrin_ke_dunia(pos_skrin))
@@ -183,6 +192,8 @@ func _letak_dari_skrin(pos_skrin: Vector2) -> void:
 func letak(g: Vector2i) -> bool:
 	if _mod < 0:
 		return false
+	if _mod == JENIS_ERASE:
+		return padam(g)
 	if not boleh_bina(g):
 		_label_status.text = "Can't build here: must be on the asteroid and touch your base"
 		return false
@@ -191,6 +202,25 @@ func letak(g: Vector2i) -> bool:
 	_tile[g] = jenis
 	_bina_kolider(g, jenis)
 	_label_status.text = NAMA_JENIS[jenis] + " placed"
+	queue_redraw()
+	return true
+
+# Buang tile (dan kolidernya) dari grid. Boleh dipanggil terus untuk ujian.
+func padam(g: Vector2i) -> bool:
+	if not _tile.has(g):
+		_label_status.text = "Nothing to erase here"
+		return false
+	var jenis := int(_tile[g])
+	_tile.erase(g)
+	if jenis != JENIS_LANTAI:
+		var badan: StaticBody2D = _badan_pintu.get(g, null)
+		if badan == null:
+			badan = get_node_or_null("Grid_%d_%d" % [g.x, g.y]) as StaticBody2D
+		if badan != null and is_instance_valid(badan):
+			badan.queue_free()
+	_badan_pintu.erase(g)
+	_pintu_dekat.erase(g)
+	_label_status.text = "Tile erased"
 	queue_redraw()
 	return true
 
@@ -273,8 +303,9 @@ func _draw() -> void:
 
 	if _ada_hantu and _mod >= 0:
 		var rect := Rect2(Vector2(_hantu) * SAIZ_SEL, saiz)
-		var sah := boleh_bina(_hantu)
-		var warna := Color(0.4, 1.0, 0.6, 0.30) if sah else Color(1.0, 0.35, 0.35, 0.30)
+		var sah: bool = _tile.has(_hantu) if _mod == JENIS_ERASE else boleh_bina(_hantu)
+		var warna := Color(1.0, 0.42, 0.32, 0.35) if _mod == JENIS_ERASE and sah \
+			else (Color(0.4, 1.0, 0.6, 0.30) if sah else Color(1.0, 0.35, 0.35, 0.30))
 		draw_rect(rect, warna)
 		draw_rect(rect, warna.lightened(0.4), false, 2.0)
 
