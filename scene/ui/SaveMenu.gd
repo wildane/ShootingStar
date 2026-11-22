@@ -462,16 +462,12 @@ func _dialog_ya() -> void:
 
 	if tindakan == "baru":
 		SaveManager.mula_permainan_baru()
-		get_tree().paused = false
-		ditutup.emit()
-		get_tree().change_scene_to_file("res://scene/level_3/level_3.tscn")
+		await _pindah_ke_level()
 		return
 
 	if tindakan == "muat":
 		SaveManager.tetapkan_slot(id_sasaran)
-		get_tree().paused = false
-		ditutup.emit()
-		get_tree().change_scene_to_file("res://scene/level_3/level_3.tscn")
+		await _pindah_ke_level()
 		return
 
 	var id := id_sasaran
@@ -485,6 +481,14 @@ func _dialog_ya() -> void:
 		_status.text = "Saved to %s" % SaveManager.nama_slot(id)
 	else:
 		_status.text = "Cannot save right now"
+
+# Tutup menu dan tukar scene melalui perisai hitam autoload, supaya skrin
+# tidak terdedah kepada warna latar kelabu semasa level dimuatkan.
+func _pindah_ke_level() -> void:
+	get_tree().paused = false
+	await SceneTransition.pudar_ke_hitam(0.2)
+	ditutup.emit()
+	get_tree().change_scene_to_file("res://scene/level_3/level_3.tscn")
 
 func _dialog_tidak() -> void:
 	_id_sasaran = ""

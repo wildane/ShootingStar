@@ -66,11 +66,9 @@ func proses_selesai_load_json() -> void:
 	print("[World] Isyarat JSON diterima. Menahan skrin hitam selama 0.3 saat...")
 	await get_tree().create_timer(0.3).timeout
 	
-	# 3. 🌟 PADAM FADE MENU DI SINI: Cari dan musnahkan perisai hitam yang ditinggalkan oleh menu utama di Autoload
-	var perisai_menu = SceneTransition.get_node_or_null("PerisaiHitamMenu")
-	if is_instance_valid(perisai_menu):
-		print("[World] 0.3 saat tamat. Memadam skrin hitam milik menu utama!")
-		perisai_menu.queue_free()
+	# 3. Padam perisai hitam autoload yang menutup skrin semasa pertukaran scene.
+	#        Overlay hitam milik level_3 di bawahnya menyambung paparan tanpa kelip.
+	SceneTransition.buang_perisai()
 	
 	# 4. Mulakan kesan fade terang milik level_3 sendiri selama 3 saat
 	mulakan_fade_terang()

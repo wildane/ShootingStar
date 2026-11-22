@@ -271,6 +271,9 @@ func _ke_level() -> void:
 	var tween := create_tween()
 	tween.tween_property(_overlay, "color:a", 1.0, tempoh_fade)
 	await tween.finished
+	# Pasang perisai hitam milik autoload supaya skrin kekal hitam sehingga
+	# level baharu siap dimuatkan (bukan kelabu).
+	SceneTransition.pasang_perisai()
 	get_tree().change_scene_to_packed(scene_sasaran)
 
 # ==========================================

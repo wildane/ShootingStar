@@ -81,6 +81,7 @@ virtual_controller/ios/enable_button_y=false
 [rendering]
 
 renderer/rendering_method="mobile"
+environment/defaults/default_clear_color=Color(0, 0, 0, 1)
 
 [xogot]
 
