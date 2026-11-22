@@ -401,11 +401,8 @@ func _on_slot(id: String) -> void:
 		_tanya_timpa(id)
 		return
 
-	# Mod Muat: pilih slot, tutup panel dan muat semula level.
-	SaveManager.tetapkan_slot(id)
-	get_tree().paused = false
-	ditutup.emit()
-	get_tree().change_scene_to_file("res://scene/level_3/level_3.tscn")
+	# Mod Muat: tanya pengesahan dahulu sebelum membuang kemajuan semasa.
+	_tanya_muat(id)
 
 func _on_butang_baru() -> void:
 	_tanya_nama()
@@ -434,6 +431,15 @@ func _tanya_timpa(id: String) -> void:
 	_input_nama.visible = false
 	_lapis_dialog.visible = true
 
+func _tanya_muat(id: String) -> void:
+	_dialog_tindakan = "muat"
+	_id_sasaran = id
+	_dialog_tajuk.text = "LOAD SAVE"
+	_dialog_mesej.text = "Load \"%s\"?\nUnsaved progress in this session will be lost." % SaveManager.nama_slot(id)
+	_butang_ya.text = "Load"
+	_input_nama.visible = false
+	_lapis_dialog.visible = true
+
 func _tanya_baru() -> void:
 	_dialog_tindakan = "baru"
 	_id_sasaran = ""
@@ -456,6 +462,13 @@ func _dialog_ya() -> void:
 
 	if tindakan == "baru":
 		SaveManager.mula_permainan_baru()
+		get_tree().paused = false
+		ditutup.emit()
+		get_tree().change_scene_to_file("res://scene/level_3/level_3.tscn")
+		return
+
+	if tindakan == "muat":
+		SaveManager.tetapkan_slot(id_sasaran)
 		get_tree().paused = false
 		ditutup.emit()
 		get_tree().change_scene_to_file("res://scene/level_3/level_3.tscn")
