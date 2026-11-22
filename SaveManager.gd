@@ -263,6 +263,23 @@ func save_autosave() -> bool:
 		print("[Save] Autosave disimpan ke ", id)
 	return berjaya
 
+# Simpan manual ke slot tertentu (dipilih dalam panel SAVE dalam game).
+func simpan_ke_slot(id: String) -> bool:
+	var data := _kumpul_data_state()
+	if data.is_empty():
+		return false
+	if not _tulis_data_ke_slot(id, data):
+		return false
+	slot_aktif = id
+	return true
+
+# Simpan ke slot baharu (butang New Save). Pulangkan id slot, "" kalau gagal.
+func simpan_slot_baru(nama: String = "") -> String:
+	var id := cipta_slot_baru(nama)
+	if not simpan_ke_slot(id):
+		return ""
+	return id
+
 func _slot_autosave_berikut() -> String:
 	var katalog := _baca_katalog()
 	var paling_lama: String = SLOT_AUTOSAVE[0]

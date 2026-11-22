@@ -7,6 +7,9 @@ var local_player: CharacterBody2D
 # Node overlay untuk mengawal skrin gelap/terang milik level_3
 var overlay_gelap: ColorRect
 
+# Panel SAVE/LOAD yang sedang dibuka (null kalau tiada).
+var _menu_simpan: SaveMenu = null
+
 func _ready() -> void:
 	# 1. Bina lapisan hitam pekat bersiap sedia di bawah lapisan menu (Alpha = 1.0)
 	bina_overlay_mula()
@@ -119,11 +122,12 @@ func save_world() -> void:
 	SaveManager.save_game()
 	print("[World] Dunia hibrid berjaya disimpan ke storan!")
 
-# Butang simpan pantas di kiri atas HUD.
+# Butang SAVE dan LOAD di kiri atas HUD.
 func _bina_butang_simpan() -> void:
 	var canvas = get_node_or_null("CanvasLayer")
 	if canvas == null or canvas.has_node("ButangSimpan"):
 		return
+
 	var butang := Button.new()
 	butang.name = "ButangSimpan"
 	butang.text = "SAVE"
@@ -131,30 +135,46 @@ func _bina_butang_simpan() -> void:
 	butang.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	butang.offset_left = 6
 	butang.offset_top = 6
-	butang.offset_right = 54
+	butang.offset_right = 52
 	butang.offset_bottom = 28
-	butang.pressed.connect(_on_butang_simpan)
+	butang.pressed.connect(_buka_menu_simpan)
 	canvas.add_child(butang)
 
-	var maklum := Label.new()
-	maklum.name = "MaklumSimpan"
-	maklum.add_theme_font_size_override("font_size", 9)
-	maklum.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	maklum.offset_left = 58
-	maklum.offset_top = 9
-	maklum.modulate.a = 0.0
-	canvas.add_child(maklum)
+	var butang_muat := Button.new()
+	butang_muat.name = "ButangMuat"
+	butang_muat.text = "LOAD"
+	butang_muat.add_theme_font_size_override("font_size", 9)
+	butang_muat.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	butang_muat.offset_left = 56
+	butang_muat.offset_top = 6
+	butang_muat.offset_right = 102
+	butang_muat.offset_bottom = 28
+	butang_muat.pressed.connect(_buka_menu_muat)
+	canvas.add_child(butang_muat)
 
-func _on_butang_simpan() -> void:
-	save_world()
-	var maklum := get_node_or_null("CanvasLayer/MaklumSimpan") as Label
-	if maklum == null:
+# ==========================================
+# MENU SAVE / LOAD DALAM GAME (game pause)
+# ==========================================
+func _buka_menu_simpan() -> void:
+	_buka_menu(SaveMenu.MOD_SIMPAN)
+
+func _buka_menu_muat() -> void:
+	_buka_menu(SaveMenu.MOD_MUAT)
+
+func _buka_menu(mod: int) -> void:
+	if is_instance_valid(_menu_simpan):
 		return
-	maklum.text = "Saved: %s" % SaveManager.nama_slot(SaveManager.slot_aktif)
-	maklum.modulate.a = 1.0
-	var tween := create_tween()
-	tween.tween_interval(1.4)
-	tween.tween_property(maklum, "modulate:a", 0.0, 0.6)
+	get_tree().paused = true
+	_menu_simpan = SaveMenu.new()
+	_menu_simpan.mod_semasa = mod
+	_menu_simpan.ditutup.connect(_tutup_menu)
+	add_child(_menu_simpan)
+
+func _tutup_menu() -> void:
+	get_tree().paused = false
+	if is_instance_valid(_menu_simpan):
+		_menu_simpan.queue_free()
+		_menu_simpan = null
 
 func _physics_process(_delta: float) -> void:
 	pass 
