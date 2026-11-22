@@ -47,13 +47,10 @@ func imbas_menggunakan_skala_inspector() -> void:
 				kena_halangan = true
 				break
 
-	# 3. JIKA BERSIH HALANGAN, BARULAH SEMAK ZON LANTAI (Layer 3 atau 4)
+	# 3. JIKA BERSIH HALANGAN, SELURUH tapak mesti berada di atas zon bina
+	# (layer 3), bukan sekadar bersentuhan di satu bucu.
 	if not kena_halangan:
-		for area in semua_kawasan:
-			if not is_instance_valid(area): continue
-			if area.get_collision_layer_value(3) or area.get_collision_layer_value(4):
-				atas_lantai = true
-				break
+		atas_lantai = ZonBina.semua_dalam_zon_bina(area_penderia)
 
 	# 4. KEPUTUSAN MUTLAK WARNA HOLOGRAM KITCHEN TABLE
 	if kena_halangan:

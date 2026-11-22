@@ -39,6 +39,7 @@ texture = ExtResource("2_nfbhb")
 position = Vector2(0, 66.666664)
 scale = Vector2(33.333332, 33.333332)
 emitting = false
+local_coords = true
 amount = 50
 lifetime = 0.1
 direction = Vector2(0, 1)

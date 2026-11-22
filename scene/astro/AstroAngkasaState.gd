@@ -43,6 +43,8 @@ func masuk_state() -> void:
 	var sprite_angkasa = astro.get_node_or_null("SpriteAngkasa")
 	if sprite_angkasa:
 		sprite_angkasa.show()
+	# Buang sisa zarah jet dari tempat lama sebelum pemain mula bergerak.
+	set_jet_aktif(false)
 		
 	var sprite_base = astro.get_node_or_null("SpriteBase")
 	if sprite_base:
@@ -76,9 +78,7 @@ func keluar_state() -> void:
 	if sprite_angkasa:
 		sprite_angkasa.hide()
 		
-	var jet = astro.get_node_or_null("SpriteAngkasa/JetThruster")
-	if jet:
-		jet.emitting = false
+	set_jet_aktif(false)
 		
 	if lock_on_comp:
 		lock_on_comp.buka_lock()
@@ -144,9 +144,7 @@ func kemas_kini_fizik(delta: float) -> void:
 		ada_target = false
 		joystick_dir = Vector2.ZERO
 		astro.velocity = Vector2.ZERO
-		var jet_bina = astro.get_node_or_null("SpriteAngkasa/JetThruster")
-		if jet_bina:
-			jet_bina.emitting = false
+		set_jet_aktif(false)
 		return
 
 	var sprite_angkasa = astro.get_node_or_null("SpriteAngkasa")
@@ -208,10 +206,10 @@ func kemas_kini_fizik(delta: float) -> void:
 
 	if input_terhad.length() > 0:
 		if jet_thruster and not jet_thruster.emitting:
-			jet_thruster.emitting = true
+			set_jet_aktif(true)
 	else:
 		if jet_thruster and jet_thruster.emitting:
-			jet_thruster.emitting = false
+			set_jet_aktif(false)
 
 	if sprite_angkasa and lock_on_comp:
 		var data_lock = lock_on_comp.dapatkan_sudut_pandangan(input_terhad)

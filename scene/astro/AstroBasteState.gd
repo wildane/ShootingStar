@@ -39,10 +39,14 @@ func masuk_state() -> void:
 	var sprite_base = astro.get_node_or_null("SpriteBase")
 	if sprite_base:
 		sprite_base.show()
-		
+
 	var sprite_angkasa = astro.get_node_or_null("SpriteAngkasa")
 	if sprite_angkasa:
 		sprite_angkasa.hide()
+	# Matikan jet terus semasa masuk asteroid, supaya tiada api tertinggal
+	# di tempat pemain memasuki asteroid.
+	set_jet_aktif(false)
+
 	
 	joystick_active = false
 	joystick_id = -1

@@ -337,13 +337,10 @@ func imbas_menggunakan_skala_inspector() -> void:
 				kena_halangan = true
 				break
 
+	# SELURUH tapak perabot mesti berada di atas zon bina (layer 3), bukan
+	# sekadar bersentuhan di satu bucu.
 	if not kena_halangan:
-		for area in semua_kawasan:
-			if not is_instance_valid(area): continue
-			# HANYA zon bina (layer 3) dikira lantai yang sah
-			if area.get_collision_layer_value(3):
-				atas_lantai = true
-				break
+		atas_lantai = ZonBina.semua_dalam_zon_bina(area_penderia)
 
 	if kena_halangan:
 		if sprite: sprite.modulate = Color(1.0, 0.3, 0.3, 0.5)

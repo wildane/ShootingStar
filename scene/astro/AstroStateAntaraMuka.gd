@@ -82,6 +82,26 @@ func warisi_kawalan_sentuh(julat_joystick: float, zon_mati: float) -> Dictionary
 	hasil["arah"] = Vector2.ZERO if normalized.length() < zon_mati else normalized
 	return hasil
 
+# ==========================================================
+# JET PACK (Zarah api di belakang SpriteAngkasa)
+# Semasa sprite angkasa disembunyikan (dalam asteroid), zarah jet boleh
+# "tersangkut" di tempat lama. Setiap kali state bertukar, jet dimatikan
+# dan masa zarahnya di-reset supaya tiada api tertinggal di tempat lama.
+# ==========================================================
+func set_jet_aktif(hidup: bool) -> void:
+	if astro == null:
+		return
+	var jet := astro.get_node_or_null("SpriteAngkasa/JetThruster") as CPUParticles2D
+	if jet == null:
+		return
+	if hidup:
+		jet.emitting = true
+		return
+	jet.emitting = false
+	# restart() menghidupkan semula `emitting`, jadi ia dimatikan selepas ini.
+	jet.restart()
+	jet.emitting = false
+
 func masuk_state() -> void:
 	pass
 
