@@ -17,6 +17,8 @@ var _overlay: ColorRect
 var _dialog_nama: ConfirmationDialog
 var _input_nama: LineEdit
 var _dialog_hapus: ConfirmationDialog
+var _dialog_pilihan: AcceptDialog
+var _label_pilihan: Label
 var _id_dialog: String = ""
 var _sibuk: bool = false
 var _tween_mesej: Tween
@@ -63,6 +65,19 @@ func _bina_dialog() -> void:
 	_dialog_hapus.cancel_button_text = "Cancel"
 	_dialog_hapus.confirmed.connect(_on_hapus_disahkan)
 	add_child(_dialog_hapus)
+
+	# Pilihan untuk satu slot: Rename atau Delete.
+	_dialog_pilihan = AcceptDialog.new()
+	_dialog_pilihan.title = "Save Options"
+	_dialog_pilihan.ok_button_text = "Close"
+	_label_pilihan = Label.new()
+	_label_pilihan.custom_minimum_size = Vector2(200, 0)
+	_label_pilihan.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_dialog_pilihan.add_child(_label_pilihan)
+	_dialog_pilihan.add_button("Rename", true, "rename")
+	_dialog_pilihan.add_button("Delete", true, "delete")
+	_dialog_pilihan.custom_action.connect(_on_pilihan_slot)
+	add_child(_dialog_pilihan)
 
 # ==========================================
 # BUTANG MENU
@@ -123,26 +138,35 @@ func _bina_baris_slot(slot: Dictionary) -> Control:
 	var butang_muat := Button.new()
 	butang_muat.text = "%s\n%s" % [str(slot["nama"]), _format_tarikh(float(slot["masa"]))]
 	butang_muat.add_theme_font_size_override("font_size", 9)
+	butang_muat.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	butang_muat.custom_minimum_size = Vector2(0, 34)
 	butang_muat.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	butang_muat.pressed.connect(_pilih_slot.bind(id))
 	baris.add_child(butang_muat)
 
-	var butang_nama := Button.new()
-	butang_nama.text = "Rename"
-	butang_nama.add_theme_font_size_override("font_size", 9)
-	butang_nama.custom_minimum_size = Vector2(38, 34)
-	butang_nama.pressed.connect(_buka_dialog_nama.bind(id))
-	baris.add_child(butang_nama)
-
-	var butang_hapus := Button.new()
-	butang_hapus.text = "Delete"
-	butang_hapus.add_theme_font_size_override("font_size", 9)
-	butang_hapus.custom_minimum_size = Vector2(44, 34)
-	butang_hapus.pressed.connect(_buka_dialog_hapus.bind(id))
-	baris.add_child(butang_hapus)
+	# Rename dan Delete dimasukkan ke dalam dialog supaya baris kekal dalam
+	# kotak biru panel (lebar panel hanya 154 px selepas inset).
+	var butang_pilihan := Button.new()
+	butang_pilihan.text = "..."
+	butang_pilihan.add_theme_font_size_override("font_size", 9)
+	butang_pilihan.custom_minimum_size = Vector2(34, 34)
+	butang_pilihan.pressed.connect(_buka_dialog_pilihan.bind(id))
+	baris.add_child(butang_pilihan)
 
 	return baris
+
+func _buka_dialog_pilihan(id: String) -> void:
+	_id_dialog = id
+	_label_pilihan.text = "Save \"%s\"" % SaveManager.nama_slot(id)
+	_dialog_pilihan.popup_centered(Vector2i(250, 120))
+
+func _on_pilihan_slot(tindakan: StringName) -> void:
+	_dialog_pilihan.hide()
+	match tindakan:
+		"rename":
+			_buka_dialog_nama(_id_dialog)
+		"delete":
+			_buka_dialog_hapus(_id_dialog)
 
 func _pilih_slot(id: String) -> void:
 	SaveManager.tetapkan_slot(id)

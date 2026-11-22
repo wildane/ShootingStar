@@ -96,6 +96,8 @@ func _bina_ui() -> void:
 	var skrol := ScrollContainer.new()
 	skrol.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	skrol.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	# Bar scroll disembunyikan tetapi senarai masih boleh diskrol (drag).
+	skrol.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	isi.add_child(skrol)
 
 	_senarai = VBoxContainer.new()
