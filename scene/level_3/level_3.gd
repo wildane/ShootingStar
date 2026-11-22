@@ -70,7 +70,7 @@ func proses_selesai_load_json() -> void:
 	#        Overlay hitam milik level_3 di bawahnya menyambung paparan tanpa kelip.
 	SceneTransition.buang_perisai()
 	
-	# 4. Mulakan kesan fade terang milik level_3 sendiri selama 3 saat
+	# 4. Mulakan kesan fade terang milik level_3 sendiri selama 1 saat
 	mulakan_fade_terang()
 
 func spawn_local() -> void:
@@ -104,11 +104,11 @@ func spawn_local() -> void:
 
 # Memudar skrin hitam kepada terang semula (Fade Out skrin hitam)
 func mulakan_fade_terang() -> void:
-	print("[World] Memulakan fade out skrin hitam selama 3 saat...")
+	print("[World] Memulakan fade out skrin hitam selama 1 saat...")
 	var tween = create_tween()
 	
-	# Tukar alpha daripada 1.0 ke 0.0 selama 3 saat penuh bersambung lancar ke dalam game
-	tween.tween_property(overlay_gelap, "color:a", 0.0, 3.0)
+	# Tukar alpha daripada 1.0 ke 0.0 selama 1 saat, bersambung lancar ke dalam game
+	tween.tween_property(overlay_gelap, "color:a", 0.0, 1.0)
 	await tween.finished
 	
 	# Padam node parent CanvasLayer overlay setelah selesai untuk jimat RAM

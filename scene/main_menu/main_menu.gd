@@ -14,7 +14,6 @@ extends CanvasLayer
 @onready var butang_teruskan: Button = $UIRoot/HalamanMenu/PanelLatar/Kotak/Teruskan
 @onready var label_mesej: Label = $UIRoot/Mesej
 
-var _overlay: ColorRect
 # Dialog gaya neon panel (pilihan slot, tukar nama, padam).
 var _lapis_dialog: Control
 var _dialog_tajuk: Label
@@ -39,7 +38,6 @@ var _halaman: int = 0
 
 func _ready() -> void:
 	layer = 100
-	_bina_overlay()
 	_bina_dialog()
 	_bina_pager()
 
@@ -53,13 +51,6 @@ func _ready() -> void:
 	$UIRoot.modulate.a = 0.0
 	var tween := create_tween()
 	tween.tween_property($UIRoot, "modulate:a", 1.0, 0.35)
-
-func _bina_overlay() -> void:
-	_overlay = ColorRect.new()
-	_overlay.color = Color(0, 0, 0, 0)
-	_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_overlay)
 
 # Dialog dibina sendiri (bukan AcceptDialog) supaya rupanya sama dengan panel
 # neon dalam game: bingkai biru, butang biru dan tiada bar tetingkap kelabu.
@@ -267,13 +258,9 @@ func _ke_level() -> void:
 		_mesej("Target scene is not set")
 		return
 	_sibuk = true
-	_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	var tween := create_tween()
-	tween.tween_property(_overlay, "color:a", 1.0, tempoh_fade)
-	await tween.finished
-	# Pasang perisai hitam milik autoload supaya skrin kekal hitam sehingga
-	# level baharu siap dimuatkan (bukan kelabu).
-	SceneTransition.pasang_perisai()
+	# Satu-satunya mekanisme fade: perisai hitam autoload, yang kekal menutup
+	# skrin sehingga level baharu siap dimuatkan (bukan kelabu).
+	await SceneTransition.pudar_ke_hitam(tempoh_fade)
 	get_tree().change_scene_to_packed(scene_sasaran)
 
 # ==========================================
