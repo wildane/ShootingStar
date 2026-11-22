@@ -43,7 +43,8 @@ func bina_overlay_mula() -> void:
 	overlay_gelap = ColorRect.new()
 	overlay_gelap.color = Color(0, 0, 0, 1.0) # Sedia ada hitam pekat
 	overlay_gelap.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay_gelap.mouse_filter = Control.MOUSE_FILTER_STOP
+	# IGNORE supaya input sentuh/klik terus sampai ke pemain semasa fade visual
+	overlay_gelap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	var canvas_layer = CanvasLayer.new()
 	canvas_layer.layer = 99 # Diletakkan di layer 99 (Menu tadi berada di layer 100)

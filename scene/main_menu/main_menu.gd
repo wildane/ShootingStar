@@ -24,7 +24,8 @@ func bina_overlay_loading() -> void:
 	overlay_hitam = ColorRect.new()
 	overlay_hitam.color = Color(0, 0, 0, 0) # Mula lutsinar
 	overlay_hitam.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay_hitam.mouse_filter = Control.MOUSE_FILTER_STOP
+	# IGNORE supaya input tidak disekat oleh overlay fade visual
+	overlay_hitam.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(overlay_hitam)
 
 func mulakan_fade_in() -> void:
