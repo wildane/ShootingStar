@@ -250,6 +250,11 @@ func _kumpul_data_state() -> Dictionary:
 				data_objek["node_name"] = nod.name
 				data_keseluruhan["placed_objects"].append(data_objek)
 
+	# 2b. Simpan tile grid binaan pangkalan (lantai, dinding, pintu).
+	var grid_bina := get_tree().get_first_node_in_group("BuildGrid")
+	if grid_bina != null and grid_bina.has_method("dapatkan_data_save"):
+		data_keseluruhan["build_grid"] = grid_bina.call("dapatkan_data_save")
+
 	# 3. KEMAS KINI MUTLAK: Mencari MobSpawner DAN MeteoriteSpawner secara automatik
 	if scene_utama:
 		var semua_node = scene_utama.find_children("*", "Node2D", true, false)
@@ -383,6 +388,11 @@ func load_game(scene_aktif: Node = null):
 				y_sort_node.add_child(obj_instance)
 				# Pulihkan HP/tenaga objek (contoh: robot pekerja) selepas _ready.
 				_pakai_data_objek(obj_instance, data)
+
+	# 2b. Bina semula tile grid (lantai, dinding, pintu) dari simpanan.
+	var grid_bina := get_tree().get_first_node_in_group("BuildGrid")
+	if grid_bina != null and grid_bina.has_method("muat_data_save"):
+		grid_bina.call("muat_data_save", saved_data.get("build_grid", {}))
 
 	# 3. KEMAS KINI MUTLAK: Mengagihkan semula data kedudukan kepada MobSpawner dan MeteoriteSpawner
 	if scene_utama and saved_data.has("spawner_data"):

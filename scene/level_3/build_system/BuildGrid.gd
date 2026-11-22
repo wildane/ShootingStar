@@ -53,6 +53,7 @@ var _butang: Array[Button] = []
 var _label_status: Label
 
 func _ready() -> void:
+	add_to_group("BuildGrid")
 	mod_aktif = false
 	_bina_hud()
 
@@ -224,6 +225,20 @@ func padam(g: Vector2i) -> bool:
 	if not _tile.has(g):
 		_label_status.text = "Nothing to erase here"
 		return false
+	_buang_tile(g)
+	_label_status.text = "Tile erased"
+	queue_redraw()
+	return true
+
+# Buang semua tile: dipakai sebelum memuat semula grid dari fail simpanan.
+func kosongkan() -> void:
+	for g in _tile.keys():
+		_buang_tile(g)
+	_tile.clear()
+	queue_redraw()
+
+# Buang satu tile sahaja (tanpa sentuh teks status).
+func _buang_tile(g: Vector2i) -> void:
 	_tile.erase(g)
 	var badan: StaticBody2D = _badan_pintu.get(g, null)
 	if badan == null:
@@ -240,9 +255,32 @@ func padam(g: Vector2i) -> bool:
 	if paun != null and is_instance_valid(paun):
 		paun.queue_free()
 	_paun_pintu.erase(g)
-	_label_status.text = "Tile erased"
+
+# ==========================================
+# SIMPAN / MUAT TILE
+# ==========================================
+# Semua tile (lantai, dinding, pintu) disimpan sebagai senarai koordinat grid.
+func dapatkan_data_save() -> Dictionary:
+	var senarai: Array = []
+	for g in _tile:
+		senarai.append({"x": g.x, "y": g.y, "jenis": int(_tile[g])})
+	return {"tiles": senarai}
+
+# Bina semula tile dari fail simpanan. Grid dikosongkan dahulu supaya tiada
+# tile berganda kalau fungsi ini dipanggil dua kali.
+func muat_data_save(data: Dictionary) -> void:
+	kosongkan()
+	var senarai: Array = data.get("tiles", [])
+	for item in senarai:
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var jenis := int(item.get("jenis", JENIS_LANTAI))
+		if jenis < JENIS_LANTAI or jenis > JENIS_PINTU:
+			continue
+		var g := Vector2i(int(item.get("x", 0)), int(item.get("y", 0)))
+		_tile[g] = jenis
+		_bina_kolider(g, jenis)
 	queue_redraw()
-	return true
 
 func boleh_bina(g: Vector2i) -> bool:
 	if _tile.has(g):
