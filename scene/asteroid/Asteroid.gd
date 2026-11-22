@@ -19,6 +19,13 @@ extends Node2D
 ## Tukar state pemain (Base di dalam / Angkasa di luar) secara automatik.
 @export var tukar_state_pemain: bool = true
 
+@onready var _permukaan: Polygon2D = get_node_or_null("Permukaan") as Polygon2D
+@onready var _tepi: Line2D = get_node_or_null("Tepi") as Line2D
+@onready var _tepi_glow: Line2D = get_node_or_null("TepiGlow") as Line2D
+
+## Saiz tekstur permukaan batu (asteroid_surface.png) dalam piksel.
+const SAIZ_TEKSTUR: float = 1024.0
+
 var _poligon: PackedVector2Array = PackedVector2Array()
 var _poligon_dalam: PackedVector2Array = PackedVector2Array()
 
@@ -43,17 +50,36 @@ func _bina_bentuk() -> void:
 
 	# Tiada StaticBody2D / CollisionPolygon2D di sini dengan sengaja: asteroid
 	# tidak menyekat pemain, jadi pemain boleh terbang masuk terus.
+	_kemas_kini_rupa()
 	queue_redraw()
+
+# Isi bentuk batu dengan tekstur permukaan (kawah, habuk, rekahan) dan
+# selaraskan garis tepi dengan poligon yang sama.
+func _kemas_kini_rupa() -> void:
+	if _poligon.size() < 3:
+		return
+
+	if _permukaan:
+		_permukaan.polygon = _poligon
+		# Petakan SATU tekstur penuh merentasi batu supaya kawah tidak berulang.
+		var r_maks: float = 1.0
+		for p in _poligon:
+			r_maks = maxf(r_maks, p.length())
+		var skala: float = SAIZ_TEKSTUR / (2.0 * r_maks)
+		_permukaan.texture_scale = Vector2(skala, skala)
+		_permukaan.texture_offset = Vector2(SAIZ_TEKSTUR * 0.5, SAIZ_TEKSTUR * 0.5)
+
+	if _tepi:
+		_tepi.points = _poligon
+		_tepi.default_color = warna_tepi
+	if _tepi_glow:
+		_tepi_glow.points = _poligon
 
 func _draw() -> void:
 	if _poligon.size() < 3:
 		return
-
+	# Warna asas di bawah tekstur: pastikan tiada lubang jika tekstur gagal dimuat.
 	draw_colored_polygon(_poligon, warna_batu)
-	var tutup := _poligon.duplicate()
-	tutup.append(_poligon[0])
-	draw_polyline(tutup, warna_tepi, 3.0, true)
-	draw_polyline(tutup, Color(0.55, 0.88, 1.0, 0.12), 9.0, true)
 
 # Bolehkah tile dibina pada posisi dunia ini? Dipanggil oleh BuildGrid.
 # Ikut bentuk sebenar batu: tile mesti berada dalam kawasan dalam asteroid.
