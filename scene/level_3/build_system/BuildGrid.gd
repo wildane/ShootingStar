@@ -9,9 +9,10 @@ extends Node2D
 ##    bersambung 4-jiran dengan tile sedia ada. Jadi tiada struktur terapung
 ##    dan tiada dinding terpencil di angkasa.
 ##
-## Lantai tidak berkolider (pemain terapung/berjalan di atasnya), dinding
-## menyekat pemain, pintu terbuka automatik bila pemain hampir.
-## Mod Erase membuang tile yang tersalah letak.
+## Lantai tidak berkolider (pemain terapung/berjalan di atasnya), tetapi
+## setiap lantai menjadi zon bina (layer 3) supaya perabot boleh diletak di
+## atasnya. Dinding menyekat pemain, pintu terbuka automatik bila pemain
+## hampir. Mod Erase membuang tile yang tersalah letak.
 
 const SAIZ_SEL: int = 16
 const JENIS_LANTAI: int = 0
@@ -22,6 +23,9 @@ const NAMA_JENIS: Array[String] = ["Floor", "Wall", "Door", "Erase"]
 
 # Layer 4 (nilai 8) = environment, sama seperti meteorit dan asteroid.
 const LAYER_HALANGAN: int = 8
+# Layer 3 (nilai 4) = zon bina. Preview perabot hanya boleh dipasang bila
+# ia bertindih dengan zon ini.
+const LAYER_ZON_BINA: int = 4
 const JARAK_BUKA_PINTU: float = 22.0
 
 # Dipakai oleh AstroStateMachine supaya tap semasa mod bina tidak
@@ -31,6 +35,7 @@ static var mod_aktif: bool = false
 var _tile: Dictionary = {}        # Vector2i -> jenis
 var _badan_pintu: Dictionary = {} # Vector2i -> StaticBody2D
 var _pintu_dekat: Dictionary = {} # Vector2i -> bool
+var _zon_lantai: Dictionary = {}  # Vector2i -> Area2D (zon bina perabot)
 
 var _mod: int = -1
 var _jari: int = -1
@@ -127,6 +132,8 @@ func _pilih(jenis: int) -> void:
 		_butang[i].set_pressed_no_signal(i == jenis)
 	if jenis == JENIS_ERASE:
 		_label_status.text = "Erase: tap a tile to remove it"
+	elif jenis == JENIS_LANTAI:
+		_label_status.text = "Floor: tap inside the asteroid, then place furniture on it"
 	else:
 		_label_status.text = NAMA_JENIS[jenis] + ": tap inside the asteroid"
 
@@ -210,16 +217,18 @@ func padam(g: Vector2i) -> bool:
 	if not _tile.has(g):
 		_label_status.text = "Nothing to erase here"
 		return false
-	var jenis := int(_tile[g])
 	_tile.erase(g)
-	if jenis != JENIS_LANTAI:
-		var badan: StaticBody2D = _badan_pintu.get(g, null)
-		if badan == null:
-			badan = get_node_or_null("Grid_%d_%d" % [g.x, g.y]) as StaticBody2D
-		if badan != null and is_instance_valid(badan):
-			badan.queue_free()
+	var badan: StaticBody2D = _badan_pintu.get(g, null)
+	if badan == null:
+		badan = get_node_or_null("Grid_%d_%d" % [g.x, g.y]) as StaticBody2D
+	if badan != null and is_instance_valid(badan):
+		badan.queue_free()
 	_badan_pintu.erase(g)
 	_pintu_dekat.erase(g)
+	var zon: Area2D = _zon_lantai.get(g, null)
+	if zon != null and is_instance_valid(zon):
+		zon.queue_free()
+	_zon_lantai.erase(g)
 	_label_status.text = "Tile erased"
 	queue_redraw()
 	return true
@@ -244,6 +253,7 @@ func _atas_asteroid(pos: Vector2) -> bool:
 
 func _bina_kolider(g: Vector2i, jenis: int) -> void:
 	if jenis == JENIS_LANTAI:
+		_bina_zon_lantai(g)
 		return
 	var badan := StaticBody2D.new()
 	badan.name = "Grid_%d_%d" % [g.x, g.y]
@@ -258,6 +268,25 @@ func _bina_kolider(g: Vector2i, jenis: int) -> void:
 	add_child(badan)
 	if jenis == JENIS_PINTU:
 		_badan_pintu[g] = badan
+
+# Lantai tiada kolider, tetapi ia menjadi zon bina (layer 3) supaya preview
+# perabot menganggap sel ini sebagai lantai yang sah untuk membina.
+func _bina_zon_lantai(g: Vector2i) -> void:
+	var zon := Area2D.new()
+	zon.name = "Lantai_%d_%d" % [g.x, g.y]
+	zon.position = _tengah_sel(g)
+	zon.collision_layer = LAYER_ZON_BINA
+	zon.collision_mask = 0
+	# Preview perabot mengimbas kawasan ini; zon tidak perlu mengimbas apa-apa.
+	zon.monitoring = false
+	zon.monitorable = true
+	var bentuk := CollisionShape2D.new()
+	var segi := RectangleShape2D.new()
+	segi.size = Vector2(SAIZ_SEL, SAIZ_SEL)
+	bentuk.shape = segi
+	zon.add_child(bentuk)
+	add_child(zon)
+	_zon_lantai[g] = zon
 
 # Pintu terbuka (kolider dimatikan) bila pemain berada dekat.
 func _physics_process(_delta: float) -> void:

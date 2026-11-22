@@ -36,6 +36,52 @@ func arah_gabungan(arah_joystick: Vector2) -> Vector2:
 		return arah_joystick
 	return arah_papan_kekunci()
 
+# ==========================================================
+# SAMBUNG KAWALAN SENTUH MERENTAS STATE
+# State bertukar ketika jari masih menekan skrin. State baru mengambil
+# semula jari itu sebagai joystick (dan sasaran click-to-move) supaya player
+# terus bergerak tanpa perlu angkat jari dan tekan semula.
+# ==========================================================
+func warisi_kawalan_sentuh(julat_joystick: float, zon_mati: float) -> Dictionary:
+	var hasil := {
+		"ada": false,
+		"id": -1,
+		"pusat": Vector2.ZERO,
+		"arah": Vector2.ZERO,
+		"sentuhan": {},
+		"sasaran_ada": false,
+		"sasaran_pos": Vector2.ZERO,
+	}
+	if astro == null:
+		return hasil
+
+	var sm = astro.get_node_or_null("StateMachine")
+	if sm == null:
+		return hasil
+
+	var sentuhan: Dictionary = sm.jari_tertekan.duplicate()
+	hasil["sentuhan"] = sentuhan
+	hasil["sasaran_ada"] = bool(sm.sasaran_lama_ada)
+	hasil["sasaran_pos"] = sm.sasaran_lama_pos
+
+	if sm.jari_joystick == -1 or not sentuhan.has(sm.jari_joystick):
+		return hasil
+
+	var id: int = sm.jari_joystick
+	var posisi: Vector2 = sentuhan[id]
+	var pusat: Vector2 = sm.pusat_jari.get(id, posisi)
+	var julat: float = maxf(julat_joystick, 1.0)
+	var delta: Vector2 = posisi - pusat
+	if delta.length() > julat:
+		delta = delta.limit_length(julat)
+	var normalized: Vector2 = delta / julat
+
+	hasil["ada"] = true
+	hasil["id"] = id
+	hasil["pusat"] = pusat
+	hasil["arah"] = Vector2.ZERO if normalized.length() < zon_mati else normalized
+	return hasil
+
 func masuk_state() -> void:
 	pass
 

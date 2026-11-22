@@ -53,6 +53,18 @@ func masuk_state() -> void:
 	joystick_dir = Vector2.ZERO
 	touches.clear()
 	ada_target = false
+
+	# Sambung semula jari yang masih menekan skrin dan sasaran click-to-move
+	# dari state sebelumnya, supaya pergerakan tidak terhenti bila bertukar.
+	var warisan := warisi_kawalan_sentuh(joystick_range, deadzone)
+	touches = warisan["sentuhan"]
+	joystick_active = warisan["ada"]
+	joystick_id = warisan["id"]
+	joystick_center = warisan["pusat"]
+	joystick_dir = warisan["arah"]
+	if warisan["sasaran_ada"] and joystick_dir.length() == 0.0 and astro:
+		pos_target = warisan["sasaran_pos"]
+		ada_target = astro.global_position.distance_to(pos_target) > jarak_berhenti
 	
 	if astro:
 		lock_on_comp = astro.get_node_or_null("LockOnComponent")
