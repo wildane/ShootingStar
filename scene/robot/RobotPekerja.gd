@@ -4,6 +4,8 @@ const SkripPeta := preload("res://scene/level_3/navigation/PetaNavigasi.gd")
 const SkripReka := preload("res://scene/robot/RekaRobot.gd")
 # Saiz lukisan badan robot (pose terbang mendatar, ~38 x 17 unit).
 const SKALA_BADAN: float = 0.5
+# Sama dengan PetaNavigasi: layer 2 (batu) + layer 4 (dinding/pintu BuildGrid).
+const LAPIS_HALANGAN: int = 10
 
 ## Robot pekerja perlombongan.
 ## Dibuat di Fabricator. Selepas itu ia bekerja sendiri tanpa pemain:
@@ -312,6 +314,15 @@ func _dalam_mod_laluan() -> bool:
 	return not _laluan.is_empty() and _laluan_indeks < _laluan.size()
 
 
+# Semua pautan pintu: Doorway_Actual (teleport) dan PintuGrid (pintu yang
+# dibina pemain). Pintu grid tiada lalu_automatik(), jadi robot cuma berjalan
+# melaluinya kerana pintu itu terbuka bila robot menghampiri.
+func _semua_pintu() -> Array:
+	var senarai: Array = get_tree().get_nodes_in_group("Pintu")
+	senarai.append_array(get_tree().get_nodes_in_group("PintuGrid"))
+	return senarai
+
+
 func _cari_pintu() -> Node2D:
 	var terbaik: Node2D = null
 	var jarak_terbaik := INF
@@ -489,8 +500,9 @@ func _sinar_dinding(dari: Vector2, arah: Vector2, jarak: float) -> Dictionary:
 	var ruang := get_world_2d().direct_space_state
 	if ruang == null:
 		return {}
-	# Mask 2 = layer dinding. Robot sendiri dikecualikan.
-	var pertanyaan := PhysicsRayQueryParameters2D.create(dari, dari + arah * jarak, 2)
+	# Layer 2 = batu/meteorit, layer 4 = dinding dan pintu yang dibina pemain.
+	# Robot sendiri dikecualikan.
+	var pertanyaan := PhysicsRayQueryParameters2D.create(dari, dari + arah * jarak, LAPIS_HALANGAN)
 	var kecuali: Array[RID] = [get_rid()]
 	pertanyaan.exclude = kecuali
 	pertanyaan.collide_with_areas = false
@@ -525,7 +537,7 @@ func _minta_laluan(ke: Vector2) -> bool:
 	var ruang := get_world_2d().direct_space_state
 	if ruang == null:
 		return false
-	var senarai_pintu: Array = get_tree().get_nodes_in_group("Pintu")
+	var senarai_pintu: Array = _semua_pintu()
 	var kawasan := _kawasan_laluan(ke, senarai_pintu)
 	if _peta == null or _masa_peta <= 0.0 or not _peta.kotak.encloses(kawasan):
 		_peta = SkripPeta.new()

@@ -28,6 +28,12 @@ const LAYER_HALANGAN: int = 8
 const LAYER_ZON_BINA: int = 4
 const JARAK_BUKA_PINTU: float = 22.0
 
+# Aset tile: lantai, dinding dan pintu.
+const TEKSTUR_LANTAI: Texture2D = preload("res://scene/level_3/build_system/tile_floor.png")
+const TEKSTUR_DINDING: Texture2D = preload("res://scene/level_3/build_system/tile_wall.png")
+const TEKSTUR_PINTU: Texture2D = preload("res://scene/level_3/build_system/tile_door.png")
+const SKRIP_PINTU_GRID: Script = preload("res://scene/level_3/build_system/PintuGrid.gd")
+
 # Dipakai oleh AstroStateMachine supaya tap semasa mod bina tidak
 # menggerakkan pemain.
 static var mod_aktif: bool = false
@@ -36,6 +42,7 @@ var _tile: Dictionary = {}        # Vector2i -> jenis
 var _badan_pintu: Dictionary = {} # Vector2i -> StaticBody2D
 var _pintu_dekat: Dictionary = {} # Vector2i -> bool
 var _zon_lantai: Dictionary = {}  # Vector2i -> Area2D (zon bina perabot)
+var _paun_pintu: Dictionary = {}  # Vector2i -> PintuGrid (paun laluan robot)
 
 var _mod: int = -1
 var _jari: int = -1
@@ -229,6 +236,10 @@ func padam(g: Vector2i) -> bool:
 	if zon != null and is_instance_valid(zon):
 		zon.queue_free()
 	_zon_lantai.erase(g)
+	var paun = _paun_pintu.get(g, null)
+	if paun != null and is_instance_valid(paun):
+		paun.queue_free()
+	_paun_pintu.erase(g)
 	_label_status.text = "Tile erased"
 	queue_redraw()
 	return true
@@ -268,6 +279,34 @@ func _bina_kolider(g: Vector2i, jenis: int) -> void:
 	add_child(badan)
 	if jenis == JENIS_PINTU:
 		_badan_pintu[g] = badan
+		_bina_paun_pintu(g)
+
+# Node navigasi pintu: sistem laluan robot menyambung kedua-dua belah pintu
+# melalui titik_pintasan(), jadi robot boleh lalu dinding berpintu.
+func _bina_paun_pintu(g: Vector2i) -> void:
+	# Tanpa jenis: skrip PintuGrid menambah medan grid/sel pada node ini.
+	var paun = SKRIP_PINTU_GRID.new()
+	paun.name = "Pintu_%d_%d" % [g.x, g.y]
+	paun.grid = self
+	paun.sel = g
+	paun.saiz_sel = float(SAIZ_SEL)
+	paun.position = _tengah_sel(g)
+	paun.add_to_group("PintuGrid")
+	add_child(paun)
+	_paun_pintu[g] = paun
+
+# Paksi lintasan pintu: kalau dinding terletak di kiri/kanan pintu, robot
+# melintas atas-bawah; kalau dinding di atas/bawah, robot melintas kiri-kanan.
+func paksi_lintasan(g: Vector2i) -> Vector2:
+	var dinding_kiri: bool = int(_tile.get(g + Vector2i(-1, 0), -1)) == JENIS_DINDING
+	var dinding_kanan: bool = int(_tile.get(g + Vector2i(1, 0), -1)) == JENIS_DINDING
+	var dinding_atas: bool = int(_tile.get(g + Vector2i(0, -1), -1)) == JENIS_DINDING
+	var dinding_bawah: bool = int(_tile.get(g + Vector2i(0, 1), -1)) == JENIS_DINDING
+	var sisi: bool = dinding_kiri or dinding_kanan
+	var menegak: bool = dinding_atas or dinding_bawah
+	if sisi and not menegak:
+		return Vector2.DOWN
+	return Vector2.RIGHT
 
 # Lantai tiada kolider, tetapi ia menjadi zon bina (layer 3) supaya preview
 # perabot menganggap sel ini sebagai lantai yang sah untuk membina.
@@ -288,14 +327,23 @@ func _bina_zon_lantai(g: Vector2i) -> void:
 	add_child(zon)
 	_zon_lantai[g] = zon
 
-# Pintu terbuka (kolider dimatikan) bila pemain berada dekat.
+# Pintu terbuka (kolider dimatikan) bila pemain ATAU robot pekerja berada
+# dekat, supaya robot boleh masuk dan keluar bilik yang dibina pemain.
 func _physics_process(_delta: float) -> void:
 	if _badan_pintu.is_empty():
 		return
 	var pemain := get_tree().get_first_node_in_group("Player") as Node2D
+	var robot := get_tree().get_nodes_in_group("RobotPekerja")
 	for g in _badan_pintu:
+		var pusat := to_global(_tengah_sel(g))
 		var dekat: bool = pemain != null and is_instance_valid(pemain) \
-			and pemain.global_position.distance_to(_tengah_sel(g)) <= JARAK_BUKA_PINTU
+			and pemain.global_position.distance_to(pusat) <= JARAK_BUKA_PINTU
+		if not dekat:
+			for nod in robot:
+				if nod is Node2D and is_instance_valid(nod) \
+						and (nod as Node2D).global_position.distance_to(pusat) <= JARAK_BUKA_PINTU:
+					dekat = true
+					break
 		if bool(_pintu_dekat.get(g, false)) == dekat:
 			continue
 		_pintu_dekat[g] = dekat
@@ -312,23 +360,17 @@ func _draw() -> void:
 		var rect := Rect2(Vector2(g) * SAIZ_SEL, saiz)
 		match int(_tile[g]):
 			JENIS_LANTAI:
-				draw_rect(rect, Color(0.07, 0.22, 0.30, 0.82))
-				draw_rect(rect, Color(0.28, 0.66, 0.82, 0.55), false, 1.0)
+				draw_texture_rect(TEKSTUR_LANTAI, rect, false, Color(1, 1, 1, 0.95))
+				draw_rect(rect, Color(0.28, 0.66, 0.82, 0.22), false, 1.0)
 			JENIS_DINDING:
-				draw_rect(rect, Color(0.10, 0.17, 0.24, 0.95))
-				draw_rect(rect, Color(0.45, 0.95, 1.0, 0.9), false, 2.0)
-				draw_line(rect.position + Vector2(4, 4), rect.end - Vector2(4, 4),
-					Color(0.3, 0.7, 0.85, 0.45), 1.0)
+				draw_texture_rect(TEKSTUR_DINDING, rect, false)
 			JENIS_PINTU:
 				if bool(_pintu_dekat.get(g, false)):
-					draw_rect(rect, Color(0.2, 0.55, 0.65, 0.25))
-					draw_rect(rect, Color(0.5, 1.0, 1.0, 0.45), false, 1.0)
+					# Pintu terbuka: panel dipudarkan, bingkai sian menyala.
+					draw_texture_rect(TEKSTUR_PINTU, rect, false, Color(0.6, 0.95, 1.0, 0.4))
+					draw_rect(rect, Color(0.5, 1.0, 1.0, 0.5), false, 1.0)
 				else:
-					draw_rect(rect, Color(0.12, 0.30, 0.38, 0.95))
-					draw_rect(rect, Color(0.55, 1.0, 1.0, 0.95), false, 2.0)
-					draw_line(rect.position + Vector2(SAIZ_SEL * 0.5, 2),
-						rect.position + Vector2(SAIZ_SEL * 0.5, SAIZ_SEL - 2),
-						Color(0.05, 0.20, 0.28), 2.0)
+					draw_texture_rect(TEKSTUR_PINTU, rect, false)
 
 	if _ada_hantu and _mod >= 0:
 		var rect := Rect2(Vector2(_hantu) * SAIZ_SEL, saiz)

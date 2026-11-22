@@ -4,14 +4,17 @@ extends RefCounted
 ##
 ## Cara kerja:
 ## 1. Imbas seluruh kawasan (kotak yang diberi) dengan bentuk bulatan kecil
-##    pada layer dinding (2), lalu tandakan sel yang kosong sebagai boleh lalu.
+##    pada layer halangan, lalu tandakan sel yang kosong sebagai boleh lalu.
+##    Layer halangan = 2 (batu/meteorit) + 4 (dinding dan pintu yang dibina
+##    pemain di BuildGrid), jadi robot tidak lagi terbang menembusi dinding.
 ## 2. Sambung sel-sel kosong dengan AStar2D.
 ## 3. Setiap pintu didaftarkan sebagai pautan khas antara dua sisinya, jadi
 ##    laluan yang dikira akan "lalu pintu" bila itu satu-satunya jalan.
 ## 4. Hasilnya senarai titik {"pos": Vector2, "pintu": Node2D}. Titik yang ada
 ##    "pintu" bermaksud robot kena panggil lalu_automatik() di situ.
 
-const LAPIS_DINDING: int = 2
+# Bit layer 2 (nilai 2) + bit layer 4 (nilai 8, tile dinding/pintu BuildGrid).
+const LAPIS_DINDING: int = 10
 const LEBAR_ROBOT: float = 5.0
 
 var saiz_sel: float = 8.0
@@ -84,7 +87,9 @@ func pusat_sel(kol: int, bar: int) -> Vector2:
 	return kotak.position + Vector2((kol + 0.5) * saiz_sel, (bar + 0.5) * saiz_sel)
 
 
-## Daftar satu pintu sebagai pautan dua hala antara dua sisinya.
+## Daftar satu pintu sebagai pautan dua hala antara dua sisinya. Dipakai
+## untuk Doorway_Actual (teleport) dan juga PintuGrid (pintu yang dibina
+## pemain, yang benar-benar terbuka bila robot hampir).
 func tambah_pintu(pintu: Node2D) -> void:
 	if not sedia or not is_instance_valid(pintu):
 		return
