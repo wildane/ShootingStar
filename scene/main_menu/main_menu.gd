@@ -15,11 +15,15 @@ extends CanvasLayer
 @onready var label_mesej: Label = $UIRoot/Mesej
 
 var _overlay: ColorRect
-var _dialog_nama: ConfirmationDialog
+# Dialog gaya neon panel (pilihan slot, tukar nama, padam).
+var _lapis_dialog: Control
+var _dialog_tajuk: Label
+var _dialog_mesej: Label
 var _input_nama: LineEdit
-var _dialog_hapus: ConfirmationDialog
-var _dialog_pilihan: AcceptDialog
-var _label_pilihan: Label
+var _butang_a: Button
+var _butang_b: Button
+var _butang_tutup: Button
+var _dialog_modo: String = ""
 var _id_dialog: String = ""
 var _sibuk: bool = false
 var _tween_mesej: Tween
@@ -57,38 +61,187 @@ func _bina_overlay() -> void:
 	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_overlay)
 
+# Dialog dibina sendiri (bukan AcceptDialog) supaya rupanya sama dengan panel
+# neon dalam game: bingkai biru, butang biru dan tiada bar tetingkap kelabu.
 func _bina_dialog() -> void:
-	_dialog_nama = ConfirmationDialog.new()
-	_dialog_nama.title = "Rename Save"
-	_dialog_nama.ok_button_text = "Save"
-	_dialog_nama.cancel_button_text = "Cancel"
+	_lapis_dialog = Control.new()
+	_lapis_dialog.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_lapis_dialog.visible = false
+	$UIRoot.add_child(_lapis_dialog)
+
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.6)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	_lapis_dialog.add_child(dim)
+
+	var kotak := NinePatchRect.new()
+	kotak.texture = load("res://scene/main_menu/panel_menu.png")
+	kotak.patch_margin_left = 40
+	kotak.patch_margin_top = 40
+	kotak.patch_margin_right = 40
+	kotak.patch_margin_bottom = 40
+	kotak.anchor_left = 0.5
+	kotak.anchor_top = 0.5
+	kotak.anchor_right = 0.5
+	kotak.anchor_bottom = 0.5
+	kotak.offset_left = -125.0
+	kotak.offset_top = -105.0
+	kotak.offset_right = 125.0
+	kotak.offset_bottom = 105.0
+	_lapis_dialog.add_child(kotak)
+
+	var isi := VBoxContainer.new()
+	isi.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	isi.offset_left = 48.0
+	isi.offset_top = 48.0
+	isi.offset_right = -48.0
+	isi.offset_bottom = -48.0
+	isi.add_theme_constant_override("separation", 6)
+	isi.theme = _tema_dialog()
+	kotak.add_child(isi)
+
+	_dialog_tajuk = Label.new()
+	_dialog_tajuk.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_dialog_tajuk.add_theme_font_size_override("font_size", 11)
+	isi.add_child(_dialog_tajuk)
+
+	_dialog_mesej = Label.new()
+	_dialog_mesej.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_dialog_mesej.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_dialog_mesej.add_theme_font_size_override("font_size", 9)
+	_dialog_mesej.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_dialog_mesej.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	isi.add_child(_dialog_mesej)
+
 	_input_nama = LineEdit.new()
-	_input_nama.custom_minimum_size = Vector2(200, 0)
-	_input_nama.max_length = 40
 	_input_nama.placeholder_text = "Save name"
-	_dialog_nama.add_child(_input_nama)
-	_dialog_nama.confirmed.connect(_on_nama_disahkan)
-	add_child(_dialog_nama)
+	_input_nama.max_length = 40
+	_input_nama.custom_minimum_size = Vector2(0, 26)
+	_input_nama.add_theme_font_size_override("font_size", 10)
+	_input_nama.text_submitted.connect(_on_nama_dihantar)
+	isi.add_child(_input_nama)
 
-	_dialog_hapus = ConfirmationDialog.new()
-	_dialog_hapus.title = "Delete Save"
-	_dialog_hapus.ok_button_text = "Delete"
-	_dialog_hapus.cancel_button_text = "Cancel"
-	_dialog_hapus.confirmed.connect(_on_hapus_disahkan)
-	add_child(_dialog_hapus)
+	var baris := HBoxContainer.new()
+	baris.add_theme_constant_override("separation", 6)
+	isi.add_child(baris)
 
-	# Pilihan untuk satu slot: Rename atau Delete.
-	_dialog_pilihan = AcceptDialog.new()
-	_dialog_pilihan.title = "Save Options"
-	_dialog_pilihan.ok_button_text = "Close"
-	_label_pilihan = Label.new()
-	_label_pilihan.custom_minimum_size = Vector2(200, 0)
-	_label_pilihan.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_dialog_pilihan.add_child(_label_pilihan)
-	_dialog_pilihan.add_button("Rename", true, "rename")
-	_dialog_pilihan.add_button("Delete", true, "delete")
-	_dialog_pilihan.custom_action.connect(_on_pilihan_slot)
-	add_child(_dialog_pilihan)
+	_butang_a = Button.new()
+	_butang_a.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_butang_a.add_theme_font_size_override("font_size", 9)
+	_butang_a.pressed.connect(_on_dialog_a)
+	baris.add_child(_butang_a)
+
+	_butang_b = Button.new()
+	_butang_b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_butang_b.add_theme_font_size_override("font_size", 9)
+	_butang_b.pressed.connect(_on_dialog_b)
+	baris.add_child(_butang_b)
+
+	_butang_tutup = Button.new()
+	_butang_tutup.text = "Close"
+	_butang_tutup.custom_minimum_size = Vector2(0, 26)
+	_butang_tutup.add_theme_font_size_override("font_size", 9)
+	_butang_tutup.pressed.connect(_tutup_dialog)
+	isi.add_child(_butang_tutup)
+
+func _tema_dialog() -> Theme:
+	var tema := Theme.new()
+
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.054, 0.145, 0.211, 0.92)
+	normal.border_color = Color(0.36, 0.9, 1, 0.7)
+	normal.set_border_width_all(1)
+	normal.set_corner_radius_all(4)
+	normal.set_content_margin_all(4.0)
+
+	var hover := normal.duplicate() as StyleBoxFlat
+	hover.bg_color = Color(0.098, 0.278, 0.38, 0.96)
+	hover.border_color = Color(0.5, 0.97, 1, 1)
+
+	var pressed := normal.duplicate() as StyleBoxFlat
+	pressed.bg_color = Color(0.2, 0.55, 0.68, 1)
+	pressed.border_color = Color(0.75, 1, 1, 1)
+
+	var disabled := normal.duplicate() as StyleBoxFlat
+	disabled.bg_color = Color(0.05, 0.09, 0.13, 0.7)
+	disabled.border_color = Color(0.25, 0.42, 0.5, 0.5)
+
+	tema.set_stylebox("normal", "Button", normal)
+	tema.set_stylebox("hover", "Button", hover)
+	tema.set_stylebox("pressed", "Button", pressed)
+	tema.set_stylebox("focus", "Button", hover)
+	tema.set_stylebox("disabled", "Button", disabled)
+	tema.set_font_size("font_size", "Button", 9)
+	tema.set_color("font_color", "Button", Color(0.85, 0.97, 1, 1))
+	tema.set_color("font_hover_color", "Button", Color(1, 1, 1, 1))
+	tema.set_color("font_pressed_color", "Button", Color(0.05, 0.12, 0.16, 1))
+	tema.set_color("font_disabled_color", "Button", Color(0.46, 0.56, 0.63, 1))
+	tema.set_color("font_color", "Label", Color(0.82, 0.95, 1, 1))
+	tema.set_font_size("font_size", "Label", 9)
+
+	var kotak := normal.duplicate() as StyleBoxFlat
+	kotak.bg_color = Color(0.03, 0.09, 0.14, 0.95)
+	tema.set_stylebox("normal", "LineEdit", kotak)
+	tema.set_stylebox("focus", "LineEdit", hover)
+	tema.set_color("font_color", "LineEdit", Color(0.85, 0.97, 1, 1))
+	tema.set_color("caret_color", "LineEdit", Color(0.5, 0.97, 1, 1))
+	tema.set_font_size("font_size", "LineEdit", 10)
+	return tema
+
+# Buka dialog dalam salah satu mod: "pilihan", "nama" atau "hapus".
+func _buka_dialog(modo: String) -> void:
+	_dialog_modo = modo
+	_input_nama.visible = false
+	_butang_tutup.visible = modo == "pilihan"
+	_susun_modo(modo)
+	_lapis_dialog.visible = true
+	if _input_nama.visible:
+		_input_nama.grab_focus()
+		_input_nama.select_all()
+
+func _susun_modo(modo: String) -> void:
+	match modo:
+		"pilihan":
+			_dialog_tajuk.text = "SAVE OPTIONS"
+			_dialog_mesej.text = "Save \"%s\"" % SaveManager.nama_slot(_id_dialog)
+			_butang_a.text = "Rename"
+			_butang_b.text = "Delete"
+		"nama":
+			_dialog_tajuk.text = "RENAME SAVE"
+			_dialog_mesej.text = "Enter a new name:"
+			_butang_a.text = "Save"
+			_butang_b.text = "Cancel"
+			_input_nama.text = SaveManager.nama_slot(_id_dialog)
+			_input_nama.visible = true
+		"hapus":
+			_dialog_tajuk.text = "DELETE SAVE"
+			_dialog_mesej.text = "Delete \"%s\"?\nThis cannot be undone." % SaveManager.nama_slot(_id_dialog)
+			_butang_a.text = "Delete"
+			_butang_b.text = "Cancel"
+
+func _on_dialog_a() -> void:
+	match _dialog_modo:
+		"pilihan":
+			_buka_dialog("nama")
+		"nama":
+			_on_nama_disahkan()
+		"hapus":
+			_on_hapus_disahkan()
+
+func _on_dialog_b() -> void:
+	if _dialog_modo == "pilihan":
+		_buka_dialog("hapus")
+	else:
+		_tutup_dialog()
+
+func _on_nama_dihantar(_teks: String) -> void:
+	if _lapis_dialog.visible and _dialog_modo == "nama":
+		_on_nama_disahkan()
+
+func _tutup_dialog() -> void:
+	_dialog_modo = ""
+	_lapis_dialog.visible = false
 
 # ==========================================
 # BUTANG MENU
@@ -212,16 +365,7 @@ func _bina_baris_slot(slot: Dictionary) -> Control:
 
 func _buka_dialog_pilihan(id: String) -> void:
 	_id_dialog = id
-	_label_pilihan.text = "Save \"%s\"" % SaveManager.nama_slot(id)
-	_dialog_pilihan.popup_centered(Vector2i(250, 120))
-
-func _on_pilihan_slot(tindakan: StringName) -> void:
-	_dialog_pilihan.hide()
-	match tindakan:
-		"rename":
-			_buka_dialog_nama(_id_dialog)
-		"delete":
-			_buka_dialog_hapus(_id_dialog)
+	_buka_dialog("pilihan")
 
 func _pilih_slot(id: String) -> void:
 	SaveManager.tetapkan_slot(id)
@@ -231,13 +375,6 @@ func _pilih_slot(id: String) -> void:
 func _format_tarikh(masa: float) -> String:
 	return SaveManager.format_masa(masa)
 
-func _buka_dialog_nama(id: String) -> void:
-	_id_dialog = id
-	_input_nama.text = SaveManager.nama_slot(id)
-	_dialog_nama.popup_centered(Vector2i(250, 110))
-	_input_nama.grab_focus()
-	_input_nama.select_all()
-
 func _on_nama_disahkan() -> void:
 	var nama := _input_nama.text.strip_edges()
 	if nama == "":
@@ -246,17 +383,14 @@ func _on_nama_disahkan() -> void:
 	SaveManager.tukar_nama_slot(_id_dialog, nama)
 	_mesej("Save renamed")
 	_segarkan_senarai()
-
-func _buka_dialog_hapus(id: String) -> void:
-	_id_dialog = id
-	_dialog_hapus.dialog_text = "Delete save \"%s\"?\nThis cannot be undone." % SaveManager.nama_slot(id)
-	_dialog_hapus.popup_centered(Vector2i(250, 130))
+	_tutup_dialog()
 
 func _on_hapus_disahkan() -> void:
 	SaveManager.hapus_slot(_id_dialog)
 	_mesej("Save deleted")
 	_segarkan_senarai()
 	butang_teruskan.disabled = not SaveManager.ada_simpanan()
+	_tutup_dialog()
 
 func _mesej(teks: String) -> void:
 	label_mesej.text = teks
