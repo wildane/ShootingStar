@@ -13,11 +13,18 @@ const MOD_MENU := 2
 
 var mod_semasa: int = MOD_SIMPAN
 
+const SAIZ_HALAMAN := 3
+
 var _tajuk: Label
 var _petua: Label
 var _isi: VBoxContainer
 var _hub: VBoxContainer
 var _senarai: VBoxContainer
+var _butang_sebelum: Button
+var _butang_seterusnya: Button
+var _label_halaman: Label
+var _slot_semua: Array = []
+var _halaman: int = 0
 var _butang_baru: Button
 var _butang_tutup: Button
 var _status: Label
@@ -93,17 +100,36 @@ func _bina_ui() -> void:
 	_petua.add_theme_font_size_override("font_size", 8)
 	isi.add_child(_petua)
 
-	var skrol := ScrollContainer.new()
-	skrol.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	skrol.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	# Bar scroll disembunyikan tetapi senarai masih boleh diskrol (drag).
-	skrol.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	isi.add_child(skrol)
-
 	_senarai = VBoxContainer.new()
+	_senarai.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_senarai.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_senarai.add_theme_constant_override("separation", 6)
-	skrol.add_child(_senarai)
+	_senarai.add_theme_constant_override("separation", 4)
+	isi.add_child(_senarai)
+
+	# Navigasi halaman menggantikan bar scroll (skrol sentuh tidak berfungsi).
+	var baris_halaman := HBoxContainer.new()
+	baris_halaman.add_theme_constant_override("separation", 6)
+	isi.add_child(baris_halaman)
+
+	_butang_sebelum = Button.new()
+	_butang_sebelum.text = "<"
+	_butang_sebelum.custom_minimum_size = Vector2(34, 24)
+	_butang_sebelum.add_theme_font_size_override("font_size", 10)
+	_butang_sebelum.pressed.connect(_halaman_sebelum)
+	baris_halaman.add_child(_butang_sebelum)
+
+	_label_halaman = Label.new()
+	_label_halaman.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_label_halaman.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_label_halaman.add_theme_font_size_override("font_size", 8)
+	baris_halaman.add_child(_label_halaman)
+
+	_butang_seterusnya = Button.new()
+	_butang_seterusnya.text = ">"
+	_butang_seterusnya.custom_minimum_size = Vector2(34, 24)
+	_butang_seterusnya.add_theme_font_size_override("font_size", 10)
+	_butang_seterusnya.pressed.connect(_halaman_seterusnya)
+	baris_halaman.add_child(_butang_seterusnya)
 
 	_status = Label.new()
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -312,27 +338,53 @@ func segarkan_senarai() -> void:
 	_butang_tutup.text = "Back" if _dari_hub else ("Resume" if mod_simpan else "Cancel")
 	_status.text = ""
 
-	var jumlah := 0
+	_slot_semua = []
 	for slot in SaveManager.senarai_slot():
 		var id := str(slot["id"])
 		# Slot autosave tidak boleh ditimpa secara manual.
 		if mod_simpan and SaveManager.SLOT_AUTOSAVE.has(id):
 			continue
-		jumlah += 1
-		_senarai.add_child(_bina_baris(slot))
+		_slot_semua.append(slot)
+	_halaman = 0
+	_tunjuk_halaman()
+
+func _tunjuk_halaman() -> void:
+	for anak in _senarai.get_children():
+		_senarai.remove_child(anak)
+		anak.queue_free()
+
+	var jumlah: int = _slot_semua.size()
+	var maks: int = maxi(1, int(ceil(float(jumlah) / SAIZ_HALAMAN)))
+	_halaman = clampi(_halaman, 0, maks - 1)
+	var mula: int = _halaman * SAIZ_HALAMAN
+	var akhir: int = mini(mula + SAIZ_HALAMAN, jumlah)
+	for i in range(mula, akhir):
+		_senarai.add_child(_bina_baris(_slot_semua[i]))
 
 	if jumlah == 0:
 		var kosong := Label.new()
-		kosong.text = "No saves yet. Use New Save." if mod_simpan else "No saves yet."
+		kosong.text = "No saves yet. Use New Save." if mod_semasa == MOD_SIMPAN else "No saves yet."
 		kosong.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		kosong.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_senarai.add_child(kosong)
+
+	_butang_sebelum.disabled = _halaman <= 0
+	_butang_seterusnya.disabled = _halaman >= maks - 1
+	_label_halaman.text = "Page %d / %d" % [_halaman + 1, maks]
+
+func _halaman_sebelum() -> void:
+	_halaman -= 1
+	_tunjuk_halaman()
+
+func _halaman_seterusnya() -> void:
+	_halaman += 1
+	_tunjuk_halaman()
 
 func _bina_baris(slot: Dictionary) -> Control:
 	var butang := Button.new()
 	butang.text = "%s\n%s" % [str(slot["nama"]), _format_tarikh(float(slot["masa"]))]
 	butang.add_theme_font_size_override("font_size", 9)
-	butang.custom_minimum_size = Vector2(0, 34)
+	butang.custom_minimum_size = Vector2(0, 32)
 	butang.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	butang.pressed.connect(_on_slot.bind(str(slot["id"])))
 	return butang

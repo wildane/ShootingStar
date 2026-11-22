@@ -8,7 +8,8 @@ extends CanvasLayer
 
 @onready var halaman_menu: Control = $UIRoot/HalamanMenu
 @onready var halaman_muat: Control = $UIRoot/HalamanMuat
-@onready var senarai_slot: VBoxContainer = $UIRoot/HalamanMuat/Panel/Isi/Skrol/SenaraiSlot
+@onready var senarai_slot: VBoxContainer = $UIRoot/HalamanMuat/Panel/Isi/SenaraiSlot
+@onready var pager: HBoxContainer = $UIRoot/HalamanMuat/Panel/Isi/Pager
 @onready var label_kosong: Label = $UIRoot/HalamanMuat/Panel/Isi/Kosong
 @onready var butang_teruskan: Button = $UIRoot/HalamanMenu/PanelLatar/Kotak/Teruskan
 @onready var label_mesej: Label = $UIRoot/Mesej
@@ -23,10 +24,20 @@ var _id_dialog: String = ""
 var _sibuk: bool = false
 var _tween_mesej: Tween
 
+# Navigasi halaman untuk senarai simpanan (bar scroll tidak boleh diskrol
+# dengan jari pada skrin sentuh).
+const SAIZ_HALAMAN := 4
+var _butang_sebelum: Button
+var _butang_seterusnya: Button
+var _label_halaman: Label
+var _slot_semua: Array = []
+var _halaman: int = 0
+
 func _ready() -> void:
 	layer = 100
 	_bina_overlay()
 	_bina_dialog()
+	_bina_pager()
 
 	$UIRoot/HalamanMenu/PanelLatar/Kotak/Teruskan.pressed.connect(_on_teruskan)
 	$UIRoot/HalamanMenu/PanelLatar/Kotak/PermainanBaru.pressed.connect(_on_permainan_baru)
@@ -122,13 +133,57 @@ func _tunjuk_halaman_menu() -> void:
 	halaman_menu.visible = true
 	butang_teruskan.disabled = not SaveManager.ada_simpanan()
 
+func _bina_pager() -> void:
+	_butang_sebelum = Button.new()
+	_butang_sebelum.text = "<"
+	_butang_sebelum.custom_minimum_size = Vector2(34, 24)
+	_butang_sebelum.add_theme_font_size_override("font_size", 10)
+	_butang_sebelum.pressed.connect(_halaman_sebelum)
+	pager.add_child(_butang_sebelum)
+
+	_label_halaman = Label.new()
+	_label_halaman.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_label_halaman.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_label_halaman.add_theme_font_size_override("font_size", 9)
+	pager.add_child(_label_halaman)
+
+	_butang_seterusnya = Button.new()
+	_butang_seterusnya.text = ">"
+	_butang_seterusnya.custom_minimum_size = Vector2(34, 24)
+	_butang_seterusnya.add_theme_font_size_override("font_size", 10)
+	_butang_seterusnya.pressed.connect(_halaman_seterusnya)
+	pager.add_child(_butang_seterusnya)
+
+func _halaman_sebelum() -> void:
+	_halaman -= 1
+	_tunjuk_halaman()
+
+func _halaman_seterusnya() -> void:
+	_halaman += 1
+	_tunjuk_halaman()
+
 func _segarkan_senarai() -> void:
+	_slot_semua = SaveManager.senarai_slot()
+	_halaman = 0
+	label_kosong.visible = _slot_semua.is_empty()
+	_tunjuk_halaman()
+
+func _tunjuk_halaman() -> void:
 	for anak in senarai_slot.get_children():
+		senarai_slot.remove_child(anak)
 		anak.queue_free()
-	var senarai := SaveManager.senarai_slot()
-	label_kosong.visible = senarai.is_empty()
-	for slot in senarai:
-		senarai_slot.add_child(_bina_baris_slot(slot))
+
+	var jumlah: int = _slot_semua.size()
+	var maks: int = maxi(1, int(ceil(float(jumlah) / SAIZ_HALAMAN)))
+	_halaman = clampi(_halaman, 0, maks - 1)
+	var mula: int = _halaman * SAIZ_HALAMAN
+	var akhir: int = mini(mula + SAIZ_HALAMAN, jumlah)
+	for i in range(mula, akhir):
+		senarai_slot.add_child(_bina_baris_slot(_slot_semua[i]))
+
+	_butang_sebelum.disabled = _halaman <= 0
+	_butang_seterusnya.disabled = _halaman >= maks - 1
+	_label_halaman.text = "Page %d / %d" % [_halaman + 1, maks]
 
 func _bina_baris_slot(slot: Dictionary) -> Control:
 	var id := str(slot["id"])

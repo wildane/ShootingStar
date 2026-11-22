@@ -213,16 +213,16 @@ theme_override_font_sizes/font_size = 13
 text = "LOAD GAME"
 horizontal_alignment = 1
 
-[node name="Skrol" type="ScrollContainer" parent="UIRoot/HalamanMuat/Panel/Isi"]
-layout_mode = 2
-size_flags_vertical = 3
-horizontal_scroll_mode = 0
-vertical_scroll_mode = 3
-
-[node name="SenaraiSlot" type="VBoxContainer" parent="UIRoot/HalamanMuat/Panel/Isi/Skrol"]
+[node name="SenaraiSlot" type="VBoxContainer" parent="UIRoot/HalamanMuat/Panel/Isi"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_constants/separation = 6
+
+[node name="Pager" type="HBoxContainer" parent="UIRoot/HalamanMuat/Panel/Isi"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
 
 [node name="Kosong" type="Label" parent="UIRoot/HalamanMuat/Panel/Isi"]
 visible = false
