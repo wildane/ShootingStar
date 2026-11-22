@@ -71,10 +71,12 @@ func _bina_ui() -> void:
 
 	var isi := VBoxContainer.new()
 	isi.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	isi.offset_left = 16.0
-	isi.offset_top = 16.0
-	isi.offset_right = -16.0
-	isi.offset_bottom = -16.0
+	# Rangka biru panel berada ~42 px dari tepi panel; kandungan diinset lebih
+	# supaya tulisan tidak terkeluar dari kotak biru itu.
+	isi.offset_left = 48.0
+	isi.offset_top = 48.0
+	isi.offset_right = -48.0
+	isi.offset_bottom = -48.0
 	isi.add_theme_constant_override("separation", 8)
 	isi.theme = _bina_tema()
 	panel.add_child(isi)
@@ -132,10 +134,10 @@ func _bina_ui() -> void:
 func _bina_hub(panel: Control) -> void:
 	_hub = VBoxContainer.new()
 	_hub.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_hub.offset_left = 16.0
-	_hub.offset_top = 16.0
-	_hub.offset_right = -16.0
-	_hub.offset_bottom = -16.0
+	_hub.offset_left = 48.0
+	_hub.offset_top = 48.0
+	_hub.offset_right = -48.0
+	_hub.offset_bottom = -48.0
 	_hub.add_theme_constant_override("separation", 10)
 	_hub.alignment = BoxContainer.ALIGNMENT_CENTER
 	_hub.theme = _bina_tema()
@@ -205,18 +207,18 @@ func _bina_dialog() -> void:
 	kotak.anchor_top = 0.5
 	kotak.anchor_right = 0.5
 	kotak.anchor_bottom = 0.5
-	kotak.offset_left = -110.0
-	kotak.offset_top = -80.0
-	kotak.offset_right = 110.0
-	kotak.offset_bottom = 80.0
+	kotak.offset_left = -125.0
+	kotak.offset_top = -105.0
+	kotak.offset_right = 125.0
+	kotak.offset_bottom = 105.0
 	_lapis_dialog.add_child(kotak)
 
 	var isi := VBoxContainer.new()
 	isi.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	isi.offset_left = 14.0
-	isi.offset_top = 14.0
-	isi.offset_right = -14.0
-	isi.offset_bottom = -14.0
+	isi.offset_left = 48.0
+	isi.offset_top = 48.0
+	isi.offset_right = -48.0
+	isi.offset_bottom = -48.0
 	isi.add_theme_constant_override("separation", 6)
 	kotak.add_child(isi)
 
