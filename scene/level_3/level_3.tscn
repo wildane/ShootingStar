@@ -22,7 +22,7 @@
 [ext_resource type="Texture2D" uid="uid://bg5enkd6gvggt" path="res://scene/WeaponAttachment/Drone/Image_836.png" id="16_hr2ua"]
 [ext_resource type="Script" uid="uid://buqleo35c8ejd" path="res://scene/WeaponAttachment/Drone/DroneDeployer.gd" id="18_6tocp"]
 [ext_resource type="PackedScene" path="res://scene/WeaponAttachment/Drone/DroneRingan.tscn" id="19_bkd2d"]
-[ext_resource type="PackedScene" uid="uid://dbya4w0m1j8on" path="res://scene/meteorite/ MeteoriteSpawner.tscn" id="20_6tocp"]
+[ext_resource type="PackedScene" uid="uid://dbya4w0m1j8on" path="res://scene/meteorite/MeteoriteSpawner.tscn" id="20_6tocp"]
 [ext_resource type="PackedScene" path="res://scene/WeaponAttachment/Drone/DroneSederhana.tscn" id="20_dronx"]
 [ext_resource type="Script" uid="uid://cpmgupgkb5tuj" path="res://scene/level_3/SpawnDirection.gd" id="20_hbouw"]
 [ext_resource type="PackedScene" uid="uid://b84yge1ac2jsl" path="res://scene/level_3/build_system/doorway/Doorway_Actual.tscn" id="20_nw5os"]
