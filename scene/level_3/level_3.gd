@@ -11,6 +11,7 @@ func _ready() -> void:
 	# 1. Bina lapisan hitam pekat bersiap sedia di bawah lapisan menu (Alpha = 1.0)
 	bina_overlay_mula()
 	_bina_hud_hp_pemain()
+	_bina_butang_simpan()
 	
 	# 2. Hubungkan isyarat daripada JSON
 	if not SaveManager.semua_data_siap_di_load.is_connected(proses_selesai_load_json):
@@ -117,6 +118,43 @@ func mulakan_fade_terang() -> void:
 func save_world() -> void:
 	SaveManager.save_game()
 	print("[World] Dunia hibrid berjaya disimpan ke storan!")
+
+# Butang simpan pantas di kiri atas HUD.
+func _bina_butang_simpan() -> void:
+	var canvas = get_node_or_null("CanvasLayer")
+	if canvas == null or canvas.has_node("ButangSimpan"):
+		return
+	var butang := Button.new()
+	butang.name = "ButangSimpan"
+	butang.text = "SIMPAN"
+	butang.add_theme_font_size_override("font_size", 9)
+	butang.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	butang.offset_left = 6
+	butang.offset_top = 6
+	butang.offset_right = 54
+	butang.offset_bottom = 28
+	butang.pressed.connect(_on_butang_simpan)
+	canvas.add_child(butang)
+
+	var maklum := Label.new()
+	maklum.name = "MaklumSimpan"
+	maklum.add_theme_font_size_override("font_size", 9)
+	maklum.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	maklum.offset_left = 58
+	maklum.offset_top = 9
+	maklum.modulate.a = 0.0
+	canvas.add_child(maklum)
+
+func _on_butang_simpan() -> void:
+	save_world()
+	var maklum := get_node_or_null("CanvasLayer/MaklumSimpan") as Label
+	if maklum == null:
+		return
+	maklum.text = "Disimpan: %s" % SaveManager.nama_slot(SaveManager.slot_aktif)
+	maklum.modulate.a = 1.0
+	var tween := create_tween()
+	tween.tween_interval(1.4)
+	tween.tween_property(maklum, "modulate:a", 0.0, 0.6)
 
 func _physics_process(_delta: float) -> void:
 	pass 

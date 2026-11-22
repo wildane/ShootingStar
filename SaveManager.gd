@@ -1,10 +1,23 @@
 extends Node
 
 signal semua_data_siap_di_load
-const SAVE_PATH_JSON = "user://savegame.json"
+
+# Simpanan berbilang slot: setiap slot satu fail JSON dalam user://saves/.
+# Nama dan masa setiap slot disimpan dalam katalog supaya boleh ditukar nama
+# atau dipadam dari halaman Muat Simpanan.
+const DIREKTORI_SAVE = "user://saves"
+const KATALOG_PATH = "user://saves/katalog.json"
+const LALUAN_LAMA = "user://savegame.json"
+
+# Slot yang sedang dimainkan ("" = permainan baharu, belum ada slot).
+var slot_aktif: String = ""
 
 # Data pemain terakhir yang dibaca dari fail (posisi, HP, tenaga).
 var data_player: Dictionary = {}
+
+func _ready() -> void:
+	_sediakan_direktori()
+	_migrasi_simpanan_lama()
 
 func _notification(what):
 	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_WINDOW_FOCUS_OUT, NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_WM_CLOSE_REQUEST, NOTIFICATION_WM_GO_BACK_REQUEST]:
@@ -14,6 +27,151 @@ func semak_dan_auto_save():
 	var scene_utama = Engine.get_main_loop().current_scene
 	if scene_utama and scene_utama.scene_file_path.get_file() == "level_3.tscn":
 		save_game()
+
+# ==========================================
+# SIMPANAN BERBILANG SLOT
+# ==========================================
+func _sediakan_direktori() -> void:
+	if not DirAccess.dir_exists_absolute(DIREKTORI_SAVE):
+		DirAccess.make_dir_recursive_absolute(DIREKTORI_SAVE)
+
+func _laluan_slot(id: String) -> String:
+	return DIREKTORI_SAVE.path_join("data_%s.json" % id)
+
+func _baca_katalog() -> Dictionary:
+	if not FileAccess.file_exists(KATALOG_PATH):
+		return {}
+	var file := FileAccess.open(KATALOG_PATH, FileAccess.READ)
+	if file == null:
+		return {}
+	var data = JSON.parse_string(file.get_as_text())
+	file.close()
+	if typeof(data) != TYPE_DICTIONARY:
+		return {}
+	return data
+
+func _tulis_katalog(katalog: Dictionary) -> void:
+	var file := FileAccess.open(KATALOG_PATH, FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(katalog, "\t"))
+		file.close()
+
+# Semua slot, paling baharu dahulu (ikut masa simpanan terakhir).
+func senarai_slot() -> Array:
+	var hasil: Array = []
+	if not DirAccess.dir_exists_absolute(DIREKTORI_SAVE):
+		return hasil
+	var katalog := _baca_katalog()
+	var dir := DirAccess.open(DIREKTORI_SAVE)
+	if dir == null:
+		return hasil
+	dir.list_dir_begin()
+	var nama_fail := dir.get_next()
+	while nama_fail != "":
+		if not dir.current_is_dir() and nama_fail.begins_with("data_") and nama_fail.ends_with(".json"):
+			var id := nama_fail.substr(5, nama_fail.length() - 10)
+			var meta: Dictionary = katalog.get(id, {})
+			var laluan := _laluan_slot(id)
+			hasil.append({
+				"id": id,
+				"nama": str(meta.get("nama", "Simpanan %s" % id)),
+				"masa": float(meta.get("masa", FileAccess.get_modified_time(laluan))),
+			})
+		nama_fail = dir.get_next()
+	dir.list_dir_end()
+	hasil.sort_custom(func(a, b): return float(a["masa"]) > float(b["masa"]))
+	return hasil
+
+func ada_simpanan() -> bool:
+	return not senarai_slot().is_empty()
+
+func slot_terbaru() -> String:
+	var senarai := senarai_slot()
+	if senarai.is_empty():
+		return ""
+	return str(senarai[0]["id"])
+
+func nama_slot(id: String) -> String:
+	for slot in senarai_slot():
+		if str(slot["id"]) == id:
+			return str(slot["nama"])
+	return id
+
+func cipta_slot_baru(nama: String = "") -> String:
+	var katalog := _baca_katalog()
+	var asas := "s%d" % int(Time.get_unix_time_from_system())
+	var id := asas
+	var nombor := 2
+	while FileAccess.file_exists(_laluan_slot(id)) or katalog.has(id):
+		id = "%s_%d" % [asas, nombor]
+		nombor += 1
+	var nama_akhir := nama.strip_edges()
+	if nama_akhir == "":
+		nama_akhir = "Simpanan %d" % (senarai_slot().size() + 1)
+	katalog[id] = {"nama": nama_akhir, "masa": Time.get_unix_time_from_system()}
+	_tulis_katalog(katalog)
+	return id
+
+func tukar_nama_slot(id: String, nama_baru: String) -> void:
+	var nama := nama_baru.strip_edges()
+	if nama == "":
+		return
+	var katalog := _baca_katalog()
+	var meta: Dictionary = katalog.get(id, {})
+	meta["nama"] = nama
+	if not meta.has("masa"):
+		meta["masa"] = float(FileAccess.get_modified_time(_laluan_slot(id)))
+	katalog[id] = meta
+	_tulis_katalog(katalog)
+
+func hapus_slot(id: String) -> void:
+	if FileAccess.file_exists(_laluan_slot(id)):
+		DirAccess.remove_absolute(_laluan_slot(id))
+	var katalog := _baca_katalog()
+	if katalog.has(id):
+		katalog.erase(id)
+		_tulis_katalog(katalog)
+	if slot_aktif == id:
+		slot_aktif = ""
+
+# Permainan baharu: lupakan slot lama dan kosongkan inventori.
+func mula_permainan_baru() -> void:
+	slot_aktif = ""
+	data_player = {}
+	var inv_manager = get_node_or_null("/root/InventoryManager")
+	if inv_manager:
+		inv_manager.senarai_barang.clear()
+		inv_manager.inventory_dikemaskini.emit()
+
+# Pilih slot untuk dimuatkan oleh scene seterusnya (level_3 panggil load_game).
+func tetapkan_slot(id: String) -> void:
+	data_player = {}
+	slot_aktif = id
+
+func _kemas_kini_masa_slot(id: String) -> void:
+	var katalog := _baca_katalog()
+	var meta: Dictionary = katalog.get(id, {})
+	if meta.is_empty():
+		meta["nama"] = "Simpanan %s" % id
+	meta["masa"] = Time.get_unix_time_from_system()
+	katalog[id] = meta
+	_tulis_katalog(katalog)
+
+# Pindahkan fail simpanan tunggal versi lama ke slot pertama.
+func _migrasi_simpanan_lama() -> void:
+	if not FileAccess.file_exists(LALUAN_LAMA):
+		return
+	if not senarai_slot().is_empty():
+		# Sudah ada slot baharu: fail lama tidak dipakai lagi.
+		DirAccess.remove_absolute(LALUAN_LAMA)
+		return
+	var id := "lama"
+	var laluan := _laluan_slot(id)
+	DirAccess.rename_absolute(LALUAN_LAMA, laluan)
+	var katalog := _baca_katalog()
+	katalog[id] = {"nama": "Simpanan Lama", "masa": float(FileAccess.get_modified_time(laluan))}
+	_tulis_katalog(katalog)
+	print("[Save] Simpanan versi lama dipindahkan ke slot 'lama'.")
 
 func save_game():
 	var scene_utama = Engine.get_main_loop().current_scene
@@ -70,19 +228,24 @@ func save_game():
 			if node.has_method("dapatkan_data_save") and "spawner_id" in node:
 				data_keseluruhan["spawner_data"][node.spawner_id] = node.dapatkan_data_save()
 
-	var file = FileAccess.open(SAVE_PATH_JSON, FileAccess.WRITE)
+	# Simpan ke slot aktif; permainan baharu belum ada slot, jadi cipta satu.
+	if slot_aktif == "":
+		slot_aktif = cipta_slot_baru()
+	var file = FileAccess.open(_laluan_slot(slot_aktif), FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(data_keseluruhan, "\t"))
 		file.close()
+		_kemas_kini_masa_slot(slot_aktif)
 
 func load_game(scene_aktif: Node = null):
 	# Buang data pemain lama supaya fail tanpa player_data tidak guna nilai basi.
 	data_player = {}
-	if not FileAccess.file_exists(SAVE_PATH_JSON):
+	# Tiada slot aktif = permainan baharu: mula tanpa data simpanan.
+	if slot_aktif == "" or not FileAccess.file_exists(_laluan_slot(slot_aktif)):
 		semua_data_siap_di_load.emit()
 		return
 	
-	var file = FileAccess.open(SAVE_PATH_JSON, FileAccess.READ)
+	var file = FileAccess.open(_laluan_slot(slot_aktif), FileAccess.READ)
 	var saved_data = JSON.parse_string(file.get_as_text())
 	file.close()
 	if not saved_data:

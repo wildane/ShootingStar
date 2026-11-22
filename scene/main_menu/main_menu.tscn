@@ -1,16 +1,95 @@
-[gd_scene format=3 uid="uid://bblniyuy7m3ni"]
+[gd_scene load_steps=10 format=3 uid="uid://bblniyuy7m3ni"]
 
 [ext_resource type="Script" uid="uid://b32q8t4ti1fgw" path="res://scene/main_menu/main_menu.gd" id="1_o25w2"]
 [ext_resource type="PackedScene" uid="uid://j4y45hm8o5ek" path="res://scene/level_3/level_3.tscn" id="2_6836v"]
 [ext_resource type="Texture2D" uid="uid://c3p4i0i8trsk8" path="res://scene/main_menu/Image_92.jpeg" id="2_cds3d"]
+[ext_resource type="Texture2D" path="res://scene/main_menu/panel_menu.png" id="3_panel"]
 
-[node name="MainMenu" type="CanvasLayer" unique_id=1601740250]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_normal"]
+content_margin_left = 8.0
+content_margin_top = 5.0
+content_margin_right = 8.0
+content_margin_bottom = 5.0
+bg_color = Color(0.054, 0.145, 0.211, 0.88)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.36, 0.9, 1, 0.7)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hover"]
+content_margin_left = 8.0
+content_margin_top = 5.0
+content_margin_right = 8.0
+content_margin_bottom = 5.0
+bg_color = Color(0.098, 0.278, 0.38, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.5, 0.97, 1, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pressed"]
+content_margin_left = 8.0
+content_margin_top = 5.0
+content_margin_right = 8.0
+content_margin_bottom = 5.0
+bg_color = Color(0.2, 0.55, 0.68, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.75, 1, 1, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_disabled"]
+content_margin_left = 8.0
+content_margin_top = 5.0
+content_margin_right = 8.0
+content_margin_bottom = 5.0
+bg_color = Color(0.05, 0.09, 0.13, 0.7)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.25, 0.42, 0.5, 0.5)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="Theme" id="Theme_menu"]
+Button/colors/font_color = Color(0.85, 0.97, 1, 1)
+Button/colors/font_disabled_color = Color(0.46, 0.56, 0.63, 1)
+Button/colors/font_hover_color = Color(1, 1, 1, 1)
+Button/colors/font_pressed_color = Color(0.05, 0.12, 0.16, 1)
+Button/font_sizes/font_size = 11
+Button/styles/disabled = SubResource("StyleBoxFlat_disabled")
+Button/styles/focus = SubResource("StyleBoxFlat_hover")
+Button/styles/hover = SubResource("StyleBoxFlat_hover")
+Button/styles/normal = SubResource("StyleBoxFlat_normal")
+Button/styles/pressed = SubResource("StyleBoxFlat_pressed")
+Label/colors/font_color = Color(0.82, 0.95, 1, 1)
+Label/font_sizes/font_size = 11
+LineEdit/font_sizes/font_size = 12
+
+[node name="MainMenu" type="CanvasLayer"]
 script = ExtResource("1_o25w2")
 scene_sasaran = ExtResource("2_6836v")
-tempoh_menunggu = 1.0
-tempoh_fade_in = 1.0
+tempoh_fade = 0.8
 
-[node name="TextureRect" type="TextureRect" parent="." unique_id=1093130925]
+[node name="Latar" type="TextureRect" parent="."]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -18,21 +97,151 @@ grow_horizontal = 2
 grow_vertical = 2
 texture = ExtResource("2_cds3d")
 expand_mode = 1
+stretch_mode = 6
 
-[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1116335654]
+[node name="UIRoot" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = SubResource("Theme_menu")
+
+[node name="HalamanMenu" type="Control" parent="UIRoot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PanelLatar" type="NinePatchRect" parent="UIRoot/HalamanMenu"]
+layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -21.0
-offset_top = -38.5
-offset_right = 21.0
-offset_bottom = 38.5
+offset_left = -125.0
+offset_top = -140.0
+offset_right = 125.0
+offset_bottom = 95.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 20
+texture = ExtResource("3_panel")
+patch_margin_left = 40
+patch_margin_top = 40
+patch_margin_right = 40
+patch_margin_bottom = 40
 
-[node name="GameTitle" type="Label" parent="VBoxContainer" unique_id=1004811711]
+[node name="Kotak" type="VBoxContainer" parent="UIRoot/HalamanMenu/PanelLatar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = 22.0
+offset_right = -18.0
+offset_bottom = -22.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Tajuk" type="Label" parent="UIRoot/HalamanMenu/PanelLatar/Kotak"]
 layout_mode = 2
-text = "Shooting Star"
+theme_override_font_sizes/font_size = 18
+text = "SHOOTING STAR"
+horizontal_alignment = 1
+
+[node name="Teruskan" type="Button" parent="UIRoot/HalamanMenu/PanelLatar/Kotak"]
+layout_mode = 2
+text = "Teruskan Main"
+
+[node name="PermainanBaru" type="Button" parent="UIRoot/HalamanMenu/PanelLatar/Kotak"]
+layout_mode = 2
+text = "Permainan Baru"
+
+[node name="Muat" type="Button" parent="UIRoot/HalamanMenu/PanelLatar/Kotak"]
+layout_mode = 2
+text = "Muat Simpanan"
+
+[node name="HalamanMuat" type="Control" parent="UIRoot"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="NinePatchRect" parent="UIRoot/HalamanMuat"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -125.0
+offset_top = -175.0
+offset_right = 125.0
+offset_bottom = 175.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("3_panel")
+patch_margin_left = 40
+patch_margin_top = 40
+patch_margin_right = 40
+patch_margin_bottom = 40
+
+[node name="Isi" type="VBoxContainer" parent="UIRoot/HalamanMuat/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+
+[node name="Tajuk" type="Label" parent="UIRoot/HalamanMuat/Panel/Isi"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "MUAT SIMPANAN"
+horizontal_alignment = 1
+
+[node name="Skrol" type="ScrollContainer" parent="UIRoot/HalamanMuat/Panel/Isi"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="SenaraiSlot" type="VBoxContainer" parent="UIRoot/HalamanMuat/Panel/Isi/Skrol"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="Kosong" type="Label" parent="UIRoot/HalamanMuat/Panel/Isi"]
+visible = false
+layout_mode = 2
+text = "Belum ada simpanan."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Kembali" type="Button" parent="UIRoot/HalamanMuat/Panel/Isi"]
+layout_mode = 2
+text = "Kembali"
+
+[node name="Mesej" type="Label" parent="UIRoot"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -30.0
+grow_horizontal = 2
+grow_vertical = 0
+text = "Mesej"
+horizontal_alignment = 1
