@@ -8,11 +8,15 @@ signal ditutup
 
 const MOD_SIMPAN := 0
 const MOD_MUAT := 1
+# Menu kecil dalam game: pilih SAVE, LOAD atau NEW GAME.
+const MOD_MENU := 2
 
 var mod_semasa: int = MOD_SIMPAN
 
 var _tajuk: Label
 var _petua: Label
+var _isi: VBoxContainer
+var _hub: VBoxContainer
 var _senarai: VBoxContainer
 var _butang_baru: Button
 var _butang_tutup: Button
@@ -25,12 +29,19 @@ var _dialog_mesej: Label
 var _input_nama: LineEdit
 var _butang_ya: Button
 var _id_sasaran: String = ""
+# Tindakan dialog yang sedang terbuka: "simpan", "timpa" atau "baru".
+var _dialog_tindakan: String = "simpan"
+# Senarai dibuka daripada menu dalam game, jadi butang tutup kembali ke menu.
+var _dari_hub: bool = false
 
 func _ready() -> void:
 	layer = 101
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_bina_ui()
-	segarkan_senarai()
+	if mod_semasa == MOD_MENU:
+		_tunjuk_hub()
+	else:
+		segarkan_senarai()
 
 # ==========================================
 # UI
@@ -67,6 +78,7 @@ func _bina_ui() -> void:
 	isi.add_theme_constant_override("separation", 8)
 	isi.theme = _bina_tema()
 	panel.add_child(isi)
+	_isi = isi
 
 	_tajuk = Label.new()
 	_tajuk.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -114,6 +126,60 @@ func _bina_ui() -> void:
 	baris.add_child(_butang_tutup)
 
 	_bina_dialog()
+	_bina_hub(panel)
+
+# Menu kecil dalam game: SAVE, LOAD, NEW GAME dan Resume.
+func _bina_hub(panel: Control) -> void:
+	_hub = VBoxContainer.new()
+	_hub.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_hub.offset_left = 16.0
+	_hub.offset_top = 16.0
+	_hub.offset_right = -16.0
+	_hub.offset_bottom = -16.0
+	_hub.add_theme_constant_override("separation", 10)
+	_hub.alignment = BoxContainer.ALIGNMENT_CENTER
+	_hub.theme = _bina_tema()
+	_hub.visible = false
+	panel.add_child(_hub)
+
+	var tajuk := Label.new()
+	tajuk.text = "MENU"
+	tajuk.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tajuk.add_theme_font_size_override("font_size", 13)
+	_hub.add_child(tajuk)
+
+	_hub.add_child(_butang_hub("Save Game", _on_hub_simpan))
+	_hub.add_child(_butang_hub("Load Game", _on_hub_muat))
+	_hub.add_child(_butang_hub("New Game", _tanya_baru))
+	_hub.add_child(_butang_hub("Resume", _tutup))
+
+func _butang_hub(teks: String, sasaran: Callable) -> Button:
+	var butang := Button.new()
+	butang.text = teks
+	butang.custom_minimum_size = Vector2(0, 32)
+	butang.add_theme_font_size_override("font_size", 10)
+	butang.pressed.connect(sasaran)
+	return butang
+
+func _tunjuk_hub() -> void:
+	mod_semasa = MOD_MENU
+	_dari_hub = false
+	_lapis_dialog.visible = false
+	_isi.visible = false
+	_hub.visible = true
+
+func _buka_senarai(mod: int) -> void:
+	mod_semasa = mod
+	_dari_hub = true
+	_hub.visible = false
+	_isi.visible = true
+	segarkan_senarai()
+
+func _on_hub_simpan() -> void:
+	_buka_senarai(MOD_SIMPAN)
+
+func _on_hub_muat() -> void:
+	_buka_senarai(MOD_MUAT)
 
 # Dialog kecil di atas panel untuk nama simpanan dan pengesahan overwrite.
 func _bina_dialog() -> void:
@@ -239,7 +305,7 @@ func segarkan_senarai() -> void:
 	_tajuk.text = "SAVE GAME" if mod_simpan else "LOAD GAME"
 	_petua.text = "Tap a save to overwrite it, or use New Save." if mod_simpan else "Tap a save to load it."
 	_butang_baru.visible = mod_simpan
-	_butang_tutup.text = "Resume" if mod_simpan else "Cancel"
+	_butang_tutup.text = "Back" if _dari_hub else ("Resume" if mod_simpan else "Cancel")
 	_status.text = ""
 
 	var jumlah := 0
@@ -292,6 +358,7 @@ func _on_butang_baru() -> void:
 # DIALOG NAMA / PENGESAHAN
 # ==========================================
 func _tanya_nama() -> void:
+	_dialog_tindakan = "simpan"
 	_id_sasaran = ""
 	_dialog_tajuk.text = "NEW SAVE"
 	_dialog_mesej.text = "Give this save a name:"
@@ -303,10 +370,20 @@ func _tanya_nama() -> void:
 	_input_nama.select_all()
 
 func _tanya_timpa(id: String) -> void:
+	_dialog_tindakan = "timpa"
 	_id_sasaran = id
 	_dialog_tajuk.text = "OVERWRITE SAVE"
 	_dialog_mesej.text = "Overwrite \"%s\"?\nCurrent progress in that slot will be replaced." % SaveManager.nama_slot(id)
 	_butang_ya.text = "Overwrite"
+	_input_nama.visible = false
+	_lapis_dialog.visible = true
+
+func _tanya_baru() -> void:
+	_dialog_tindakan = "baru"
+	_id_sasaran = ""
+	_dialog_tajuk.text = "NEW GAME"
+	_dialog_mesej.text = "Start a new game?\nUnsaved progress in this session will be lost."
+	_butang_ya.text = "New Game"
 	_input_nama.visible = false
 	_lapis_dialog.visible = true
 
@@ -315,13 +392,21 @@ func _on_nama_dihantar(_teks: String) -> void:
 		_dialog_ya()
 
 func _dialog_ya() -> void:
+	var tindakan := _dialog_tindakan
 	var id_sasaran := _id_sasaran
 	var nama := _input_nama.text
 	_id_sasaran = ""
 	_lapis_dialog.visible = false
 
+	if tindakan == "baru":
+		SaveManager.mula_permainan_baru()
+		get_tree().paused = false
+		ditutup.emit()
+		get_tree().change_scene_to_file("res://scene/level_3/level_3.tscn")
+		return
+
 	var id := id_sasaran
-	if id == "":
+	if tindakan == "simpan":
 		id = SaveManager.simpan_slot_baru(nama)
 	elif not SaveManager.simpan_ke_slot(id):
 		id = ""
@@ -337,4 +422,7 @@ func _dialog_tidak() -> void:
 	_lapis_dialog.visible = false
 
 func _tutup() -> void:
+	if _dari_hub:
+		_tunjuk_hub()
+		return
 	ditutup.emit()

@@ -23,10 +23,11 @@ var _rng := RandomNumberGenerator.new()
 func _ready() -> void:
 	_rng.randomize()
 	set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	# Diletakkan di atas butang MENU yang berada di hujung bawah kanan.
 	offset_left = -88.0
-	offset_top = -66.0
+	offset_top = -114.0
 	offset_right = -8.0
-	offset_bottom = -8.0
+	offset_bottom = -56.0
 	mouse_filter = Control.MOUSE_FILTER_PASS
 
 	var susunan := VBoxContainer.new()

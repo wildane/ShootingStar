@@ -4,6 +4,8 @@ var player_scene = preload("res://scene/astro/astro2.tscn")
 var local_player: CharacterBody2D
 @onready var ysort = $Y_Sort_Container
 
+const IKON_MENU: Texture2D = preload("res://scene/ui/menu_icon.png")
+
 # Node overlay untuk mengawal skrin gelap/terang milik level_3
 var overlay_gelap: ColorRect
 
@@ -14,7 +16,7 @@ func _ready() -> void:
 	# 1. Bina lapisan hitam pekat bersiap sedia di bawah lapisan menu (Alpha = 1.0)
 	bina_overlay_mula()
 	_bina_hud_hp_pemain()
-	_bina_butang_simpan()
+	_bina_butang_menu()
 	
 	# 2. Hubungkan isyarat daripada JSON
 	if not SaveManager.semua_data_siap_di_load.is_connected(proses_selesai_load_json):
@@ -122,44 +124,33 @@ func save_world() -> void:
 	SaveManager.save_game()
 	print("[World] Dunia hibrid berjaya disimpan ke storan!")
 
-# Butang SAVE dan LOAD di kiri atas HUD.
-func _bina_butang_simpan() -> void:
+# Satu butang MENU di bawah kanan HUD, di bawah butang cheat.
+# Panel menu mengandungi SAVE, LOAD dan NEW GAME.
+func _bina_butang_menu() -> void:
 	var canvas = get_node_or_null("CanvasLayer")
-	if canvas == null or canvas.has_node("ButangSimpan"):
+	if canvas == null or canvas.has_node("ButangMenu"):
 		return
 
 	var butang := Button.new()
-	butang.name = "ButangSimpan"
-	butang.text = "SAVE"
-	butang.add_theme_font_size_override("font_size", 9)
-	butang.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	butang.offset_left = 6
-	butang.offset_top = 6
-	butang.offset_right = 52
-	butang.offset_bottom = 28
-	butang.pressed.connect(_buka_menu_simpan)
+	butang.name = "ButangMenu"
+	butang.icon = IKON_MENU
+	butang.expand_icon = true
+	butang.flat = true
+	butang.focus_mode = Control.FOCUS_NONE
+	butang.custom_minimum_size = Vector2(40, 40)
+	butang.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	butang.offset_left = -50
+	butang.offset_top = -50
+	butang.offset_right = -10
+	butang.offset_bottom = -10
+	butang.pressed.connect(_buka_menu_game)
 	canvas.add_child(butang)
 
-	var butang_muat := Button.new()
-	butang_muat.name = "ButangMuat"
-	butang_muat.text = "LOAD"
-	butang_muat.add_theme_font_size_override("font_size", 9)
-	butang_muat.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	butang_muat.offset_left = 56
-	butang_muat.offset_top = 6
-	butang_muat.offset_right = 102
-	butang_muat.offset_bottom = 28
-	butang_muat.pressed.connect(_buka_menu_muat)
-	canvas.add_child(butang_muat)
-
 # ==========================================
-# MENU SAVE / LOAD DALAM GAME (game pause)
+# MENU SAVE / LOAD / NEW GAME DALAM GAME (game pause)
 # ==========================================
-func _buka_menu_simpan() -> void:
-	_buka_menu(SaveMenu.MOD_SIMPAN)
-
-func _buka_menu_muat() -> void:
-	_buka_menu(SaveMenu.MOD_MUAT)
+func _buka_menu_game() -> void:
+	_buka_menu(SaveMenu.MOD_MENU)
 
 func _buka_menu(mod: int) -> void:
 	if is_instance_valid(_menu_simpan):
