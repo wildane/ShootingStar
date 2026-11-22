@@ -57,7 +57,6 @@ func _ready():
 	if bt_tutup: bt_tutup.pressed.connect(_on_butang_tutup_pressed)
 	if bt_demo: bt_demo.pressed.connect(_on_butang_demolish_pressed)
 	_kemas_kini_paparan_skrin()
-	_auto_save_selepas_wujud()
 
 func _physics_process(_delta: float) -> void:
 	var masa_sekarang = Time.get_ticks_msec() / 1000.0
@@ -234,9 +233,6 @@ func _on_butang_demolish_pressed():
 	player_dekat = false
 	if sprite: sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
 	queue_free()
-	await get_tree().process_frame
-	if get_node_or_null("/root/SaveManager"):
-		SaveManager.save_game()
 
 func get_save_data() -> Dictionary:
 	var data_inverter: Dictionary = {}
@@ -250,8 +246,3 @@ func get_save_data() -> Dictionary:
 func load_save_data(data: Dictionary) -> void:
 	if data.has("global_position"):
 		global_position = data["global_position"]
-
-func _auto_save_selepas_wujud() -> void:
-	await get_tree().process_frame
-	if get_node_or_null("/root/SaveManager"):
-		SaveManager.save_game()

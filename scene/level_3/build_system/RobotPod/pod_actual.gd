@@ -73,7 +73,6 @@ func _ready() -> void:
 	_kemas_kini_warna_visual()
 	_kemas_kini_robot()
 	_kemas_kini_menu()
-	_auto_save_selepas_wujud()
 
 
 func _process(delta: float) -> void:
@@ -266,8 +265,6 @@ func _cipta_robot() -> void:
 		induk = adegan_utama
 	induk.add_child(robot)
 	robot.global_position = global_position + Vector2(28.0, -14.0)
-	if get_node_or_null("/root/SaveManager"):
-		SaveManager.save_game()
 
 
 func _tulis_info(teks: String) -> void:
@@ -375,9 +372,6 @@ func _on_butang_demolish_pressed() -> void:
 	player_dekat = false
 	modulate = Color(1.0, 1.0, 1.0, 1.0)
 	queue_free()
-	await get_tree().process_frame
-	if get_node_or_null("/root/SaveManager"):
-		SaveManager.save_game()
 
 
 func _exit_tree() -> void:
@@ -403,8 +397,3 @@ func load_save_data(data: Dictionary) -> void:
 	if data.has("global_position"):
 		global_position = data["global_position"]
 
-
-func _auto_save_selepas_wujud() -> void:
-	await get_tree().process_frame
-	if get_node_or_null("/root/SaveManager"):
-		SaveManager.save_game()

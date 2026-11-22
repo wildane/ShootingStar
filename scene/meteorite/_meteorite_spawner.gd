@@ -98,17 +98,6 @@ func _on_meteorite_destroyed() -> void:
 	if current_count < target_count and respawn_timer.is_stopped():
 		respawn_timer.start(respawn_time)
 
-	# =========================================================================
-	# 🔥 KUNCI AUTO-SAVE BARU: Trigger Save Serta-Merta Bila Meteorite Hancur
-	# =========================================================================
-	# Kita beri delay 1 frame kecil supaya kedudukan tree bersih sepenuhnya
-	await get_tree().process_frame
-	
-	var save_manager = get_node_or_null("/root/SaveManager")
-	if save_manager and save_manager.has_method("save_game"):
-		save_manager.save_game()
-		print("Spawner: Meteor hancur -> Auto-save file JSON berjaya dicetuskan!")
-
 func _on_timer_timeout() -> void:
 	if Engine.is_editor_hint(): return
 	var current_count = container.get_child_count()

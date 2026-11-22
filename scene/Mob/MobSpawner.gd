@@ -163,17 +163,6 @@ func _on_mob_destroyed() -> void:
 	# 🔥 KUNCI PEMBAIKAN 2: Tolak 1 secara manual merta agar hitungan RAM tepat semasa auto-save bertembung
 	var current_count = max(0, container.get_child_count() - 1)
 	
-	# =========================================================================
-	# 🔥 KUNCI AUTO-SAVE: Tunggu 1 frame (kalis lag) baru tulis fail JSON
-	# =========================================================================
-	await get_tree().process_frame
-	if not is_inside_tree(): return
-	
-	var save_manager = get_node_or_null("/root/SaveManager")
-	if save_manager and save_manager.has_method("save_game"):
-		save_manager.save_game()
-		print("Mob Spawner: Mob mati -> Auto-save file JSON berjaya dicetuskan!")
-
 	# KEKAL LOGIK RESPOND KOD ASAL ANDA: Menjalankan pemasa respawn offline/online
 	if current_count > 0:
 		await get_tree().create_timer(respawn_time).timeout

@@ -9,6 +9,9 @@ const DIREKTORI_SAVE = "user://saves"
 const KATALOG_PATH = "user://saves/katalog.json"
 const LALUAN_LAMA = "user://savegame.json"
 
+# Slot autosave berputar; ditulis bila game di-minimize (app pause/focus out).
+const SLOT_AUTOSAVE = ["autosave1", "autosave2", "autosave3"]
+
 # Slot yang sedang dimainkan ("" = permainan baharu, belum ada slot).
 var slot_aktif: String = ""
 
@@ -26,7 +29,7 @@ func _notification(what):
 func semak_dan_auto_save():
 	var scene_utama = Engine.get_main_loop().current_scene
 	if scene_utama and scene_utama.scene_file_path.get_file() == "level_3.tscn":
-		save_game()
+		save_autosave()
 
 # ==========================================
 # SIMPANAN BERBILANG SLOT
@@ -148,11 +151,11 @@ func tetapkan_slot(id: String) -> void:
 	data_player = {}
 	slot_aktif = id
 
-func _kemas_kini_masa_slot(id: String) -> void:
+func _kemas_kini_masa_slot(id: String, nama_lalai: String = "") -> void:
 	var katalog := _baca_katalog()
 	var meta: Dictionary = katalog.get(id, {})
-	if meta.is_empty():
-		meta["nama"] = "Simpanan %s" % id
+	if not meta.has("nama"):
+		meta["nama"] = nama_lalai if nama_lalai != "" else "Simpanan %s" % id
 	meta["masa"] = Time.get_unix_time_from_system()
 	katalog[id] = meta
 	_tulis_katalog(katalog)
@@ -173,9 +176,10 @@ func _migrasi_simpanan_lama() -> void:
 	_tulis_katalog(katalog)
 	print("[Save] Simpanan versi lama dipindahkan ke slot 'lama'.")
 
-func save_game():
+func _kumpul_data_state() -> Dictionary:
 	var scene_utama = Engine.get_main_loop().current_scene
-	if not scene_utama or "menu" in scene_utama.name.to_lower(): return
+	if not scene_utama or "menu" in scene_utama.name.to_lower():
+		return {}
 
 	# Struktur JSON menggabungkan data perabot, inventori, dan SEMUA jenis spawner
 	var data_keseluruhan = {
@@ -228,14 +232,60 @@ func save_game():
 			if node.has_method("dapatkan_data_save") and "spawner_id" in node:
 				data_keseluruhan["spawner_data"][node.spawner_id] = node.dapatkan_data_save()
 
-	# Simpan ke slot aktif; permainan baharu belum ada slot, jadi cipta satu.
-	if slot_aktif == "":
+	return data_keseluruhan
+
+# ==========================================
+# SIMPAN MANUAL (OVERWRITE) DAN AUTOSAVE 1-2-3
+# ==========================================
+# Butang SIMPAN: tulis semula slot aktif. Slot baharu dicipta hanya kalau
+# permainan ini belum ada slot langsung (permainan baru yang belum disimpan).
+func save_game() -> bool:
+	# Slot autosave tidak ditimpa oleh simpan manual: sesi yang dimulakan dari
+	# autosave akan dapat slot simpanan sendiri.
+	if slot_aktif == "" or SLOT_AUTOSAVE.has(slot_aktif):
 		slot_aktif = cipta_slot_baru()
-	var file = FileAccess.open(_laluan_slot(slot_aktif), FileAccess.WRITE)
-	if file:
-		file.store_string(JSON.stringify(data_keseluruhan, "\t"))
-		file.close()
-		_kemas_kini_masa_slot(slot_aktif)
+	var data := _kumpul_data_state()
+	if data.is_empty():
+		return false
+	return _tulis_data_ke_slot(slot_aktif, data)
+
+# Autosave: dipanggil bila game di-minimize (app pause / focus out).
+# Slot dipilih ikut masa: slot kosong dahulu (1 -> 2 -> 3), kemudian slot
+# dengan simpanan paling lama ditulis semula supaya 3 slot sentiasa berputar.
+func save_autosave() -> bool:
+	var id := _slot_autosave_berikut()
+	var data := _kumpul_data_state()
+	if data.is_empty():
+		return false
+	var nama_lalai := "Autosave %d" % (SLOT_AUTOSAVE.find(id) + 1)
+	var berjaya := _tulis_data_ke_slot(id, data, nama_lalai)
+	if berjaya:
+		print("[Save] Autosave disimpan ke ", id)
+	return berjaya
+
+func _slot_autosave_berikut() -> String:
+	var katalog := _baca_katalog()
+	var paling_lama: String = SLOT_AUTOSAVE[0]
+	var masa_paling_lama := INF
+	for id in SLOT_AUTOSAVE:
+		if not FileAccess.file_exists(_laluan_slot(id)):
+			return id
+		var meta: Dictionary = katalog.get(id, {})
+		var masa := float(meta.get("masa", FileAccess.get_modified_time(_laluan_slot(id))))
+		if masa < masa_paling_lama:
+			masa_paling_lama = masa
+			paling_lama = id
+	return paling_lama
+
+func _tulis_data_ke_slot(id: String, data: Dictionary, nama_lalai: String = "") -> bool:
+	_sediakan_direktori()
+	var file := FileAccess.open(_laluan_slot(id), FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_string(JSON.stringify(data, "\t"))
+	file.close()
+	_kemas_kini_masa_slot(id, nama_lalai)
+	return true
 
 func load_game(scene_aktif: Node = null):
 	# Buang data pemain lama supaya fail tanpa player_data tidak guna nilai basi.

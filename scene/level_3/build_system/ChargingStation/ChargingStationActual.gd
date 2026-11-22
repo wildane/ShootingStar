@@ -51,7 +51,6 @@ func _ready() -> void:
 	_bina_ikon_cas()
 	_kemas_kini_warna_visual()
 	_kemas_kini_label_status()
-	_auto_save_selepas_wujud()
 
 # Ikon kilat kuning berkelip di atas stesen semasa ia mengecas player.
 func _bina_ikon_cas() -> void:
@@ -209,9 +208,6 @@ func _on_butang_demolish_pressed():
 	player_dekat = false
 	if sprite: sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
 	queue_free()
-	await get_tree().process_frame
-	if get_node_or_null("/root/SaveManager"):
-		SaveManager.save_game()
 
 func get_save_data() -> Dictionary:
 	var data_stesen: Dictionary = {}
@@ -228,8 +224,3 @@ func load_save_data(data: Dictionary) -> void:
 
 func _exit_tree() -> void:
 	_lepas_pemain()
-
-func _auto_save_selepas_wujud() -> void:
-	await get_tree().process_frame
-	if get_node_or_null("/root/SaveManager"):
-		SaveManager.save_game()

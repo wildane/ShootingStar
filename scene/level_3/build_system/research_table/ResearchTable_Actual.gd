@@ -37,19 +37,6 @@ func _ready():
 	if butang_demolish: butang_demolish.pressed.connect(_on_butang_demolish_pressed)
 
 	_kemas_kini_warna_visual()
-	
-	# 🔥 AUTOMATIK: Cetus fungsi auto-save sebaik sahaja objek selesai di-spawn
-	_auto_save_selepas_wujud()
-
-# 🔒 Fungsi Dalaman: Menunggu pendaftaran group selesai sebelum melakukan save game
-func _auto_save_selepas_wujud() -> void:
-	# Tunggu 1 frame supaya engine Godot sempat daftarkan objek ini ke dalam group "Furniture"
-	await get_tree().process_frame
-	
-	# Panggil SaveManager untuk kunci posisi perabot baharu ini ke dalam json
-	if get_node_or_null("/root/SaveManager"):
-		SaveManager.save_game()
-		print("Sistem Perabot: Objek disahkan wujud dalam group. Automatik di-save!")
 
 # 🔴 DIKEMASKINI: Hanya kumpul fail laluan objek dan kedudukan koordinat dunia sahaja (Bersih Tanpa Logik Kuasa)
 func get_save_data() -> Dictionary:
@@ -161,8 +148,3 @@ func _on_butang_demolish_pressed():
 	player_dekat = false
 	if sprite: sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
 	queue_free()
-	
-	# Panggil save semula selepas musnah supaya ia hilang dari fail json
-	await get_tree().process_frame
-	if get_node_or_null("/root/SaveManager"):
-		SaveManager.save_game()

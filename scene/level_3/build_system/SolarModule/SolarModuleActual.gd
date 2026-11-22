@@ -27,7 +27,6 @@ func _ready():
 		menu_ui.hide()
 	if butang_tutup: butang_tutup.pressed.connect(_on_butang_tutup_pressed)
 	if butang_demolish: butang_demolish.pressed.connect(_on_butang_demolish_pressed)
-	_auto_save_selepas_wujud()
 
 func set_owner_inverter(inverter: Node2D) -> void:
 	inverter_pembeli = inverter
@@ -110,9 +109,6 @@ func _on_butang_demolish_pressed():
 	player_dekat = false
 	if sprite: sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
 	queue_free()
-	await get_tree().process_frame
-	if get_node_or_null("/root/SaveManager"):
-		SaveManager.save_game()
 
 func get_save_data() -> Dictionary:
 	var data_solar: Dictionary = {}
@@ -126,8 +122,3 @@ func get_save_data() -> Dictionary:
 func load_save_data(data: Dictionary) -> void:
 	if data.has("global_position"):
 		global_position = data["global_position"]
-
-func _auto_save_selepas_wujud() -> void:
-	await get_tree().process_frame
-	if get_node_or_null("/root/SaveManager"):
-		SaveManager.save_game()

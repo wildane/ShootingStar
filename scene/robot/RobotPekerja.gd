@@ -764,12 +764,9 @@ func _mati() -> void:
 		bunga.emitting = true
 		bunga.finished.connect(bunga.queue_free)
 
-	# Buang robot dari pokok dahulu supaya auto-save tidak menyimpannya lagi.
-	var simpan = get_node_or_null("/root/SaveManager")
+	# Buang robot dari pokok dahulu supaya tidak disimpan dalam slot seterusnya.
 	if induk != null:
 		induk.remove_child(self)
-	if simpan != null:
-		simpan.save_game()
 	queue_free()
 
 
