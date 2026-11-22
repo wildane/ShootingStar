@@ -35,8 +35,10 @@ var _dialog_tajuk: Label
 var _dialog_mesej: Label
 var _input_nama: LineEdit
 var _butang_ya: Button
+var _butang_tidak: Button
 var _id_sasaran: String = ""
-# Tindakan dialog yang sedang terbuka: "simpan", "timpa" atau "baru".
+# Tindakan dialog yang sedang terbuka: "simpan", "timpa", "muat", "baru"
+# atau "berjaya" (mesej berjaya dengan satu butang OK).
 var _dialog_tindakan: String = "simpan"
 # Senarai dibuka daripada menu dalam game, jadi butang tutup kembali ke menu.
 var _dari_hub: bool = false
@@ -280,12 +282,12 @@ func _bina_dialog() -> void:
 	_butang_ya.pressed.connect(_dialog_ya)
 	baris.add_child(_butang_ya)
 
-	var butang_tidak := Button.new()
-	butang_tidak.text = "Cancel"
-	butang_tidak.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	butang_tidak.add_theme_font_size_override("font_size", 10)
-	butang_tidak.pressed.connect(_dialog_tidak)
-	baris.add_child(butang_tidak)
+	_butang_tidak = Button.new()
+	_butang_tidak.text = "Cancel"
+	_butang_tidak.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_butang_tidak.add_theme_font_size_override("font_size", 10)
+	_butang_tidak.pressed.connect(_dialog_tidak)
+	baris.add_child(_butang_tidak)
 
 func _bina_tema() -> Theme:
 	var tema := Theme.new()
@@ -416,6 +418,7 @@ func _tanya_nama() -> void:
 	_dialog_tajuk.text = "NEW SAVE"
 	_dialog_mesej.text = "Give this save a name:"
 	_butang_ya.text = "Save"
+	_butang_tidak.visible = true
 	_input_nama.visible = true
 	_input_nama.text = "Save %d" % (SaveManager.senarai_slot().size() + 1)
 	_lapis_dialog.visible = true
@@ -428,6 +431,7 @@ func _tanya_timpa(id: String) -> void:
 	_dialog_tajuk.text = "OVERWRITE SAVE"
 	_dialog_mesej.text = "Overwrite \"%s\"?\nCurrent progress in that slot will be replaced." % SaveManager.nama_slot(id)
 	_butang_ya.text = "Overwrite"
+	_butang_tidak.visible = true
 	_input_nama.visible = false
 	_lapis_dialog.visible = true
 
@@ -437,6 +441,7 @@ func _tanya_muat(id: String) -> void:
 	_dialog_tajuk.text = "LOAD SAVE"
 	_dialog_mesej.text = "Load \"%s\"?\nUnsaved progress in this session will be lost." % SaveManager.nama_slot(id)
 	_butang_ya.text = "Load"
+	_butang_tidak.visible = true
 	_input_nama.visible = false
 	_lapis_dialog.visible = true
 
@@ -446,8 +451,21 @@ func _tanya_baru() -> void:
 	_dialog_tajuk.text = "NEW GAME"
 	_dialog_mesej.text = "Start a new game?\nUnsaved progress in this session will be lost."
 	_butang_ya.text = "New Game"
+	_butang_tidak.visible = true
 	_input_nama.visible = false
 	_lapis_dialog.visible = true
+
+# Mesej berjaya: satu butang OK sahaja.
+func _tunjuk_berjaya(id: String) -> void:
+	_dialog_tindakan = "berjaya"
+	_id_sasaran = ""
+	_dialog_tajuk.text = "SAVE SUCCESSFUL"
+	_dialog_mesej.text = "Saved to \"%s\"." % SaveManager.nama_slot(id)
+	_butang_ya.text = "OK"
+	_input_nama.visible = false
+	_butang_tidak.visible = false
+	_lapis_dialog.visible = true
+	_butang_ya.grab_focus()
 
 func _on_nama_dihantar(_teks: String) -> void:
 	if _lapis_dialog.visible and _input_nama.visible:
@@ -459,6 +477,11 @@ func _dialog_ya() -> void:
 	var nama := _input_nama.text
 	_id_sasaran = ""
 	_lapis_dialog.visible = false
+
+	# Dialog mesej berjaya: butang OK sudah memadai.
+	if tindakan == "berjaya":
+		_dialog_tindakan = ""
+		return
 
 	if tindakan == "baru":
 		SaveManager.mula_permainan_baru()
@@ -479,6 +502,7 @@ func _dialog_ya() -> void:
 	if id != "":
 		segarkan_senarai()
 		_status.text = "Saved to %s" % SaveManager.nama_slot(id)
+		_tunjuk_berjaya(id)
 	else:
 		_status.text = "Cannot save right now"
 
