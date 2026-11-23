@@ -328,6 +328,18 @@ func _selesai_unit() -> void:
 		_tulis_info("Steel produced! +1")
 	print("Smelter: %d Steel dihasilkan" % _jumlah_batch)
 	_kemas_kini_ui()
+	_tunggu_reset_kemajuan()
+
+# Selepas semua unit siap (contoh 7/7), paparan kemajuan reset ke 0/N.
+func _tunggu_reset_kemajuan() -> void:
+	var jumlah: int = _jumlah_batch
+	await get_tree().create_timer(0.9).timeout
+	if not is_inside_tree() or sedang_lebur:
+		return
+	if _jumlah_batch != jumlah:
+		return
+	_reset_paparan_batch()
+	_kemas_kini_ui()
 
 # Iklan terapung ikon steel + "+1" di atas relau, naik lalu pudar.
 func _apung_steel(banyak: int) -> void:
