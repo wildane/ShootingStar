@@ -93,7 +93,7 @@ func kira_grid_kuasa_lokal() -> void:
 
 static var _sedang_kira_grid: bool = false
 
-static func kira_semua_grid(tree: SceneTree) -> void:
+	static func kira_semua_grid(tree: SceneTree) -> void:
 	if _sedang_kira_grid or tree == null:
 		return
 	_sedang_kira_grid = true
@@ -120,7 +120,20 @@ static func kira_semua_grid(tree: SceneTree) -> void:
 	for inv in inverters:
 		inv._grid_kotor = false
 
+	# Bersihkan rujukan pembekal yang sudah tidak sah/dibuang supaya perabot
+	# tidak tersekat dengan inverter lama (termasuk kes inverter dibuang bukan
+	# melalui demolish biasa, atau inverter terakhir tiada).
+	for perabot in semua_perabot:
+		var pembekal = perabot.inverter_pembekal if "inverter_pembekal" in perabot else null
+		if pembekal != null and (not is_instance_valid(pembekal) or pembekal.is_queued_for_deletion()):
+			if perabot.has_method("set_power_status"):
+				perabot.set_power_status(false, null)
+
 	if inverters.is_empty():
+		# Tiada inverter aktif: pastikan tiada perabot kekal berkuasa.
+		for perabot in semua_perabot:
+			if perabot.has_method("set_power_status") and ("has_power" in perabot and perabot.has_power or ("inverter_pembekal" in perabot and perabot.inverter_pembekal != null)):
+				perabot.set_power_status(false, null)
 		_sedang_kira_grid = false
 		return
 
@@ -322,11 +335,33 @@ func _on_butang_demolish_pressed():
 	tanda_grid_kotor(get_tree())
 	queue_free()
 
-func _exit_tree() -> void:
-	# Bila inverter dibuang (demolish/load unload), inverter lain perlu kira semula.
+	func _exit_tree() -> void:
+	# Bila inverter dibuang (demolish/load unload/queue_free biasa), lepaskan
+	# pemilikan dan pastikan grid/perabot tidak tersekat dengan rujukan lama.
 	var tree = get_tree()
-	if tree:
-		tree.call_group("PowerInverter", "tanda_kotor")
+	if tree == null:
+		return
+	# Lepaskan solar milik inverter ini.
+	for solar in tree.get_nodes_in_group("SolarModule"):
+		if is_instance_valid(solar) and solar.inverter_pembeli == self:
+			solar.release_owner_inverter(self)
+	# Tandakan inverter lain untuk kira semula.
+	tree.call_group("PowerInverter", "tanda_kotor")
+	# Jika tiada inverter lain yang masih aktif, bersihkan perabot yang masih
+	# merujuk inverter ini atau rujukan inverter tidak sah.
+	var ada_inverter_lain: bool = false
+	for inv in tree.get_nodes_in_group("PowerInverter"):
+		if inv != self and is_instance_valid(inv) and not inv.is_queued_for_deletion() and inv.is_inside_tree():
+			ada_inverter_lain = true
+			break
+	if not ada_inverter_lain:
+		for perabot in tree.get_nodes_in_group("Furniture"):
+			if not is_instance_valid(perabot) or perabot.is_queued_for_deletion():
+				continue
+			var pembekal = perabot.inverter_pembekal if "inverter_pembekal" in perabot else null
+			if pembekal == self or (pembekal != null and (not is_instance_valid(pembekal) or pembekal.is_queued_for_deletion())):
+				if perabot.has_method("set_power_status"):
+					perabot.set_power_status(false, null)
 
 func get_save_data() -> Dictionary:
 	var data_inverter: Dictionary = {}
