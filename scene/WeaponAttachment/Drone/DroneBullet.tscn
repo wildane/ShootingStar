@@ -9,7 +9,7 @@ height = 4.0
 
 [node name="DroneBullet" type="Area2D" unique_id=1728929144]
 collision_layer = 65536
-collision_mask = 128
+collision_mask = 138
 script = ExtResource("1_75jml")
 speed = 200.0
 damage = 100.0

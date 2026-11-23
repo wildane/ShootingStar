@@ -68,3 +68,9 @@ func _on_body_entered(object):
 			
 		print("Peluru tepat mengenai musuh: ", actual_enemy.name)
 		queue_free()
+		return
+
+	# Dinding, pintu atau asteroid (layer wall / environment): peluru terhenti
+	# dan hilang, tak tembus struktur yang dibina pemain.
+	if object is StaticBody2D or actual_enemy is StaticBody2D:
+		queue_free()

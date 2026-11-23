@@ -21,8 +21,11 @@ const JENIS_PINTU: int = 2
 const JENIS_ERASE: int = 3
 const NAMA_JENIS: Array[String] = ["Floor", "Wall", "Door", "Erase"]
 
-# Layer 4 (nilai 8) = environment, sama seperti meteorit dan asteroid.
-const LAYER_HALANGAN: int = 8
+# Layer 2 (nilai 2) = wall, layer 4 (nilai 8) = environment.
+# Dinding/pintu mesti berada pada layer "wall" juga supaya semua sistem
+# penglihatan dan peluru yang mengimbas layer wall (dron, mob, lendir) betul-
+# betul terhalang oleh dinding yang dibina pemain, bukan tembus.
+const LAYER_HALANGAN: int = 2 | 8
 # Layer 3 (nilai 4) = zon bina. Preview perabot hanya boleh dipasang bila
 # ia bertindih dengan zon ini.
 const LAYER_ZON_BINA: int = 4
