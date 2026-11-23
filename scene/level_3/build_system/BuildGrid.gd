@@ -78,6 +78,10 @@ var _ada_hantu: bool = false
 
 var _butang: Array[Button] = []
 var _label_status: Label
+# Lapisan HUD untuk iklan terapung "-1" / "+1" besi dekat pemain.
+var _lapis_terapung: CanvasLayer
+const WARNA_BESI_KELUAR: Color = Color(1.0, 0.42, 0.36)
+const WARNA_BESI_MASUK: Color = Color(0.45, 1.0, 0.55)
 
 func _ready() -> void:
 	add_to_group("BuildGrid")
@@ -95,6 +99,11 @@ func _bina_hud() -> void:
 	kanvas.name = "HudBinaGrid"
 	kanvas.layer = 90
 	add_child(kanvas)
+
+	_lapis_terapung = CanvasLayer.new()
+	_lapis_terapung.name = "HudBinaGridTerapung"
+	_lapis_terapung.layer = 91
+	add_child(_lapis_terapung)
 
 	var lajur := VBoxContainer.new()
 	# Diturunkan supaya tidak bertindih dengan butang Weapon Attachment di
@@ -503,6 +512,48 @@ func _pulangkan_besi() -> void:
 		"scene_path": LALUAN_BESI,
 	})
 
+# Iklan terapung ikon besi dekat pemain: negatif = kos bina (merah),
+# positif = binaan dinyahbina (hijau). Naik sedikit lalu pudar.
+func _apung_besi(banyak: int) -> void:
+	if _lapis_terapung == null:
+		return
+	var pemain := get_tree().get_first_node_in_group("Player") as Node2D
+	if pemain == null or not is_instance_valid(pemain):
+		return
+
+	var warna := WARNA_BESI_MASUK if banyak > 0 else WARNA_BESI_KELUAR
+	var baris := HBoxContainer.new()
+	baris.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	baris.add_theme_constant_override("separation", 2)
+
+	if ResourceLoader.exists(IKON_BESI):
+		var ikon := TextureRect.new()
+		ikon.texture = load(IKON_BESI)
+		ikon.custom_minimum_size = Vector2(9, 9)
+		ikon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ikon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		baris.add_child(ikon)
+
+	var teks := Label.new()
+	teks.text = ("+%d" if banyak > 0 else "-%d") % absi(banyak)
+	teks.add_theme_font_size_override("font_size", 8)
+	teks.add_theme_color_override("font_color", warna)
+	teks.add_theme_color_override("font_outline_color", Color(0.02, 0.06, 0.09, 0.95))
+	teks.add_theme_constant_override("outline_size", 3)
+	baris.add_child(teks)
+
+	_lapis_terapung.add_child(baris)
+	baris.reset_size()
+	var skrin := get_viewport().get_canvas_transform() * pemain.global_position
+	baris.position = skrin - Vector2(baris.size.x * 0.5, 22.0) + Vector2(randf_range(-4.0, 4.0), 0.0)
+
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(baris, "position", baris.position + Vector2(0.0, -14.0), 0.9) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.tween_property(baris, "modulate:a", 0.0, 0.45).set_delay(0.45)
+	tween.chain().tween_callback(baris.queue_free)
+
 func _pemain_dekat(g: Vector2i, pos_pemain: Vector2) -> bool:
 	return pos_pemain.x < INF \
 		and pos_pemain.distance_to(to_global(_tengah_sel(g))) <= JARAK_BINA
@@ -560,6 +611,7 @@ func _kemas_kini_pembinaan(delta: float, pos_pemain: Vector2) -> void:
 	_tile[sasaran] = jenis
 	_bina_kolider(sasaran, jenis)
 	_label_status.text = NAMA_JENIS[jenis] + " built"
+	_apung_besi(-KOS_BESI)
 	queue_redraw()
 
 func _kemas_kini_nyahbina(delta: float, pos_pemain: Vector2) -> void:
@@ -609,6 +661,7 @@ func _kemas_kini_nyahbina(delta: float, pos_pemain: Vector2) -> void:
 	_buang_tile(sasaran)
 	_pulangkan_besi()
 	_label_status.text = NAMA_JENIS[jenis] + " deconstructed (+1 Iron)"
+	_apung_besi(KOS_BESI)
 	queue_redraw()
 
 # Pintu terbuka (kolider dimatikan) bila pemain ATAU robot pekerja berada
