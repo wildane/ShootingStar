@@ -130,7 +130,15 @@ static var _sedang_kira_grid: bool = false
 				perabot.set_power_status(false, null)
 
 	if inverters.is_empty():
-		# Tiada inverter aktif: pastikan tiada perabot kekal berkuasa.
+		# Tiada inverter aktif: pastikan tiada perabot kekal berkuasa dan
+		# tiada solar tersekat dengan pemilik inverter yang tidak wujud.
+		for solar in semua_solar:
+			if solar.inverter_pembeli != null:
+				var pemilik = solar.inverter_pembeli
+				if is_instance_valid(pemilik):
+					solar.release_owner_inverter(pemilik)
+				else:
+					solar.inverter_pembeli = null
 		for perabot in semua_perabot:
 			if perabot.has_method("set_power_status") and ("has_power" in perabot and perabot.has_power or ("inverter_pembekal" in perabot and perabot.inverter_pembekal != null)):
 				perabot.set_power_status(false, null)
@@ -140,8 +148,13 @@ static var _sedang_kira_grid: bool = false
 	# Lepaskan pemilikan solar milik inverter yang tidak lagi wujud dalam pas ini.
 	for solar in semua_solar:
 		var pemilik = solar.inverter_pembeli
-		if is_instance_valid(pemilik) and pemilik.is_queued_for_deletion():
-			solar.release_owner_inverter(pemilik)
+		if pemilik == null:
+			continue
+		if not is_instance_valid(pemilik) or pemilik.is_queued_for_deletion():
+			if is_instance_valid(pemilik):
+				solar.release_owner_inverter(pemilik)
+			else:
+				solar.inverter_pembeli = null
 
 	# Kira setiap inverter secara berpusat (urutan stabil kumpulan) untuk
 	# mengekalkan semantik multi-inverter: inverter hanya ambil solar/perabot
@@ -355,6 +368,17 @@ func _on_butang_demolish_pressed():
 			ada_inverter_lain = true
 			break
 	if not ada_inverter_lain:
+		for solar in tree.get_nodes_in_group("SolarModule"):
+			if not is_instance_valid(solar) or solar.is_queued_for_deletion():
+				continue
+			var pemilik = solar.inverter_pembeli
+			if pemilik == null:
+				continue
+			if pemilik == self or not is_instance_valid(pemilik) or pemilik.is_queued_for_deletion():
+				if is_instance_valid(pemilik) and pemilik != self:
+					solar.release_owner_inverter(pemilik)
+				else:
+					solar.inverter_pembeli = null
 		for perabot in tree.get_nodes_in_group("Furniture"):
 			if not is_instance_valid(perabot) or perabot.is_queued_for_deletion():
 				continue
