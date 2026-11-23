@@ -39,29 +39,27 @@ metadata/_edit_lock_ = true
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 layer = 10
 
-[node name="MenuUI" type="PanelContainer" parent="CanvasLayer"]
-custom_minimum_size = Vector2(240, 0)
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -120.0
-offset_top = -120.0
-offset_right = 120.0
-offset_bottom = 120.0
+[node name="Pusat" type="CenterContainer" parent="CanvasLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/MenuUI"]
+[node name="MenuUI" type="PanelContainer" parent="CanvasLayer/Pusat"]
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/Pusat/MenuUI"]
 layout_mode = 2
 theme_override_constants/separation = 3
 
-[node name="Header" type="HBoxContainer" parent="CanvasLayer/MenuUI/VBoxContainer"]
+[node name="Header" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="IkonSteel" type="TextureRect" parent="CanvasLayer/MenuUI/VBoxContainer/Header"]
+[node name="IkonSteel" type="TextureRect" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Header"]
 custom_minimum_size = Vector2(18, 18)
 layout_mode = 2
 size_flags_vertical = 4
@@ -70,14 +68,14 @@ expand_mode = 1
 stretch_mode = 5
 texture_filter = 1
 
-[node name="Tajuk" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer/Header"]
+[node name="Tajuk" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Header"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 theme_override_font_sizes/font_size = 12
 text = "Smelter"
 
-[node name="LabelStatus" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer/Header"]
+[node name="LabelStatus" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Header"]
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_font_sizes/font_size = 8
@@ -85,20 +83,20 @@ theme_override_colors/font_color = Color(0.5, 0.95, 0.62, 1)
 text = "Ready"
 horizontal_alignment = 2
 
-[node name="Garis1" type="HSeparator" parent="CanvasLayer/MenuUI/VBoxContainer"]
+[node name="Garis1" type="HSeparator" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
 layout_mode = 2
 
-[node name="LabelBahanTajuk" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer"]
+[node name="LabelBahanTajuk" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 7
 theme_override_colors/font_color = Color(0.55, 0.72, 0.82, 1)
 text = "MATERIALS"
 
-[node name="BarisBesi" type="HBoxContainer" parent="CanvasLayer/MenuUI/VBoxContainer"]
+[node name="BarisBesi" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 5
 
-[node name="IkonBesi" type="TextureRect" parent="CanvasLayer/MenuUI/VBoxContainer/BarisBesi"]
+[node name="IkonBesi" type="TextureRect" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisBesi"]
 custom_minimum_size = Vector2(15, 15)
 layout_mode = 2
 size_flags_vertical = 4
@@ -107,14 +105,14 @@ expand_mode = 1
 stretch_mode = 5
 texture_filter = 1
 
-[node name="NamaBesi" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer/BarisBesi"]
+[node name="NamaBesi" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisBesi"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 theme_override_font_sizes/font_size = 9
 text = "Basic Iron Ore"
 
-[node name="BilBesi" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer/BarisBesi"]
+[node name="BilBesi" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisBesi"]
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_font_sizes/font_size = 9
@@ -122,11 +120,11 @@ theme_override_colors/font_color = Color(0.5, 0.95, 0.62, 1)
 text = "0 / 2"
 horizontal_alignment = 2
 
-[node name="BarisAis" type="HBoxContainer" parent="CanvasLayer/MenuUI/VBoxContainer"]
+[node name="BarisAis" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 5
 
-[node name="IkonAis" type="TextureRect" parent="CanvasLayer/MenuUI/VBoxContainer/BarisAis"]
+[node name="IkonAis" type="TextureRect" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisAis"]
 custom_minimum_size = Vector2(15, 15)
 layout_mode = 2
 size_flags_vertical = 4
@@ -135,14 +133,14 @@ expand_mode = 1
 stretch_mode = 5
 texture_filter = 1
 
-[node name="NamaAis" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer/BarisAis"]
+[node name="NamaAis" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisAis"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 theme_override_font_sizes/font_size = 9
 text = "Meteorite Ice"
 
-[node name="BilAis" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer/BarisAis"]
+[node name="BilAis" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisAis"]
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_font_sizes/font_size = 9
@@ -150,14 +148,14 @@ theme_override_colors/font_color = Color(0.5, 0.95, 0.62, 1)
 text = "0 / 1"
 horizontal_alignment = 2
 
-[node name="Garis2" type="HSeparator" parent="CanvasLayer/MenuUI/VBoxContainer"]
+[node name="Garis2" type="HSeparator" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
 layout_mode = 2
 
-[node name="BarisKeluaran" type="HBoxContainer" parent="CanvasLayer/MenuUI/VBoxContainer"]
+[node name="BarisKeluaran" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 5
 
-[node name="IkonKeluaran" type="TextureRect" parent="CanvasLayer/MenuUI/VBoxContainer/BarisKeluaran"]
+[node name="IkonKeluaran" type="TextureRect" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKeluaran"]
 custom_minimum_size = Vector2(15, 15)
 layout_mode = 2
 size_flags_vertical = 4
@@ -166,7 +164,7 @@ expand_mode = 1
 stretch_mode = 5
 texture_filter = 1
 
-[node name="NamaKeluaran" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer/BarisKeluaran"]
+[node name="NamaKeluaran" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKeluaran"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
@@ -174,7 +172,7 @@ theme_override_font_sizes/font_size = 9
 theme_override_colors/font_color = Color(0.68, 0.88, 1, 1)
 text = "Steel"
 
-[node name="BilKeluaran" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer/BarisKeluaran"]
+[node name="BilKeluaran" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKeluaran"]
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_font_sizes/font_size = 9
@@ -182,30 +180,30 @@ theme_override_colors/font_color = Color(0.68, 0.88, 1, 1)
 text = "x1"
 horizontal_alignment = 2
 
-[node name="Progress" type="ProgressBar" parent="CanvasLayer/MenuUI/VBoxContainer"]
+[node name="Progress" type="ProgressBar" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
 custom_minimum_size = Vector2(0, 8)
 layout_mode = 2
 show_percentage = false
 
-[node name="BarisKuantiti" type="HBoxContainer" parent="CanvasLayer/MenuUI/VBoxContainer"]
+[node name="BarisKuantiti" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 4
 alignment = 1
 
-[node name="LabelKuantitiTajuk" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer/BarisKuantiti"]
+[node name="LabelKuantitiTajuk" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti"]
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_font_sizes/font_size = 8
 theme_override_colors/font_color = Color(0.62, 0.8, 0.9, 1)
 text = "Amount"
 
-[node name="ButangKurang" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer/BarisKuantiti"]
+[node name="ButangKurang" type="Button" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti"]
 custom_minimum_size = Vector2(26, 22)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "-"
 
-[node name="LabelKuantiti" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer/BarisKuantiti"]
+[node name="LabelKuantiti" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti"]
 custom_minimum_size = Vector2(24, 0)
 layout_mode = 2
 size_flags_vertical = 4
@@ -213,37 +211,37 @@ theme_override_font_sizes/font_size = 11
 text = "1"
 horizontal_alignment = 1
 
-[node name="ButangTambah" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer/BarisKuantiti"]
+[node name="ButangTambah" type="Button" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti"]
 custom_minimum_size = Vector2(26, 22)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "+"
 
-[node name="LabelMaks" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer/BarisKuantiti"]
+[node name="LabelMaks" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti"]
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_font_sizes/font_size = 8
 theme_override_colors/font_color = Color(0.55, 0.72, 0.82, 1)
 text = "max 1"
 
-[node name="ButangLebur" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer"]
+[node name="ButangLebur" type="Button" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
 custom_minimum_size = Vector2(0, 28)
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
 text = "Smelt Steel"
 
-[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/MenuUI/VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="ButtonTutup" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer/HBoxContainer"]
+[node name="ButtonTutup" type="Button" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/HBoxContainer"]
 custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 9
 text = "Close"
 
-[node name="ButtonDemolish" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer/HBoxContainer"]
+[node name="ButtonDemolish" type="Button" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/HBoxContainer"]
 custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
 size_flags_horizontal = 3

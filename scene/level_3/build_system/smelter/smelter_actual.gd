@@ -9,21 +9,21 @@ extends StaticBody2D
 @onready var area_penderia = get_node_or_null("Area2D")
 const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
 
-@onready var menu_ui = get_node_or_null("CanvasLayer/MenuUI")
-@onready var butang_tutup = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonTutup")
-@onready var butang_demolish = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonDemolish")
-@onready var label_status = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/Header/LabelStatus")
-@onready var bar_progres = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/Progress")
-@onready var butang_lebur = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/ButangLebur")
-@onready var label_bil_besi = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/BarisBesi/BilBesi")
-@onready var label_bil_ais = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/BarisAis/BilAis")
-@onready var label_bil_keluaran = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/BarisKeluaran/BilKeluaran")
-@onready var label_kuantiti = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/BarisKuantiti/LabelKuantiti")
-@onready var label_maks = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/BarisKuantiti/LabelMaks")
-@onready var butang_kurang = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/BarisKuantiti/ButangKurang")
-@onready var butang_tambah = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/BarisKuantiti/ButangTambah")
-@onready var ikon_besi = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/BarisBesi/IkonBesi")
-@onready var ikon_ais = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/BarisAis/IkonAis")
+@onready var menu_ui = get_node_or_null("CanvasLayer/Pusat/MenuUI")
+@onready var butang_tutup = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/HBoxContainer/ButtonTutup")
+@onready var butang_demolish = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/HBoxContainer/ButtonDemolish")
+@onready var label_status = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Header/LabelStatus")
+@onready var bar_progres = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Progress")
+@onready var butang_lebur = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/ButangLebur")
+@onready var label_bil_besi = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisBesi/BilBesi")
+@onready var label_bil_ais = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisAis/BilAis")
+@onready var label_bil_keluaran = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKeluaran/BilKeluaran")
+@onready var label_kuantiti = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti/LabelKuantiti")
+@onready var label_maks = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti/LabelMaks")
+@onready var butang_kurang = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti/ButangKurang")
+@onready var butang_tambah = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti/ButangTambah")
+@onready var ikon_besi = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisBesi/IkonBesi")
+@onready var ikon_ais = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisAis/IkonAis")
 
 const MASA_LEBUR: float = 4.0
 
@@ -90,22 +90,11 @@ func _ready() -> void:
 	_bina_cahaya()
 	_bina_lapis_terapung()
 	_kemas_kini_ui()
-	_muat_saiz_menu()
 
 	var inv = get_node_or_null("/root/InventoryManager")
 	if inv and inv.has_signal("inventory_dikemaskini"):
 		if not inv.inventory_dikemaskini.is_connected(_kemas_kini_ui):
 			inv.inventory_dikemaskini.connect(_kemas_kini_ui)
-
-# Saiz menu diambil dari kandungan sebenar (font berbeza ikut peranti), jadi
-# panel sentiasa muat dan tidak terkeluar dari skrin 280x480.
-func _muat_saiz_menu() -> void:
-	await get_tree().process_frame
-	if not is_instance_valid(menu_ui):
-		return
-	var saiz: Vector2 = menu_ui.get_combined_minimum_size() + Vector2(8, 6)
-	var had: Vector2 = get_viewport_rect().size - Vector2(12, 12)
-	menu_ui.size = Vector2(minf(saiz.x, had.x), minf(saiz.y, had.y))
 
 # Ikon bahan dipasang dari fail PNG supaya menu nampak jelas (bukan teks kosong).
 func _pasang_ikon() -> void:
