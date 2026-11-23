@@ -97,6 +97,21 @@ var _lapis_terapung: CanvasLayer
 const WARNA_BESI_KELUAR: Color = Color(1.0, 0.42, 0.36)
 const WARNA_BESI_MASUK: Color = Color(0.45, 1.0, 0.55)
 
+# Animasi iklan besi dikira sendiri tiap frame (tanpa Tween) dan Control
+# dibina sekali sahaja lalu diguna semula: naik laju tetap, pudar smoothstep
+# sampai habis. Tiada Control baru, tiada queue_free, tiada spike layout.
+const MASA_IKLAN_BESI: float = 0.9
+const JARAK_IKLAN_BESI: float = 14.0
+const OFFSET_IKLAN_BESI: float = 22.0
+const IKLAN_BESI_MULA_PUDAR: float = 0.4
+const BIL_IKLAN_BESI: int = 2 # 0 = kos bina (merah), 1 = besi masuk (hijau)
+var _iklan_besi: Array[HBoxContainer] = []
+var _iklan_besi_label: Array[Label] = []
+var _iklan_besi_masa: Array[float] = []
+var _iklan_besi_goyang: Array[float] = []
+var _iklan_besi_pemain: Node2D = null
+var _ada_iklan_besi: bool = false
+
 func _ready() -> void:
 	add_to_group("BuildGrid")
 	mod_aktif = false
@@ -180,6 +195,7 @@ func _bina_hud() -> void:
 	_label_status.top_level = true
 	_kanvas_hud.add_child(_label_status)
 
+	_bina_iklan_besi()
 	_susun_hud()
 	_set_buka(false)
 
@@ -656,47 +672,99 @@ func _pulangkan_besi() -> void:
 		"scene_path": LALUAN_BESI,
 	})
 
+# Dua iklan besi dibina SEKALI di sini (merah kos bina, hijau besi masuk)
+# supaya tidak ada Control baru / susun atur / rasterisasi fon setiap tile.
+func _bina_iklan_besi() -> void:
+	if _lapis_terapung == null:
+		return
+	var ikon_tex: Texture2D = null
+	if ResourceLoader.exists(IKON_BESI):
+		ikon_tex = load(IKON_BESI)
+	for i in BIL_IKLAN_BESI:
+		var baris := HBoxContainer.new()
+		baris.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		baris.add_theme_constant_override("separation", 2)
+		if ikon_tex != null:
+			var ikon := TextureRect.new()
+			ikon.texture = ikon_tex
+			ikon.custom_minimum_size = Vector2(9, 9)
+			ikon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			ikon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			baris.add_child(ikon)
+		var teks := Label.new()
+		teks.text = "-1" if i == 0 else "+1"
+		teks.add_theme_font_size_override("font_size", 8)
+		teks.add_theme_color_override("font_color", WARNA_BESI_KELUAR if i == 0 else WARNA_BESI_MASUK)
+		teks.add_theme_color_override("font_outline_color", Color(0.02, 0.06, 0.09, 0.95))
+		teks.add_theme_constant_override("outline_size", 3)
+		baris.add_child(teks)
+		_lapis_terapung.add_child(baris)
+		baris.reset_size()
+		baris.visible = false
+		_iklan_besi.append(baris)
+		_iklan_besi_label.append(teks)
+		_iklan_besi_masa.append(-1.0)
+		_iklan_besi_goyang.append(0.0)
+
 # Iklan terapung ikon besi dekat pemain: negatif = kos bina (merah),
 # positif = binaan dinyahbina (hijau). Naik sedikit lalu pudar.
 func _apung_besi(banyak: int) -> void:
-	if _lapis_terapung == null:
+	if _iklan_besi.is_empty():
 		return
 	var pemain := get_tree().get_first_node_in_group("Player") as Node2D
 	if pemain == null or not is_instance_valid(pemain):
 		return
 
-	var warna := WARNA_BESI_MASUK if banyak > 0 else WARNA_BESI_KELUAR
-	var baris := HBoxContainer.new()
-	baris.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	baris.add_theme_constant_override("separation", 2)
+	var i: int = 0 if banyak < 0 else 1
+	var teks: String = ("+%d" if banyak > 0 else "-%d") % absi(banyak)
+	# Teks sama tidak diukur semula; hanya berubah bila jumlah kos berubah.
+	if _iklan_besi_label[i].text != teks:
+		_iklan_besi_label[i].text = teks
+		_iklan_besi[i].reset_size()
+	_iklan_besi_pemain = pemain
+	_iklan_besi_masa[i] = 0.0
+	_iklan_besi_goyang[i] = randf_range(-4.0, 4.0)
+	_iklan_besi[i].modulate.a = 1.0
+	_ada_iklan_besi = true
+	# Letak posisi serta-merta supaya tiada frame pertama tersasar.
+	_kemas_kini_iklan_besi(0.0)
 
-	if ResourceLoader.exists(IKON_BESI):
-		var ikon := TextureRect.new()
-		ikon.texture = load(IKON_BESI)
-		ikon.custom_minimum_size = Vector2(9, 9)
-		ikon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		ikon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		baris.add_child(ikon)
+func _process(delta: float) -> void:
+	_kemas_kini_iklan_besi(delta)
 
-	var teks := Label.new()
-	teks.text = ("+%d" if banyak > 0 else "-%d") % absi(banyak)
-	teks.add_theme_font_size_override("font_size", 8)
-	teks.add_theme_color_override("font_color", warna)
-	teks.add_theme_color_override("font_outline_color", Color(0.02, 0.06, 0.09, 0.95))
-	teks.add_theme_constant_override("outline_size", 3)
-	baris.add_child(teks)
-
-	_lapis_terapung.add_child(baris)
-	baris.reset_size()
-	var skrin := get_viewport().get_canvas_transform() * pemain.global_position
-	baris.position = skrin - Vector2(baris.size.x * 0.5, 22.0) + Vector2(randf_range(-4.0, 4.0), 0.0)
-
-	var tween := create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(baris, "position", baris.position + Vector2(0.0, -14.0), 0.9) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	tween.tween_property(baris, "modulate:a", 0.0, 0.45).set_delay(0.45)
-	tween.chain().tween_callback(baris.queue_free)
+# Animasi iklan dikira sendiri: posisi disemak semula setiap frame dari
+# kedudukan pemain, jadi iklan ikut pemain/kamera sepanjang hayatnya.
+func _kemas_kini_iklan_besi(delta: float) -> void:
+	if not _ada_iklan_besi:
+		return
+	_ada_iklan_besi = false
+	var pemain := _iklan_besi_pemain
+	var ada_pemain: bool = pemain != null and is_instance_valid(pemain)
+	var pos_skrin := Vector2.ZERO
+	if ada_pemain:
+		pos_skrin = get_viewport().get_canvas_transform() * pemain.global_position
+	for i in _iklan_besi.size():
+		if _iklan_besi_masa[i] < 0.0:
+			continue
+		var baris: HBoxContainer = _iklan_besi[i]
+		if not ada_pemain:
+			_iklan_besi_masa[i] = -1.0
+			baris.visible = false
+			continue
+		_iklan_besi_masa[i] += delta
+		var t: float = _iklan_besi_masa[i] / MASA_IKLAN_BESI
+		if t >= 1.0:
+			_iklan_besi_masa[i] = -1.0
+			baris.modulate.a = 0.0
+			baris.visible = false
+			continue
+		_ada_iklan_besi = true
+		baris.visible = true
+		baris.position = pos_skrin + Vector2(
+			-baris.size.x * 0.5 + _iklan_besi_goyang[i],
+			-OFFSET_IKLAN_BESI - JARAK_IKLAN_BESI * t)
+		var p: float = clampf((t - IKLAN_BESI_MULA_PUDAR) / (1.0 - IKLAN_BESI_MULA_PUDAR), 0.0, 1.0)
+		baris.modulate.a = 1.0 - (p * p * (3.0 - 2.0 * p))
 
 func _pemain_dekat(g: Vector2i, pos_pemain: Vector2) -> bool:
 	return pos_pemain.x < INF \
