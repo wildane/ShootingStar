@@ -413,8 +413,9 @@ func _kemas_progres(nisbah: float = 0.0) -> void:
 		var unit_ke: int = mini(_unit_selesai + 1, jumlah)
 		if label_progress:
 			label_progress.text = "%d/%d" % [unit_ke, jumlah]
+		# Bar untuk SATU item sahaja: penuh setiap unit, kemudian mula semula.
 		if bar_progres:
-			bar_progres.value = clampf((float(_unit_selesai) + nisbah) / float(jumlah), 0.0, 1.0) * 100.0
+			bar_progres.value = clampf(nisbah, 0.0, 1.0) * 100.0
 		return
 	if _jumlah_batch > 0 and _unit_selesai >= _jumlah_batch:
 		if label_progress:
