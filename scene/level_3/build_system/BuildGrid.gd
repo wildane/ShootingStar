@@ -49,6 +49,8 @@ const TEKSTUR_PINTU: Texture2D = preload("res://scene/level_3/build_system/tile_
 const SKRIP_PINTU_GRID: Script = preload("res://scene/level_3/build_system/PintuGrid.gd")
 
 # Ikon PNG untuk butang HUD bina (menggantikan teks Floor / Wall / Door / Erase).
+# Ikon rumah ialah butang utama: menu mengembang bila ditekan.
+const IKON_HUD_RUMAH: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_house.png")
 const IKON_HUD_LANTAI: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_floor.png")
 const IKON_HUD_DINDING: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_wall.png")
 const IKON_HUD_PINTU: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_door.png")
@@ -77,7 +79,13 @@ var _hantu: Vector2i = Vector2i.ZERO
 var _ada_hantu: bool = false
 
 var _butang: Array[Button] = []
+var _butang_rumah: Button
+var _kumpulan: Control
 var _label_status: Label
+var _tween_buka: Tween
+var _buka: bool = false
+const SAIZ_BUTANG: float = 34.0
+const LANGKAH_BUTANG: float = 38.0
 # Lapisan HUD untuk iklan terapung "-1" / "+1" besi dekat pemain.
 var _lapis_terapung: CanvasLayer
 const WARNA_BESI_KELUAR: Color = Color(1.0, 0.42, 0.36)
@@ -105,54 +113,100 @@ func _bina_hud() -> void:
 	_lapis_terapung.layer = 91
 	add_child(_lapis_terapung)
 
-	var lajur := VBoxContainer.new()
+	# Pangkalan HUD: butang rumah di (0, 0), pilihan lain di bawahnya.
 	# Diturunkan supaya tidak bertindih dengan butang Weapon Attachment di
 	# MarginContainer atas kiri (Inventory + Weapon Attachment).
-	lajur.position = Vector2(6, 128)
-	lajur.add_theme_constant_override("separation", 6)
-	kanvas.add_child(lajur)
+	var akar := Control.new()
+	akar.name = "HudButangBina"
+	akar.position = Vector2(6, 128)
+	akar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	kanvas.add_child(akar)
+
+	var tema := _tema_butang()
+	_butang_rumah = _buat_butang(IKON_HUD_RUMAH, "Build", tema)
+	_butang_rumah.toggle_mode = true
+	_butang_rumah.position = Vector2.ZERO
+	_butang_rumah.pressed.connect(_tukar_buka)
+	akar.add_child(_butang_rumah)
+
+	# Bekas pilihan yang mengembang: satu butang ke kanan, selebihnya ke bawah.
+	_kumpulan = Control.new()
+	_kumpulan.name = "PilihanBina"
+	_kumpulan.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_kumpulan.pivot_offset = Vector2.ZERO
+	akar.add_child(_kumpulan)
 
 	var ikon_jenis: Array[Texture2D] = [
 		IKON_HUD_LANTAI, IKON_HUD_DINDING, IKON_HUD_PINTU, IKON_HUD_ERASE,
 	]
-	var tema := _tema_butang()
-	for jenis in [JENIS_LANTAI, JENIS_DINDING, JENIS_PINTU, JENIS_ERASE]:
-		var butang := Button.new()
-		butang.text = ""
-		butang.icon = ikon_jenis[jenis]
-		butang.expand_icon = true
-		butang.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		butang.tooltip_text = NAMA_JENIS[jenis]
+	# Floor keluar ke kanan ikon rumah; Wall, Door dan Erase turun ke bawah.
+	var kedudukan: Array[Vector2] = [
+		Vector2(LANGKAH_BUTANG, 0),
+		Vector2(0, LANGKAH_BUTANG),
+		Vector2(0, LANGKAH_BUTANG * 2),
+		Vector2(0, LANGKAH_BUTANG * 3),
+	]
+	for i in range(ikon_jenis.size()):
+		var butang := _buat_butang(ikon_jenis[i], NAMA_JENIS[i], tema)
 		butang.toggle_mode = true
-		butang.focus_mode = Control.FOCUS_NONE
-		butang.custom_minimum_size = Vector2(34, 34)
-		butang.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		butang.theme = tema
-		butang.pressed.connect(_pilih.bind(jenis))
-		lajur.add_child(butang)
+		butang.position = kedudukan[i]
+		butang.pressed.connect(_pilih.bind(i))
+		_kumpulan.add_child(butang)
 		_butang.append(butang)
 
-	var batal := Button.new()
-	batal.text = ""
-	batal.icon = IKON_HUD_BATAL
-	batal.expand_icon = true
-	batal.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	batal.tooltip_text = "Cancel"
-	batal.focus_mode = Control.FOCUS_NONE
-	batal.custom_minimum_size = Vector2(34, 34)
-	batal.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	batal.theme = tema
+	var batal := _buat_butang(IKON_HUD_BATAL, "Cancel", tema)
+	batal.position = Vector2(0, LANGKAH_BUTANG * 4)
 	batal.pressed.connect(_batal)
-	lajur.add_child(batal)
+	_kumpulan.add_child(batal)
 
-	# Label status duduk dalam lajur yang sama supaya sentiasa betul-betul di
-	# bawah butang walaupun saiz butang berubah.
+	# Label status kekal nampak walaupun menu tertutup (menunjukkan mod aktif).
 	_label_status = Label.new()
-	_label_status.custom_minimum_size = Vector2(150, 0)
+	_label_status.custom_minimum_size = Vector2(150, 54)
+	_label_status.size = Vector2(150, 54)
 	_label_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_label_status.add_theme_font_size_override("font_size", 6)
 	_label_status.add_theme_color_override("font_color", Color(0.72, 0.93, 1.0))
-	lajur.add_child(_label_status)
+	akar.add_child(_label_status)
+
+	_set_buka(false)
+
+func _buat_butang(ikon: Texture2D, tooltip: String, tema: Theme) -> Button:
+	var butang := Button.new()
+	butang.text = ""
+	butang.icon = ikon
+	butang.expand_icon = true
+	butang.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	butang.tooltip_text = tooltip
+	butang.focus_mode = Control.FOCUS_NONE
+	butang.custom_minimum_size = Vector2(SAIZ_BUTANG, SAIZ_BUTANG)
+	butang.size = Vector2(SAIZ_BUTANG, SAIZ_BUTANG)
+	butang.theme = tema
+	return butang
+
+# Buka / tutup menu. Bila tertutup, semua pilihan kembali jadi satu ikon rumah.
+func _tukar_buka() -> void:
+	_set_buka(not _buka)
+
+func _set_buka(buka: bool) -> void:
+	_buka = buka
+	_butang_rumah.set_pressed_no_signal(buka or _mod >= 0)
+	if _kumpulan == null:
+		return
+	if _tween_buka != null and _tween_buka.is_valid():
+		_tween_buka.kill()
+	_kumpulan.visible = true
+	if buka:
+		_kumpulan.scale.x = 0.0
+		_kumpulan.modulate.a = 0.0
+		_tween_buka = create_tween().set_parallel(true)
+		_tween_buka.tween_property(_kumpulan, "scale:x", 1.0, 0.18).set_trans(Tween.TRANS_CUBIC)
+		_tween_buka.tween_property(_kumpulan, "modulate:a", 1.0, 0.18)
+	else:
+		_kumpulan.scale.x = 0.0
+		_kumpulan.modulate.a = 0.0
+		_kumpulan.visible = false
+	if _label_status != null:
+		_label_status.position = Vector2(0, LANGKAH_BUTANG * 5 + 8.0 if buka else SAIZ_BUTANG + 6.0)
 
 func _tema_butang() -> Theme:
 	# Latar butang dibuang supaya hanya ikon PNG yang nampak. Margin kecil
@@ -196,6 +250,8 @@ func _pilih(jenis: int) -> void:
 		_label_status.text = "Erase: tap a built tile to mark it. Go near to deconstruct and get 1 Iron back"
 	else:
 		_label_status.text = NAMA_JENIS[jenis] + ": tap to plan (1 Iron). Go near to build"
+	# Kembali jadi ikon rumah tunggal semasa mod aktif (macam butang build).
+	_set_buka(false)
 
 func _batal() -> void:
 	_mod = -1
@@ -205,6 +261,7 @@ func _batal() -> void:
 	for butang in _butang:
 		butang.set_pressed_no_signal(false)
 	_label_status.text = ""
+	_set_buka(false)
 	queue_redraw()
 
 # ==========================================
