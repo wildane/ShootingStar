@@ -78,10 +78,6 @@ virtual_controller/ios/enable_button_y=false
 2d_physics/layer_8="mob"
 2d_physics/layer_17="bullet"
 
-[physics]
-
-common/physics_ticks_per_second=120
-
 [rendering]
 
 renderer/rendering_method="mobile"
