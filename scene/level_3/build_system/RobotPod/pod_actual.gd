@@ -13,6 +13,8 @@ const ADEGAN_ROBOT: String = "res://scene/robot/RobotPekerja.tscn"
 
 @onready var save_component = $SaveComponent
 @onready var area_penderia = get_node_or_null("Area2D")
+const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
+
 @onready var menu_ui = get_node_or_null("CanvasLayer/MenuUI")
 @onready var label_status = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/LabelStatus")
 @onready var label_bahan = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/LabelBahan")
@@ -61,6 +63,7 @@ func _ready() -> void:
 
 	if menu_ui:
 		menu_ui.hide()
+		TemaPerabot.pasang(menu_ui)
 	if butang_tutup: butang_tutup.pressed.connect(_on_butang_tutup_pressed)
 	if butang_demolish: butang_demolish.pressed.connect(_on_butang_demolish_pressed)
 	if butang_craft: butang_craft.pressed.connect(_on_butang_craft_pressed)

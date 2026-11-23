@@ -6,6 +6,8 @@ extends StaticBody2D
 @onready var save_component = $SaveComponent
 @onready var sprite = get_node_or_null("Sprite2D")
 @onready var area_penderia = get_node_or_null("Area2D")
+const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
+
 @onready var menu_ui = get_node_or_null("CanvasLayer/MenuUI")
 @onready var butang_tutup = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonTutup")
 @onready var butang_demolish = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonDemolish")
@@ -50,6 +52,7 @@ func _ready() -> void:
 
 	if menu_ui:
 		menu_ui.hide()
+		TemaPerabot.pasang(menu_ui)
 
 	if butang_tutup: butang_tutup.pressed.connect(_on_butang_tutup_pressed)
 	if butang_demolish: butang_demolish.pressed.connect(_on_butang_demolish_pressed)

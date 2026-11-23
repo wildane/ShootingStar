@@ -1,5 +1,7 @@
 extends StaticBody2D
 
+const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
+
 @onready var save_component = $SaveComponent 
 @onready var sprite = get_node_or_null("Sprite2D")
 @onready var area_penderia = get_node_or_null("Area2D")
@@ -53,7 +55,9 @@ func _ready():
 	var bt_tutup = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonTutup")
 	var bt_demo = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonDemolish")
 	
-	if menu_ui: menu_ui.hide()
+	if menu_ui:
+		menu_ui.hide()
+		TemaPerabot.pasang(menu_ui)
 	if bt_tutup: bt_tutup.pressed.connect(_on_butang_tutup_pressed)
 	if bt_demo: bt_demo.pressed.connect(_on_butang_demolish_pressed)
 	_kemas_kini_paparan_skrin()

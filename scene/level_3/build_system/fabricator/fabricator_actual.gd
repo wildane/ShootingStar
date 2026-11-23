@@ -6,6 +6,8 @@ extends StaticBody2D
 # 🔴 Rujukan Nod Utama
 @onready var sprite = get_node_or_null("Sprite2D")
 @onready var area_penderia = get_node_or_null("Area2D")
+const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
+
 @onready var menu_ui = get_node_or_null("CanvasLayer/MenuUI") 
 @onready var butang_tutup = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonTutup")
 @onready var butang_demolish = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonDemolish")
@@ -93,6 +95,7 @@ func _ready():
 		
 	if menu_ui:
 		menu_ui.hide()
+		TemaPerabot.pasang(menu_ui)
 		
 	if butang_tutup: butang_tutup.pressed.connect(_on_butang_tutup_pressed)
 	if butang_demolish: butang_demolish.pressed.connect(_on_butang_demolish_pressed)
@@ -434,15 +437,15 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 # Kotak slot: bingkai nipis macam slot inventory
 func _gaya_slot(terpilih: bool, sudah: bool) -> StyleBoxFlat:
 	var gaya := StyleBoxFlat.new()
-	gaya.bg_color = Color(0.10, 0.12, 0.16, 0.9)
+	gaya.bg_color = Color(0.043, 0.10, 0.15, 0.92)
 	gaya.set_corner_radius_all(2)
 	gaya.set_border_width_all(1)
 	if sudah:
-		gaya.border_color = Color(0.35, 1.0, 0.45)
+		gaya.border_color = Color(0.45, 1.0, 0.55)
 	elif terpilih:
-		gaya.border_color = Color.WHITE
+		gaya.border_color = Color(0.5, 0.97, 1, 1)
 	else:
-		gaya.border_color = Color(0.35, 0.38, 0.45)
+		gaya.border_color = Color(0.36, 0.9, 1, 0.45)
 	return gaya
 
 

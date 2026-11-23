@@ -4,6 +4,8 @@ extends StaticBody2D
 @onready var area_penderia = get_node_or_null("Area2D")
 
 # LALUAN YANG DIBAIKI: Ditambah HBoxContainer mengikut struktur Scene Tree anda
+const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
+
 @onready var menu_ui = get_node_or_null("CanvasLayer/MenuUI") 
 @onready var butang_tutup = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonTutup")
 @onready var butang_demolish = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonDemolish")
@@ -26,6 +28,7 @@ func _ready():
 		
 	if menu_ui:
 		menu_ui.hide()
+		TemaPerabot.pasang(menu_ui)
 		menu_ui.custom_minimum_size = saiz_menu_kustom
 		
 	if butang_tutup:
