@@ -27,7 +27,7 @@ const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
 @onready var ikon_besi = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Besi/IkonBesi")
 @onready var ikon_ais = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Ais/IkonAis")
 
-const MASA_LEBUR: float = 4.0
+const MASA_LEBUR: float = 0.5
 
 const ID_STEEL := "item_0009"
 const LALUAN_STEEL := "res://scene/Item/0009Steel/Steel.tscn"
