@@ -320,6 +320,16 @@ func _on_butang_confirm_pressed() -> void:
 func _on_butang_cancel_pressed() -> void:
 	queue_free()
 
+# Tapak (footprint) modul dalam koordinat dunia, diambil daripada bentuk
+# kolider preview supaya semakan struktur guna saiz sebenar.
+func _rect_tapak() -> Rect2:
+	if is_instance_valid(area_penderia):
+		for anak in area_penderia.get_children():
+			if anak is CollisionShape2D and anak.shape is RectangleShape2D:
+				var saiz: Vector2 = (anak.shape as RectangleShape2D).size * anak.global_scale
+				return Rect2(global_position - saiz * 0.5, saiz)
+	return Rect2(global_position - Vector2(9, 17), Vector2(18, 34))
+
 func imbas_menggunakan_skala_inspector() -> void:
 	# ==========================================
 	# SEMAK JARAK PLAYER (WAJIB HAD 150PX)
@@ -340,6 +350,18 @@ func imbas_menggunakan_skala_inspector() -> void:
 		if sprite: sprite.modulate = Color(1.0, 0.3, 0.3, 0.5)
 		boleh_pasang = false
 		return
+
+	# ==========================================
+	# SEMAKAN: BANGUNAN LUAR HANYA DI PERMUKAAN KOSONG
+	# Solar Module tidak boleh diletak di atas struktur binaan pemain
+	# (lantai/dinding/pintu), termasuk yang masih berstatus rancangan.
+	# ==========================================
+	var grid = get_tree().get_first_node_in_group("BuildGrid")
+	if is_instance_valid(grid) and grid.has_method("ada_struktur_di_kawasan"):
+		if grid.ada_struktur_di_kawasan(_rect_tapak()):
+			if sprite: sprite.modulate = Color(1.0, 0.3, 0.3, 0.5)
+			boleh_pasang = false
+			return
 
 	# ==========================================
 	# SEMAKAN: BERTINDIH ATAS OBJEK LAIN

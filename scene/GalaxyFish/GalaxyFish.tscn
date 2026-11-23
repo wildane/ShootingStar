@@ -15,7 +15,7 @@ height = 48.0
 [node name="Spacefish" type="CharacterBody2D" unique_id=586787864 groups=["enemy"]]
 scale = Vector2(0.5, 0.5)
 collision_layer = 128
-collision_mask = 65538
+collision_mask = 65546
 input_pickable = true
 safe_margin = 10.0
 script = ExtResource("1_rmibn")

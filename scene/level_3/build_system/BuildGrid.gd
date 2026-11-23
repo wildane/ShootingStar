@@ -90,7 +90,9 @@ func _bina_hud() -> void:
 	add_child(kanvas)
 
 	var lajur := VBoxContainer.new()
-	lajur.position = Vector2(6, 96)
+	# Diturunkan supaya tidak bertindih dengan butang Weapon Attachment di
+	# MarginContainer atas kiri (Inventory + Weapon Attachment).
+	lajur.position = Vector2(6, 128)
 	lajur.add_theme_constant_override("separation", 4)
 	kanvas.add_child(lajur)
 
@@ -355,6 +357,19 @@ func muat_data_save(data: Dictionary) -> void:
 			if item.has("kemajuan"):
 				_bina_kemajuan[g] = clampf(float(item.get("kemajuan", 0.0)), 0.0, 0.99)
 	queue_redraw()
+
+# Dipakai preview bangunan luar (contoh: Solar Module) supaya struktur yang
+# dibina pemain (lantai/dinding/pintu, termasuk yang masih berstatus rancangan)
+# tidak boleh ditindih. Bangunan luar hanya sah di permukaan kosong.
+func ada_struktur_di_kawasan(rect_dunia: Rect2) -> bool:
+	var sel_awal := _sel_dari_dunia(to_local(rect_dunia.position))
+	var sel_akhir := _sel_dari_dunia(to_local(rect_dunia.end))
+	for x in range(mini(sel_awal.x, sel_akhir.x), maxi(sel_awal.x, sel_akhir.x) + 1):
+		for y in range(mini(sel_awal.y, sel_akhir.y), maxi(sel_awal.y, sel_akhir.y) + 1):
+			var g := Vector2i(x, y)
+			if _tile.has(g) or _rancang.has(g):
+				return true
+	return false
 
 func boleh_bina(g: Vector2i) -> bool:
 	if _tile.has(g) or _rancang.has(g):
