@@ -105,7 +105,7 @@ func _pasang_gaya_kad() -> void:
 	if menu_ui:
 		var bingkai := (menu_ui.theme.get_stylebox("panel", "PanelContainer") as StyleBox).duplicate()
 		if bingkai:
-			bingkai.set_content_margin_all(6.0)
+			bingkai.set_content_margin_all(4.0)
 			menu_ui.add_theme_stylebox_override("panel", bingkai)
 
 	if kad:
@@ -113,8 +113,8 @@ func _pasang_gaya_kad() -> void:
 		gaya.bg_color = Color(0.031, 0.082, 0.13, 0.95)
 		gaya.border_color = Color(0.28, 0.55, 0.68, 0.7)
 		gaya.set_border_width_all(1)
-		gaya.set_corner_radius_all(4)
-		gaya.set_content_margin_all(5.0)
+		gaya.set_corner_radius_all(3)
+		gaya.set_content_margin_all(3.0)
 		kad.add_theme_stylebox_override("panel", gaya)
 
 	if butang_lebur:

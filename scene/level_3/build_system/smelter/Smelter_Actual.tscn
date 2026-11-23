@@ -48,7 +48,7 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="MenuUI" type="PanelContainer" parent="CanvasLayer/Pusat"]
-custom_minimum_size = Vector2(168, 0)
+custom_minimum_size = Vector2(168, 296)
 layout_mode = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/Pusat/MenuUI"]
@@ -79,17 +79,17 @@ layout_mode = 2
 
 [node name="HBox" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad"]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 3
 
 [node name="Kiri" type="VBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox"]
-custom_minimum_size = Vector2(52, 0)
+custom_minimum_size = Vector2(34, 0)
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_constants/separation = 1
 alignment = 1
 
 [node name="IkonBekas" type="Control" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri"]
-custom_minimum_size = Vector2(52, 44)
+custom_minimum_size = Vector2(34, 24)
 layout_mode = 2
 mouse_filter = 2
 
@@ -133,13 +133,13 @@ horizontal_alignment = 2
 vertical_alignment = 2
 
 [node name="Progress" type="ProgressBar" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri"]
-custom_minimum_size = Vector2(52, 6)
+custom_minimum_size = Vector2(34, 4)
 layout_mode = 2
 show_percentage = false
 
 [node name="LabelProgress" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 6
+theme_override_font_sizes/font_size = 5
 theme_override_colors/font_color = Color(0.7, 0.88, 0.98, 1)
 text = "0/1"
 horizontal_alignment = 1
@@ -153,7 +153,7 @@ alignment = 1
 
 [node name="NamaResipi" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 9
+theme_override_font_sizes/font_size = 8
 text = "Steel"
 
 [node name="Bahan" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat"]
@@ -205,11 +205,16 @@ theme_override_constants/outline_size = 3
 text = "1"
 
 [node name="ButangCraft" type="Button" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox"]
-custom_minimum_size = Vector2(44, 26)
+custom_minimum_size = Vector2(40, 20)
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_font_sizes/font_size = 8
 text = "Craft"
+
+[node name="Ruang" type="Control" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
 
 [node name="BarisKuantiti" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
 layout_mode = 2
