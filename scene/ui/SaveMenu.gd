@@ -219,6 +219,7 @@ func _bina_dialog() -> void:
 	_lapis_dialog.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_lapis_dialog.mouse_filter = Control.MOUSE_FILTER_STOP
 	_lapis_dialog.visible = false
+	_lapis_dialog.theme = _bina_tema()
 	add_child(_lapis_dialog)
 
 	var dim := ColorRect.new()
