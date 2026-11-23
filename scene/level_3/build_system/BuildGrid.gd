@@ -100,10 +100,10 @@ const WARNA_BESI_MASUK: Color = Color(0.45, 1.0, 0.55)
 # Animasi iklan besi dikira sendiri tiap frame (tanpa Tween) dan Control
 # dibina sekali sahaja lalu diguna semula: naik laju tetap, pudar smoothstep
 # sampai habis. Tiada Control baru, tiada queue_free, tiada spike layout.
-const MASA_IKLAN_BESI: float = 0.9
+const MASA_IKLAN_BESI: float = 0.65
 const JARAK_IKLAN_BESI: float = 14.0
 const OFFSET_IKLAN_BESI: float = 22.0
-const IKLAN_BESI_MULA_PUDAR: float = 0.4
+const IKLAN_BESI_MULA_PUDAR: float = 0.35
 const BIL_IKLAN_BESI: int = 2 # 0 = kos bina (merah), 1 = besi masuk (hijau)
 var _iklan_besi: Array[HBoxContainer] = []
 var _iklan_besi_label: Array[Label] = []

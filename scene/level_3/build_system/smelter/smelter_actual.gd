@@ -32,10 +32,10 @@ const MASA_LEBUR: float = 3.0
 
 # Animasi iklan terapung "+1": naik dengan laju tetap dan pudar licin sampai
 # habis, jadi ia tidak nampak tersekat sebelum hilang.
-const MASA_IKLAN: float = 0.9
+const MASA_IKLAN: float = 0.65
 const JARAK_IKLAN: float = 10.0
 const IKLAN_Y_ASAL: float = -26.0
-const IKLAN_MULA_PUDAR: float = 0.4
+const IKLAN_MULA_PUDAR: float = 0.35
 
 const ID_STEEL := "item_0009"
 const LALUAN_STEEL := "res://scene/Item/0009Steel/Steel.tscn"
