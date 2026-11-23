@@ -142,7 +142,7 @@ func _bina_hud() -> void:
 	bekas.add_child(_butang_rumah)
 
 	# Menu mengembang sebagai overlay supaya VBox tidak berubah saiz.
-	# Satu butang ke kanan ikon rumah, selebihnya ke bawah.
+	# Semua butang pilihan terhampar dalam satu baris mendatar ke kanan ikon rumah.
 	_kumpulan = Control.new()
 	_kumpulan.name = "PilihanBina"
 	_kumpulan.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -153,22 +153,16 @@ func _bina_hud() -> void:
 	var ikon_jenis: Array[Texture2D] = [
 		IKON_HUD_LANTAI, IKON_HUD_DINDING, IKON_HUD_PINTU, IKON_HUD_ERASE,
 	]
-	var kedudukan: Array[Vector2] = [
-		Vector2(LANGKAH_BUTANG, 0),
-		Vector2(0, LANGKAH_BUTANG),
-		Vector2(0, LANGKAH_BUTANG * 2),
-		Vector2(0, LANGKAH_BUTANG * 3),
-	]
 	for i in range(ikon_jenis.size()):
 		var butang := _buat_butang(ikon_jenis[i], NAMA_JENIS[i], tema)
 		butang.toggle_mode = true
-		butang.position = kedudukan[i]
+		butang.position = Vector2(LANGKAH_BUTANG * float(i + 1), 0.0)
 		butang.pressed.connect(_pilih.bind(i))
 		_kumpulan.add_child(butang)
 		_butang.append(butang)
 
 	var batal := _buat_butang(IKON_HUD_BATAL, "Cancel", tema)
-	batal.position = Vector2(0, LANGKAH_BUTANG * 4)
+	batal.position = Vector2(LANGKAH_BUTANG * float(ikon_jenis.size() + 1), 0.0)
 	batal.pressed.connect(_batal)
 	_kumpulan.add_child(batal)
 
@@ -216,9 +210,12 @@ func _susun_hud() -> void:
 	if _label_status != null:
 		_label_status.global_position = asas + Vector2(LANGKAH_BUTANG + SAIZ_BUTANG + 6.0, 2.0)
 
-# Buka / tutup menu. Bila tertutup, semua pilihan kembali jadi satu ikon rumah.
+# Buka / tutup menu. Menutup akan membatalkan mod bina (tutup mod home).
 func _tukar_buka() -> void:
-	_set_buka(not _buka)
+	if _buka:
+		_batal()
+	else:
+		_set_buka(true)
 
 func _set_buka(buka: bool) -> void:
 	_buka = buka
@@ -308,8 +305,6 @@ func _pilih(jenis: int) -> void:
 		_label_status.text = "Erase: tap a built tile to mark it. Go near to deconstruct and get 1 Iron back"
 	else:
 		_label_status.text = NAMA_JENIS[jenis] + ": tap to plan (1 Iron). Go near to build"
-	# Kembali jadi ikon rumah tunggal semasa mod aktif (macam butang build).
-	_set_buka(false)
 
 func _batal() -> void:
 	_mod = -1
@@ -325,7 +320,7 @@ func _batal() -> void:
 # ==========================================
 # INPUT: tap = letak, heret = gerak hantu
 # ==========================================
-# Tap di luar menu (dan di luar ikon rumah) menutup menu semula.
+# Tap di luar menu (dan di luar ikon rumah) menutup mod home (batal + tutup).
 func _input(event: InputEvent) -> void:
 	if not _buka:
 		return
@@ -338,9 +333,9 @@ func _input(event: InputEvent) -> void:
 		return
 	if _tekan_dalam_hud(pos):
 		return
-	# Tutup menu sahaja; tap ini tidak diteruskan ke aksi lain.
+	# Tutup mod home; tap ini tidak diteruskan ke aksi lain.
 	get_viewport().set_input_as_handled()
-	_set_buka(false)
+	_batal()
 
 func _tekan_dalam_hud(pos: Vector2) -> bool:
 	if _butang_rumah != null and _butang_rumah.get_global_rect().has_point(pos):
