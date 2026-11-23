@@ -29,20 +29,25 @@ func _ready() -> void:
 	add_child(_label)
 
 func set_kemajuan(n: float, t: String) -> void:
-	nisbah = clampf(n, 0.0, 1.0)
+	var n_baru: float = clampf(n, 0.0, 1.0)
+	var teks_berubah: bool = t != teks
 	teks = t
-	if _label:
+	if _label and teks_berubah:
 		_label.text = t
+	# Hanya lukis semula bila bentuk cincin atau teks benar-benar berubah.
+	if is_equal_approx(n_baru, nisbah) and not teks_berubah:
+		return
+	nisbah = n_baru
 	queue_redraw()
 
 func _draw() -> void:
 	# Latar gelap supaya ikon nampak jelas atas lantai/base.
 	draw_circle(Vector2.ZERO, JEJARI + 1.6, Color(0.02, 0.05, 0.08, 0.85))
 	# Trek cincin.
-	draw_arc(Vector2.ZERO, JEJARI, 0.0, TAU, 48, Color(0.22, 0.38, 0.46, 0.9), TEBAL, true)
+	draw_arc(Vector2.ZERO, JEJARI, 0.0, TAU, 24, Color(0.22, 0.38, 0.46, 0.9), TEBAL, true)
 	# Cincin kemajuan satu unit, mula dari atas.
 	if nisbah > 0.0:
-		draw_arc(Vector2.ZERO, JEJARI, -PI * 0.5, -PI * 0.5 + TAU * nisbah, 48,
+		draw_arc(Vector2.ZERO, JEJARI, -PI * 0.5, -PI * 0.5 + TAU * nisbah, 24,
 			Color(0.36, 0.9, 1.0, 1.0), TEBAL + 0.6, true)
 	# Ikon item di tengah.
 	if tekstur:

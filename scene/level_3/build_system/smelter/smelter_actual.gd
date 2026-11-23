@@ -50,6 +50,11 @@ var player_dekat: bool = false
 var masa_ketikan_terakhir: float = 0.0
 const SELA_MASA_MINIMUM: float = 0.2
 
+# UI tidak perlu dikemas kini setiap frame: teks Label/Button memaksa shaping
+# fon + susun atur semula setiap kali. 20 Hz sudah cukup licin.
+const SELA_UI: float = 0.05
+var _ui_tick: float = 0.0
+
 # Keadaan peleburan
 var sedang_lebur: bool = false
 var masa_berlalu: float = 0.0
@@ -65,6 +70,10 @@ var _unit_selesai: int = 0
 
 # Bekas iklan terapung "+1" (dalam dunia, jadi ia ikut kamera)
 var _lapis_terapung: Node2D = null
+var _iklan: HBoxContainer = null
+var _iklan_ikon: TextureRect = null
+var _iklan_teks: Label = null
+var _tween_iklan: Tween = null
 # Cincin kemajuan di atas relau (ikon item + "1/7")
 var _bulatan: Node2D = null
 var _tekstur_steel: Texture2D = null
@@ -195,6 +204,31 @@ func _bina_lapis_terapung() -> void:
 	_lapis_terapung.z_index = 100
 	add_child(_lapis_terapung)
 
+	# Iklan "+1" dibina SEKALI dan diguna semula. Membina Control baru
+	# (HBox + ikon + Label) setiap unit menyebabkan lag singkat setiap kali
+	# satu Steel siap, kerana setiap Control baru perlu layout + shaping teks.
+	_iklan = HBoxContainer.new()
+	_iklan.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_iklan.add_theme_constant_override("separation", 1)
+	_iklan.visible = false
+	_lapis_terapung.add_child(_iklan)
+
+	_iklan_ikon = TextureRect.new()
+	_iklan_ikon.texture = _tekstur_steel
+	_iklan_ikon.custom_minimum_size = Vector2(7, 7)
+	_iklan_ikon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_iklan_ikon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_iklan_ikon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_iklan.add_child(_iklan_ikon)
+
+	_iklan_teks = Label.new()
+	_iklan_teks.text = "+1"
+	_iklan_teks.add_theme_font_size_override("font_size", 7)
+	_iklan_teks.add_theme_color_override("font_color", Color(0.45, 1.0, 0.55, 1.0))
+	_iklan_teks.add_theme_color_override("font_outline_color", Color(0.02, 0.06, 0.09, 0.95))
+	_iklan_teks.add_theme_constant_override("outline_size", 3)
+	_iklan.add_child(_iklan_teks)
+
 func get_save_data() -> Dictionary:
 	var data_perabot: Dictionary = {}
 	if save_component and save_component.has_method("get_data"):
@@ -274,6 +308,7 @@ func _mula_unit() -> void:
 	sedang_lebur = true
 	masa_berlalu = 0.0
 	masa_hiasan = 0.0
+	_ui_tick = SELA_UI
 	if _cahaya:
 		_cahaya.visible = true
 	if bar_progres:
@@ -291,9 +326,12 @@ func _process(delta: float) -> void:
 	masa_berlalu += delta
 	masa_hiasan += delta
 	var nisbah: float = clamp(masa_berlalu / MASA_LEBUR, 0.0, 1.0)
-	_kemas_progres(nisbah)
-	if butang_lebur:
-		butang_lebur.text = "%0.1fs" % max(0.0, MASA_LEBUR - masa_berlalu)
+	_ui_tick += delta
+	if _ui_tick >= SELA_UI:
+		_ui_tick = 0.0
+		_kemas_progres(nisbah)
+		if butang_lebur:
+			butang_lebur.text = "%0.1fs" % max(0.0, MASA_LEBUR - masa_berlalu)
 
 	var denyut: float = (sin(masa_hiasan * 7.5) + 1.0) * 0.5
 	if sprite:
@@ -310,12 +348,14 @@ func _process(delta: float) -> void:
 func _selesai_unit() -> void:
 	var inv = get_node_or_null("/root/InventoryManager")
 	if inv:
+		# senyap=true: jangan pancar isyarat inventori setiap unit (itu membina
+		# semula UI semua perabot). Isyarat dipancar sekali bila batch habis.
 		inv.tambah_item({
 			"id": ID_STEEL,
 			"nama": "Steel",
 			"ikon": _tekstur_steel if _tekstur_steel else load(IKON_STEEL),
 			"scene_path": LALUAN_STEEL,
-		})
+		}, true)
 	_apung_steel(1)
 	_baki_batch -= 1
 	_unit_selesai += 1
@@ -348,42 +388,32 @@ func _selesai_unit() -> void:
 	if bar_progres:
 		bar_progres.value = 0.0
 	_kemas_kini_ui()
+	if inv:
+		inv.kemas_kini_selepas_batch()
 
 # Iklan terapung ikon steel + "+1" di atas relau, naik lalu pudar.
+# Guna semula node yang sudah ada: tiada Control baru setiap unit.
 func _apung_steel(banyak: int) -> void:
-	if _lapis_terapung == null:
+	if _iklan == null:
 		return
-	var baris := HBoxContainer.new()
-	baris.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	baris.add_theme_constant_override("separation", 1)
+	_iklan_teks.text = "+%d" % banyak
+	_iklan.modulate.a = 1.0
+	_iklan.visible = true
+	_iklan.reset_size()
+	_iklan.position = Vector2(-_iklan.size.x * 0.5, -26.0) + Vector2(randf_range(-2.0, 2.0), 0.0)
 
-	if _tekstur_steel:
-		var ikon := TextureRect.new()
-		ikon.texture = _tekstur_steel
-		ikon.custom_minimum_size = Vector2(7, 7)
-		ikon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		ikon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		ikon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		baris.add_child(ikon)
-
-	var teks := Label.new()
-	teks.text = "+%d" % banyak
-	teks.add_theme_font_size_override("font_size", 7)
-	teks.add_theme_color_override("font_color", Color(0.45, 1.0, 0.55, 1.0))
-	teks.add_theme_color_override("font_outline_color", Color(0.02, 0.06, 0.09, 0.95))
-	teks.add_theme_constant_override("outline_size", 3)
-	baris.add_child(teks)
-
-	_lapis_terapung.add_child(baris)
-	baris.reset_size()
-	baris.position = Vector2(-baris.size.x * 0.5, -26.0) + Vector2(randf_range(-2.0, 2.0), 0.0)
-
-	var tween := create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(baris, "position", baris.position + Vector2(0.0, -10.0), 0.9) \
+	if _tween_iklan and _tween_iklan.is_valid():
+		_tween_iklan.kill()
+	_tween_iklan = create_tween()
+	_tween_iklan.set_parallel(true)
+	_tween_iklan.tween_property(_iklan, "position", _iklan.position + Vector2(0.0, -10.0), 0.9) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	tween.tween_property(baris, "modulate:a", 0.0, 0.45).set_delay(0.45)
-	tween.chain().tween_callback(baris.queue_free)
+	_tween_iklan.tween_property(_iklan, "modulate:a", 0.0, 0.45).set_delay(0.45)
+	_tween_iklan.chain().tween_callback(_sembunyi_iklan)
+
+func _sembunyi_iklan() -> void:
+	if _iklan:
+		_iklan.visible = false
 
 # Kemas kini menu: ikon + bilangan bahan, status, pilihan kuantiti, butang.
 func _kemas_kini_ui() -> void:
