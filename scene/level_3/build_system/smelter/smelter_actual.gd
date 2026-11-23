@@ -2,6 +2,7 @@ extends StaticBody2D
 
 ## Relau pelebur: 2 Basic Iron Ore + 1 Meteorite Ice -> 1 Steel.
 ## Semasa melebur, sprite berdenyut warna relau dan ada cahaya api di mulut.
+## Menu ada ikon bahan, pilihan kuantiti (batch) dan iklan terapung "+1".
 
 @onready var save_component = $SaveComponent
 @onready var sprite = get_node_or_null("Sprite2D")
@@ -11,10 +12,18 @@ const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
 @onready var menu_ui = get_node_or_null("CanvasLayer/MenuUI")
 @onready var butang_tutup = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonTutup")
 @onready var butang_demolish = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonDemolish")
-@onready var label_status = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/Status")
+@onready var label_status = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/Header/LabelStatus")
 @onready var bar_progres = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/Progress")
-@onready var label_bahan = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/Bahan")
 @onready var butang_lebur = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/ButangLebur")
+@onready var label_bil_besi = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/BarisBesi/BilBesi")
+@onready var label_bil_ais = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/BarisAis/BilAis")
+@onready var label_bil_keluaran = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/BarisKeluaran/BilKeluaran")
+@onready var label_kuantiti = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/BarisKuantiti/LabelKuantiti")
+@onready var label_maks = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/BarisKuantiti/LabelMaks")
+@onready var butang_kurang = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/BarisKuantiti/ButangKurang")
+@onready var butang_tambah = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/BarisKuantiti/ButangTambah")
+@onready var ikon_besi = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/BarisBesi/IkonBesi")
+@onready var ikon_ais = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/BarisAis/IkonAis")
 
 const MASA_LEBUR: float = 4.0
 
@@ -23,6 +32,10 @@ const LALUAN_STEEL := "res://scene/Item/0009Steel/Steel.tscn"
 const IKON_STEEL := "res://scene/Item/0009Steel/Image_steel.png"
 const LALUAN_BESI := "res://scene/Item/0001BasicIronOre/Image_959.png"
 const LALUAN_AIS := "res://scene/Item/0002MeteoriteIce/Image_393.png"
+
+const WARNA_CUKUP := Color(0.5, 0.95, 0.62, 1.0)
+const WARNA_KURANG := Color(1.0, 0.44, 0.44, 1.0)
+const WARNA_SEDANG := Color(0.72, 0.86, 0.95, 1.0)
 
 # Resipi peleburan steel.
 @export var resipi: Array[Dictionary] = [
@@ -41,6 +54,16 @@ var masa_hiasan: float = 0.0
 var _cahaya: Sprite2D = null
 var _skala_asal: Vector2 = Vector2(0.05, 0.05)
 
+# Kelompok (batch) peleburan
+var kuantiti_pilihan: int = 1
+var _baki_batch: int = 0
+var _jumlah_batch: int = 0
+var _unit_selesai: int = 0
+
+# Lapisan iklan terapung "+1"
+var _lapis_terapung: CanvasLayer = null
+var _tekstur_steel: Texture2D = null
+
 func _ready() -> void:
 	add_to_group("Furniture")
 
@@ -57,17 +80,30 @@ func _ready() -> void:
 	if butang_tutup: butang_tutup.pressed.connect(_on_butang_tutup_pressed)
 	if butang_demolish: butang_demolish.pressed.connect(_on_butang_demolish_pressed)
 	if butang_lebur: butang_lebur.pressed.connect(_on_butang_lebur_pressed)
+	if butang_kurang: butang_kurang.pressed.connect(_on_kurang_pressed)
+	if butang_tambah: butang_tambah.pressed.connect(_on_tambah_pressed)
 
 	if sprite:
 		_skala_asal = sprite.scale
 
+	_pasang_ikon()
 	_bina_cahaya()
+	_bina_lapis_terapung()
 	_kemas_kini_ui()
 
 	var inv = get_node_or_null("/root/InventoryManager")
 	if inv and inv.has_signal("inventory_dikemaskini"):
 		if not inv.inventory_dikemaskini.is_connected(_kemas_kini_ui):
 			inv.inventory_dikemaskini.connect(_kemas_kini_ui)
+
+# Ikon bahan dipasang dari fail PNG supaya menu nampak jelas (bukan teks kosong).
+func _pasang_ikon() -> void:
+	if ikon_besi and ResourceLoader.exists(LALUAN_BESI):
+		ikon_besi.texture = load(LALUAN_BESI)
+	if ikon_ais and ResourceLoader.exists(LALUAN_AIS):
+		ikon_ais.texture = load(LALUAN_AIS)
+	if ResourceLoader.exists(IKON_STEEL):
+		_tekstur_steel = load(IKON_STEEL)
 
 # Cahaya api di muncung relau (dibina dalam kod, tiada aset tambahan).
 func _bina_cahaya() -> void:
@@ -90,6 +126,13 @@ func _bina_cahaya() -> void:
 	add_child(_cahaya)
 	move_child(_cahaya, 0)
 
+# Lapisan skrin untuk iklan terapung "+1 Steel" (sama gaya dengan BuildGrid).
+func _bina_lapis_terapung() -> void:
+	_lapis_terapung = CanvasLayer.new()
+	_lapis_terapung.name = "HudSmelterTerapung"
+	_lapis_terapung.layer = 92
+	add_child(_lapis_terapung)
+
 func get_save_data() -> Dictionary:
 	var data_perabot: Dictionary = {}
 	if save_component and save_component.has_method("get_data"):
@@ -108,32 +151,68 @@ func _bilangan_dalam_beg(id_item: String) -> int:
 		return 0
 	return inv.bilangan_item(id_item)
 
-func _bahan_cukup() -> bool:
+func _bahan_cukup(banyak: int = 1) -> bool:
 	for bahan in resipi:
-		if _bilangan_dalam_beg(bahan["id"]) < int(bahan["kuantiti"]):
+		if _bilangan_dalam_beg(bahan["id"]) < int(bahan["kuantiti"]) * banyak:
 			return false
 	return true
+
+# Berapa unit steel boleh dilebur dengan bahan dalam beg sekarang.
+func _maks_unit() -> int:
+	var maks: int = 99
+	for bahan in resipi:
+		var perlu: int = maxi(1, int(bahan["kuantiti"]))
+		maks = mini(maks, int(floor(float(_bilangan_dalam_beg(bahan["id"])) / float(perlu))))
+	return maxi(0, maks)
+
+func _on_kurang_pressed() -> void:
+	if sedang_lebur:
+		return
+	kuantiti_pilihan = maxi(1, kuantiti_pilihan - 1)
+	_kemas_kini_ui()
+
+func _on_tambah_pressed() -> void:
+	if sedang_lebur:
+		return
+	kuantiti_pilihan = mini(maxi(1, _maks_unit()), kuantiti_pilihan + 1)
+	_kemas_kini_ui()
 
 func _on_butang_lebur_pressed() -> void:
 	if sedang_lebur:
 		return
-	if not _bahan_cukup():
+	var maks: int = _maks_unit()
+	if maks <= 0:
 		_tulis_info("Not enough materials for Steel")
 		return
+	kuantiti_pilihan = clampi(kuantiti_pilihan, 1, maks)
+	# Simpan nilai dulu: tolak_item memancar isyarat inventori yang boleh
+	# mengubah kuantiti_pilihan di tengah gelung.
+	var banyak: int = kuantiti_pilihan
 	var inv = get_node_or_null("/root/InventoryManager")
 	if inv == null:
 		return
 	for bahan in resipi:
-		inv.tolak_item(bahan["id"], int(bahan["kuantiti"]))
+		inv.tolak_item(bahan["id"], int(bahan["kuantiti"]) * banyak)
+	_jumlah_batch = banyak
+	_baki_batch = banyak
+	_unit_selesai = 0
+	_mula_unit()
+
+func _mula_unit() -> void:
 	sedang_lebur = true
 	masa_berlalu = 0.0
 	masa_hiasan = 0.0
 	if _cahaya:
 		_cahaya.visible = true
+	if bar_progres:
+		bar_progres.value = 0.0
 	_kemas_kini_ui()
-	_tulis_info("Smelting Steel...")
+	if _jumlah_batch > 1:
+		_tulis_info("Smelting Steel %d/%d..." % [_unit_selesai + 1, _jumlah_batch])
+	else:
+		_tulis_info("Smelting Steel...")
 
-# Animasai relau + kemajuan peleburan.
+# Animasi relau + kemajuan peleburan.
 func _process(delta: float) -> void:
 	if not sedang_lebur:
 		return
@@ -154,9 +233,31 @@ func _process(delta: float) -> void:
 		_cahaya.scale = Vector2.ONE * (0.62 + 0.18 * denyut)
 
 	if nisbah >= 1.0:
-		_selesai_lebur()
+		_selesai_unit()
 
-func _selesai_lebur() -> void:
+# Satu unit steel siap: tambah item, iklan terapung, sambung unit seterusnya.
+func _selesai_unit() -> void:
+	var inv = get_node_or_null("/root/InventoryManager")
+	if inv:
+		inv.tambah_item({
+			"id": ID_STEEL,
+			"nama": "Steel",
+			"ikon": _tekstur_steel if _tekstur_steel else load(IKON_STEEL),
+			"scene_path": LALUAN_STEEL,
+		})
+	_apung_steel(1)
+	_baki_batch -= 1
+	_unit_selesai += 1
+	if bar_progres:
+		bar_progres.value = 0.0
+
+	if _baki_batch > 0:
+		masa_berlalu = 0.0
+		masa_hiasan = 0.0
+		print("Smelter: 1 Steel dihasilkan (%d/%d)" % [_unit_selesai, _jumlah_batch])
+		_kemas_kini_ui()
+		return
+
 	sedang_lebur = false
 	masa_berlalu = 0.0
 	if sprite:
@@ -164,33 +265,85 @@ func _selesai_lebur() -> void:
 		sprite.scale = _skala_asal
 	if _cahaya:
 		_cahaya.visible = false
-	if bar_progres:
-		bar_progres.value = 0.0
-
-	var inv = get_node_or_null("/root/InventoryManager")
-	if inv:
-		inv.tambah_item({
-			"id": ID_STEEL,
-			"nama": "Steel",
-			"ikon": load(IKON_STEEL),
-			"scene_path": LALUAN_STEEL,
-		})
+	if _jumlah_batch > 1:
+		_tulis_info("Steel produced! +%d" % _jumlah_batch)
+	else:
+		_tulis_info("Steel produced! +1")
+	print("Smelter: %d Steel dihasilkan" % _jumlah_batch)
 	_kemas_kini_ui()
-	_tulis_info("Steel produced! +1")
-	print("Smelter: 1 Steel dihasilkan")
 
-# Kandungan menu: senarai bahan (hijau/merah) + status butang.
+# Iklan terapung ikon steel + "+1" di atas relau, naik lalu pudar.
+func _apung_steel(banyak: int) -> void:
+	if _lapis_terapung == null:
+		return
+	var baris := HBoxContainer.new()
+	baris.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	baris.add_theme_constant_override("separation", 2)
+
+	if _tekstur_steel:
+		var ikon := TextureRect.new()
+		ikon.texture = _tekstur_steel
+		ikon.custom_minimum_size = Vector2(12, 12)
+		ikon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ikon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ikon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		baris.add_child(ikon)
+
+	var teks := Label.new()
+	teks.text = "+%d" % banyak
+	teks.add_theme_font_size_override("font_size", 10)
+	teks.add_theme_color_override("font_color", Color(0.45, 1.0, 0.55, 1.0))
+	teks.add_theme_color_override("font_outline_color", Color(0.02, 0.06, 0.09, 0.95))
+	teks.add_theme_constant_override("outline_size", 3)
+	baris.add_child(teks)
+
+	_lapis_terapung.add_child(baris)
+	baris.reset_size()
+	var skrin: Vector2 = get_viewport().get_canvas_transform() * (global_position + Vector2(0, -22))
+	baris.position = skrin - Vector2(baris.size.x * 0.5, 10.0) + Vector2(randf_range(-4.0, 4.0), 0.0)
+
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(baris, "position", baris.position + Vector2(0.0, -16.0), 0.9) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.tween_property(baris, "modulate:a", 0.0, 0.45).set_delay(0.45)
+	tween.chain().tween_callback(baris.queue_free)
+
+# Kemas kini menu: ikon + bilangan bahan, status, pilihan kuantiti, butang.
 func _kemas_kini_ui() -> void:
-	if label_bahan:
-		var teks: String = ""
-		for bahan in resipi:
-			var ada := _bilangan_dalam_beg(bahan["id"])
-			var warna: String = "#7dff86" if ada >= int(bahan["kuantiti"]) or sedang_lebur else "#ff6b6b"
-			teks += "[color=%s]%d x %s[/color]\n" % [warna, int(bahan["kuantiti"]), str(bahan["nama"])]
-		label_bahan.text = teks
+	var maks: int = _maks_unit()
+	if not sedang_lebur:
+		kuantiti_pilihan = clampi(kuantiti_pilihan, 1, maxi(1, maks))
+	var perlu_besi: int = int(resipi[0]["kuantiti"]) * kuantiti_pilihan
+	var perlu_ais: int = int(resipi[1]["kuantiti"]) * kuantiti_pilihan
+	var ada_besi: int = _bilangan_dalam_beg(resipi[0]["id"])
+	var ada_ais: int = _bilangan_dalam_beg(resipi[1]["id"])
 
-	if label_status and not sedang_lebur:
-		label_status.text = "Ready" if _bahan_cukup() else "Need materials"
+	_tulis_bilangan(label_bil_besi, ada_besi, perlu_besi)
+	_tulis_bilangan(label_bil_ais, ada_ais, perlu_ais)
+	if label_bil_keluaran:
+		label_bil_keluaran.text = "x%d" % kuantiti_pilihan
+	if label_kuantiti:
+		label_kuantiti.text = str(kuantiti_pilihan)
+	if label_maks:
+		label_maks.text = "max %d" % maks
+	if butang_kurang:
+		butang_kurang.disabled = sedang_lebur or kuantiti_pilihan <= 1
+	if butang_tambah:
+		butang_tambah.disabled = sedang_lebur or kuantiti_pilihan >= maks
+	if bar_progres:
+		bar_progres.visible = sedang_lebur
+
+	if label_status:
+		if sedang_lebur:
+			label_status.text = "Smelting %d/%d" % [_unit_selesai + 1, maxi(1, _jumlah_batch)]
+			label_status.add_theme_color_override("font_color", WARNA_SEDANG)
+		elif _bahan_cukup():
+			label_status.text = "Ready"
+			label_status.add_theme_color_override("font_color", WARNA_CUKUP)
+		else:
+			label_status.text = "Need materials"
+			label_status.add_theme_color_override("font_color", WARNA_KURANG)
 
 	if butang_lebur and not sedang_lebur:
 		if _bahan_cukup():
@@ -199,6 +352,17 @@ func _kemas_kini_ui() -> void:
 		else:
 			butang_lebur.text = "Not enough materials"
 			butang_lebur.disabled = true
+
+func _tulis_bilangan(label: Label, ada: int, perlu: int) -> void:
+	if label == null:
+		return
+	label.text = "%d / %d" % [ada, perlu]
+	if sedang_lebur:
+		label.add_theme_color_override("font_color", WARNA_SEDANG)
+	elif ada >= perlu:
+		label.add_theme_color_override("font_color", WARNA_CUKUP)
+	else:
+		label.add_theme_color_override("font_color", WARNA_KURANG)
 
 func _tulis_info(teks: String) -> void:
 	var adegan := get_tree().current_scene
