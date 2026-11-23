@@ -142,7 +142,7 @@ func _bina_hud() -> void:
 	bekas.add_child(_butang_rumah)
 
 	# Menu mengembang sebagai overlay supaya VBox tidak berubah saiz.
-	# Semua butang pilihan disusun dalam 1 lajur menegak ke bawah (5 baris).
+	# 1st di sebelah ikon rumah (kanan), selebihnya menegak ke bawah dari situ.
 	_kumpulan = Control.new()
 	_kumpulan.name = "PilihanBina"
 	_kumpulan.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -156,13 +156,13 @@ func _bina_hud() -> void:
 	for i in range(ikon_jenis.size()):
 		var butang := _buat_butang(ikon_jenis[i], NAMA_JENIS[i], tema)
 		butang.toggle_mode = true
-		butang.position = Vector2(0.0, LANGKAH_BUTANG * float(i + 1))
+		butang.position = Vector2(LANGKAH_BUTANG, LANGKAH_BUTANG * float(i))
 		butang.pressed.connect(_pilih.bind(i))
 		_kumpulan.add_child(butang)
 		_butang.append(butang)
 
 	var batal := _buat_butang(IKON_HUD_BATAL, "Cancel", tema)
-	batal.position = Vector2(0.0, LANGKAH_BUTANG * float(ikon_jenis.size() + 1))
+	batal.position = Vector2(LANGKAH_BUTANG, LANGKAH_BUTANG * float(ikon_jenis.size()))
 	batal.pressed.connect(_batal)
 	_kumpulan.add_child(batal)
 
