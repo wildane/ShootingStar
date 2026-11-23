@@ -5,7 +5,6 @@ extends RefCounted
 ##
 ## Guna: TemaPerabot.pasang(menu_ui)
 
-const TEKSTUR_PANEL := "res://scene/main_menu/panel_menu.png"
 
 static func pasang(menu: Control) -> void:
 	if menu == null:
@@ -15,17 +14,16 @@ static func pasang(menu: Control) -> void:
 static func bina_tema() -> Theme:
 	var tema := Theme.new()
 
-	# Kotak menu guna bingkai cyan yang sama dengan panel SaveMenu.
-	var panel := StyleBoxTexture.new()
-	panel.texture = load(TEKSTUR_PANEL)
-	panel.texture_margin_left = 40.0
-	panel.texture_margin_top = 40.0
-	panel.texture_margin_right = 40.0
-	panel.texture_margin_bottom = 40.0
-	panel.content_margin_left = 10.0
-	panel.content_margin_top = 10.0
-	panel.content_margin_right = 10.0
-	panel.content_margin_bottom = 10.0
+	# Kotak menu: latar navy gelap + bingkai cyan nipis. Guna StyleBoxFlat supaya
+	# bingkai sentiasa tepat membalut kandungan, tak kira saiz menu.
+	var panel := StyleBoxFlat.new()
+	panel.bg_color = Color(0.043, 0.11, 0.165, 0.96)
+	panel.border_color = Color(0.36, 0.9, 1, 0.9)
+	panel.set_border_width_all(2)
+	panel.set_corner_radius_all(6)
+	panel.shadow_color = Color(0, 0, 0, 0.45)
+	panel.shadow_size = 4
+	panel.set_content_margin_all(8.0)
 	tema.set_stylebox("panel", "PanelContainer", panel)
 	tema.set_stylebox("panel", "Panel", panel)
 

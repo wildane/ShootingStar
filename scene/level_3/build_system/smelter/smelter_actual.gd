@@ -13,12 +13,13 @@ const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
 @onready var butang_tutup = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/HBoxContainer/ButtonTutup")
 @onready var butang_demolish = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/HBoxContainer/ButtonDemolish")
 @onready var label_status = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Header/LabelStatus")
-@onready var bar_progres = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Progress")
+@onready var bar_progres = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri/Progress")
+@onready var label_progress = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri/LabelProgress")
 @onready var butang_lebur = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/ButangCraft")
 @onready var kad = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad")
 @onready var label_bil_besi = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Besi/BilBesi")
 @onready var label_bil_ais = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Ais/BilAis")
-@onready var label_bil_keluaran = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/IkonBekas/BilanganDimiliki")
+@onready var label_bil_keluaran = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri/IkonBekas/BilanganDimiliki")
 @onready var label_kuantiti = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti/LabelKuantiti")
 @onready var label_maks = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti/LabelMaks")
 @onready var butang_kurang = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti/ButangKurang")
@@ -100,6 +101,13 @@ func _ready() -> void:
 
 # Kad resipi gelap + butang Craft yang menonjol (gaya senarai kad).
 func _pasang_gaya_kad() -> void:
+	# Panel menu ini lebih kecil: kurangkan padding bingkai supaya ruang lega.
+	if menu_ui:
+		var bingkai := (menu_ui.theme.get_stylebox("panel", "PanelContainer") as StyleBox).duplicate()
+		if bingkai:
+			bingkai.set_content_margin_all(6.0)
+			menu_ui.add_theme_stylebox_override("panel", bingkai)
+
 	if kad:
 		var gaya := StyleBoxFlat.new()
 		gaya.bg_color = Color(0.031, 0.082, 0.13, 0.95)
@@ -209,13 +217,23 @@ func _on_kurang_pressed() -> void:
 	if sedang_lebur:
 		return
 	kuantiti_pilihan = maxi(1, kuantiti_pilihan - 1)
+	_reset_paparan_batch()
 	_kemas_kini_ui()
 
 func _on_tambah_pressed() -> void:
 	if sedang_lebur:
 		return
 	kuantiti_pilihan = mini(maxi(1, _maks_unit()), kuantiti_pilihan + 1)
+	_reset_paparan_batch()
 	_kemas_kini_ui()
+
+# Pilihan kuantiti berubah: paparan kemajuan batch bermula semula.
+func _reset_paparan_batch() -> void:
+	if sedang_lebur:
+		return
+	_jumlah_batch = 0
+	_unit_selesai = 0
+	_kemas_progres()
 
 func _on_butang_lebur_pressed() -> void:
 	if sedang_lebur:
@@ -259,8 +277,7 @@ func _process(delta: float) -> void:
 	masa_berlalu += delta
 	masa_hiasan += delta
 	var nisbah: float = clamp(masa_berlalu / MASA_LEBUR, 0.0, 1.0)
-	if bar_progres:
-		bar_progres.value = nisbah * 100.0
+	_kemas_progres(nisbah)
 	if butang_lebur:
 		butang_lebur.text = "%0.1fs" % max(0.0, MASA_LEBUR - masa_berlalu)
 
@@ -371,8 +388,6 @@ func _kemas_kini_ui() -> void:
 		butang_kurang.disabled = sedang_lebur or kuantiti_pilihan <= 1
 	if butang_tambah:
 		butang_tambah.disabled = sedang_lebur or kuantiti_pilihan >= maks
-	if bar_progres:
-		bar_progres.visible = sedang_lebur
 
 	if label_status:
 		if sedang_lebur:
@@ -388,6 +403,29 @@ func _kemas_kini_ui() -> void:
 	if butang_lebur and not sedang_lebur:
 		butang_lebur.text = "Craft"
 		butang_lebur.disabled = not _bahan_cukup()
+
+	_kemas_progres()
+
+# Bar kemajuan bawah ikon steel: "1/7" semasa unit pertama, naik sampai "7/7".
+func _kemas_progres(nisbah: float = 0.0) -> void:
+	var jumlah: int = maxi(1, _jumlah_batch if _jumlah_batch > 0 else kuantiti_pilihan)
+	if sedang_lebur:
+		var unit_ke: int = mini(_unit_selesai + 1, jumlah)
+		if label_progress:
+			label_progress.text = "%d/%d" % [unit_ke, jumlah]
+		if bar_progres:
+			bar_progres.value = clampf((float(_unit_selesai) + nisbah) / float(jumlah), 0.0, 1.0) * 100.0
+		return
+	if _jumlah_batch > 0 and _unit_selesai >= _jumlah_batch:
+		if label_progress:
+			label_progress.text = "%d/%d" % [_jumlah_batch, _jumlah_batch]
+		if bar_progres:
+			bar_progres.value = 100.0
+		return
+	if label_progress:
+		label_progress.text = "0/%d" % kuantiti_pilihan
+	if bar_progres:
+		bar_progres.value = 0.0
 
 func _tulis_bilangan(label: Label, ada: int, perlu: int) -> void:
 	if label == null:
