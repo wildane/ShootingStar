@@ -35,6 +35,22 @@ const LAPIS_HALANGAN: int = 10
 @export var jarak_cas: float = 26.0
 @export var kadar_cas_stesen: float = 25.0
 
+@export_group("Pemilihan Sasaran")
+# Robot mengekalkan sasaran semasanya sekurang-kurangnya selama ini. Tanpa
+# tempoh komit, meteorit baru yang muncul (respawn) menarik robot berpatah
+# balik setiap kali imbasan 0.6 saat.
+@export var masa_komit_sasaran: float = 6.0
+# Meteorit lain hanya diambil kalau ia sekurang-kurangnya 60% lebih dekat
+# (nisbah 1.6) dan melepasi bonus jarak ini.
+@export var nisbah_tukar_sasaran: float = 1.6
+@export var bonus_jarak_sasaran: float = 60.0
+# Berapa lama robot cuba menuju sasaran yang tiada jalan sebelum ia
+# meninggalkannya dan memilih meteorit lain.
+@export var masa_buntu_sasaran: float = 4.0
+# Berapa lama robot cuba menuju stesen cas yang tiada jalan sebelum ia
+# memilih stesen lain.
+@export var masa_buntu_stesen: float = 4.0
+
 @export_group("HP dan Pembaikan")
 @export var hp_maks: float = 60.0
 @export var pulih_hp_sesaat: float = 10.0   # 30 HP dalam 3 saat
@@ -50,9 +66,17 @@ var _pintu: Node2D = null
 var _masa_scan_baki: float = 0.0
 var _masa_pintu_baki: float = 0.0
 var _sasaran_dilombong: bool = false
+# Kunci sasaran: elak robot bertukar meteorit setiap kali ada spawn baru.
+var _masa_komit_sasaran: float = 0.0
+var _masa_buntu: float = 0.0
+var _sasaran_dielak: Node2D = null
+var _masa_elak_sasaran: float = 0.0
 # Stesen cas terdekat (group "StesenCas") dan titik base asal robot.
 var _stesen_cas: Node2D = null
 var _masa_stesen_baki: float = 0.0
+var _masa_buntu_cas: float = 0.0
+var _stesen_dielak: Node2D = null
+var _masa_elak_stesen: float = 0.0
 # Pod tempat robot sedang baring dan mengecas (null bila tidak mengecas).
 var _pod_dock: Node2D = null
 var _pos_base: Vector2 = Vector2.ZERO
@@ -148,6 +172,12 @@ func _physics_process(delta: float) -> void:
 		_masa_peta = maxf(0.0, _masa_peta - delta)
 	if _masa_laluan_baki > 0.0:
 		_masa_laluan_baki = maxf(0.0, _masa_laluan_baki - delta)
+	if _masa_komit_sasaran > 0.0:
+		_masa_komit_sasaran = maxf(0.0, _masa_komit_sasaran - delta)
+	if _masa_elak_sasaran > 0.0:
+		_masa_elak_sasaran = maxf(0.0, _masa_elak_sasaran - delta)
+		if _masa_elak_sasaran <= 0.0:
+			_sasaran_dielak = null
 
 	# Tiada cas pasif: tenaga robot hanya pulih di Charging Station.
 
@@ -193,15 +223,27 @@ func _physics_process(delta: float) -> void:
 	var jarak := global_position.distance_to(_sasaran.global_position)
 	if jarak > julat_lombong:
 		_sedang_lombong = false
+		_sasaran_dilombong = false
 		# Menuju titik berdiri, bukan pusat meteorit, supaya robot tidak
 		# terbang menembusi meteor itu.
 		var titik_hampiri := _titik_hampiri(_sasaran.global_position)
-		# Meteor di sebalik dinding: ikut laluan yang dikira sistem navigasi.
-		if not _ada_jarak_lihat(_sasaran.global_position) and _minta_laluan(titik_hampiri):
-			if _ikut_laluan(delta):
-				_kemas_visual()
-				return
-		_bergerak_ke(titik_hampiri, delta)
+		if _ada_jarak_lihat(_sasaran.global_position):
+			_masa_buntu = 0.0
+			_bergerak_ke(titik_hampiri, delta)
+		elif _minta_laluan(titik_hampiri):
+			# Meteor di sebalik dinding: ikut laluan sistem navigasi.
+			_masa_buntu = 0.0
+			if not _ikut_laluan(delta):
+				_bergerak_ke(titik_hampiri, delta)
+		else:
+			# Tiada jalan langsung ke meteor ini. Jangan rempuh dinding
+			# selama-lamanya: selepas beberapa saat, tinggalkan sasaran ini
+			# supaya imbasan boleh pilih meteorit lain.
+			_masa_buntu += delta
+			if _masa_buntu >= masa_buntu_sasaran:
+				_tinggal_sasaran(_sasaran)
+			else:
+				_bergerak_ke(titik_hampiri, delta)
 		_kemas_visual()
 		return
 
@@ -247,7 +289,10 @@ func _pilih_sasaran() -> void:
 		if int(nod.hp) <= 0:
 			continue
 		var nod2d := nod as Node2D
-		var jarak: float = global_position.distance_squared_to(nod2d.global_position)
+		# Meteorit yang baru gagal dituju dielak seketika.
+		if nod2d == _sasaran_dielak and _masa_elak_sasaran > 0.0:
+			continue
+		var jarak: float = global_position.distance_to(nod2d.global_position)
 		if jarak < jarak_dekat:
 			jarak_dekat = jarak
 			calon_dekat = nod2d
@@ -257,7 +302,49 @@ func _pilih_sasaran() -> void:
 			calon_lihat = nod2d
 	# Kalau tiada satu pun kelihatan, simpan sasaran terdekat; logik pintu
 	# di bawah akan bawa robot keluar bilik dulu sebelum mengejarnya.
-	_sasaran = calon_lihat if calon_lihat != null else calon_dekat
+	var calon: Node2D = calon_lihat if calon_lihat != null else calon_dekat
+	var jarak_calon: float = jarak_lihat if calon_lihat != null else jarak_dekat
+
+	# Kekalkan sasaran semasa supaya spawn meteorit baru (atau dua meteorit
+	# yang jaraknya hampir sama) tidak menyebabkan robot berpatah balik.
+	if _sasaran_sah(_sasaran) and calon != null:
+		var jarak_semasa: float = global_position.distance_to(_sasaran.global_position)
+		var tukar: bool = false
+		if not _sasaran_dilombong and _masa_komit_sasaran <= 0.0:
+			tukar = jarak_calon * nisbah_tukar_sasaran + bonus_jarak_sasaran < jarak_semasa
+		if not tukar:
+			return
+
+	if _sasaran != calon:
+		# Destinasi baru: kira laluan baru serta-merta.
+		_bersih_laluan()
+		_masa_buntu = 0.0
+	_sasaran = calon
+	_masa_komit_sasaran = masa_komit_sasaran
+
+
+# Meteorit ini masih sah untuk dijadikan sasaran?
+func _sasaran_sah(nod: Node2D) -> bool:
+	if nod == null or not is_instance_valid(nod) or nod.is_queued_for_deletion():
+		return false
+	if not ("hp" in nod):
+		return true
+	return int(nod.hp) > 0
+
+
+# Tinggalkan sasaran yang tiada jalan: elak sekejap, robot akan pilih
+# meteorit lain pada imbasan seterusnya.
+func _tinggal_sasaran(nod: Node2D) -> void:
+	_sasaran = null
+	_sedang_lombong = false
+	_sasaran_dilombong = false
+	_masa_buntu = 0.0
+	_masa_komit_sasaran = 0.0
+	if is_instance_valid(nod):
+		_sasaran_dielak = nod
+		_masa_elak_sasaran = 6.0
+	_bersih_laluan()
+	_berhenti()
 
 
 # ==========================================================
@@ -354,19 +441,7 @@ func _kemas_cas(delta: float) -> void:
 		_kemas_dalam_pod(delta)
 		return
 
-	# Stesen semasa tiada kuasa tetapi ada stesen lain yang berkuasa: tukar.
-	if is_instance_valid(_stesen_cas) and "has_power" in _stesen_cas and not bool(_stesen_cas.has_power):
-		var ganti := _cari_stesen_cas()
-		if is_instance_valid(ganti) and ganti != _stesen_cas:
-			_stesen_cas = ganti
-			_bersih_laluan()
-
-	if not is_instance_valid(_stesen_cas) or _stesen_cas.is_queued_for_deletion():
-		_stesen_cas = null
-		_masa_stesen_baki -= delta
-		if _masa_stesen_baki <= 0.0:
-			_masa_stesen_baki = 0.6
-			_stesen_cas = _cari_stesen_cas()
+	_kemas_pilihan_stesen(delta)
 
 	var titik_cas: Vector2 = _pos_base
 	if is_instance_valid(_stesen_cas):
@@ -378,11 +453,27 @@ func _kemas_cas(delta: float) -> void:
 			return
 
 	# 2. Sandaran: kalau grid tiada laluan, guna logik pintu lama.
-	_perlu_pintasan = global_position.distance_to(titik_cas) > jarak_cas and not _ada_jarak_lihat(titik_cas)
+	var nampak_stesen: bool = _ada_laluan_lurus_ke_stesen(_stesen_cas, titik_cas)
+	_perlu_pintasan = global_position.distance_to(titik_cas) > jarak_cas and not nampak_stesen
 	if _cuba_lalu_pintu(delta):
+		_masa_buntu_cas = 0.0
 		return
 
 	if global_position.distance_to(titik_cas) > jarak_cas:
+		if nampak_stesen:
+			_masa_buntu_cas = 0.0
+		else:
+			# Stesen ini tiada jalan yang dapat dicari: jangan tersangkut di
+			# dinding selama-lamanya, tukar ke stesen lain sekejap.
+			_masa_buntu_cas += delta
+			if _masa_buntu_cas >= masa_buntu_stesen and is_instance_valid(_stesen_cas):
+				_stesen_dielak = _stesen_cas
+				_masa_elak_stesen = 8.0
+				_stesen_cas = null
+				_masa_buntu_cas = 0.0
+				_masa_stesen_baki = 0.0
+				_bersih_laluan()
+				return
 		_bergerak_ke(titik_cas, delta)
 		return
 
@@ -410,25 +501,67 @@ func _kemas_cas(delta: float) -> void:
 		_bersih_laluan()
 
 
+# Pilih stesen cas dengan histeresis. Bila pemain membina banyak stesen,
+# robot tidak lagi bertukar-tukar stesen (dan berpatah balik) setiap kali
+# kedudukannya berubah sedikit.
+func _kemas_pilihan_stesen(delta: float) -> void:
+	_masa_stesen_baki = maxf(0.0, _masa_stesen_baki - delta)
+	if _masa_elak_stesen > 0.0:
+		_masa_elak_stesen = maxf(0.0, _masa_elak_stesen - delta)
+		if _masa_elak_stesen <= 0.0:
+			_stesen_dielak = null
+	if is_instance_valid(_stesen_cas) and _stesen_cas.is_queued_for_deletion():
+		_stesen_cas = null
+	if is_instance_valid(_stesen_cas):
+		# Stesen semasa masih elok dan berkuasa: kekalkan, jangan imbas
+		# stesen lain langsung.
+		if not _stesen_tiada_kuasa() or _masa_stesen_baki > 0.0:
+			return
+	else:
+		_stesen_cas = null
+		if _masa_stesen_baki > 0.0:
+			return
+
+	_masa_stesen_baki = 0.8
+	var baru: Node2D = _cari_stesen_cas()
+	if is_instance_valid(baru) and baru != _stesen_cas:
+		_stesen_cas = baru
+		_masa_buntu_cas = 0.0
+		_bersih_laluan()
+
+
+func _stesen_tiada_kuasa() -> bool:
+	return is_instance_valid(_stesen_cas) and "has_power" in _stesen_cas and not bool(_stesen_cas.has_power)
+
+
 func _cari_stesen_cas() -> Node2D:
 	var terbaik: Node2D = null
-	var jarak_terbaik := INF
-	var berkuasa: Node2D = null
-	var jarak_berkuasa := INF
+	var skor_terbaik := INF
+	# Array tanpa jenis: stesen ialah StaticBody2D yang boleh ada atau tiada
+	# sifat has_power (Charging Station dan Robot Pod).
 	var senarai: Array = get_tree().get_nodes_in_group("StesenCas")
 	for nod in senarai:
 		if not (nod is Node2D) or not is_instance_valid(nod) or nod.is_queued_for_deletion():
 			continue
-		var jarak: float = global_position.distance_squared_to((nod as Node2D).global_position)
-		if jarak < jarak_terbaik:
-			jarak_terbaik = jarak
-			terbaik = nod
-		# Utamakan stesen yang ada kuasa supaya robot tidak menunggu sia-sia.
-		var ada_kuasa: bool = not ("has_power" in nod) or bool(nod.has_power)
-		if ada_kuasa and jarak < jarak_berkuasa:
-			jarak_berkuasa = jarak
-			berkuasa = nod
-	return berkuasa if berkuasa != null else terbaik
+		if nod == _stesen_dielak and _masa_elak_stesen > 0.0:
+			continue
+		var nod2d := nod as Node2D
+		var jarak: float = global_position.distance_to(nod2d.global_position)
+		var skor: float = jarak
+		# Stesen tanpa kuasa tidak dapat mengecas: jadi pilihan terakhir.
+		if "has_power" in nod and not bool(nod.has_power):
+			skor += 400.0
+		# Stesen di sebalik dinding bermakna jalan memutar (atau langsung
+		# tiada jalan): utamakan stesen dalam bilik yang sama.
+		if not _ada_laluan_lurus_ke_stesen(nod2d, nod2d.global_position):
+			skor += 200.0
+		# Kekalkan stesen semasa supaya pilihan tidak berubah-ubah.
+		if nod == _stesen_cas:
+			skor -= 120.0
+		if skor < skor_terbaik:
+			skor_terbaik = skor
+			terbaik = nod2d
+	return terbaik
 
 
 # ==========================================================
@@ -496,7 +629,7 @@ func _kemas_bilik(delta: float) -> void:
 	_bilik_terkurung = bilangan_dinding >= 4
 
 
-func _sinar_dinding(dari: Vector2, arah: Vector2, jarak: float) -> Dictionary:
+func _sinar_dinding(dari: Vector2, arah: Vector2, jarak: float, abaikan: Array[RID] = []) -> Dictionary:
 	var ruang := get_world_2d().direct_space_state
 	if ruang == null:
 		return {}
@@ -504,6 +637,7 @@ func _sinar_dinding(dari: Vector2, arah: Vector2, jarak: float) -> Dictionary:
 	# Robot sendiri dikecualikan.
 	var pertanyaan := PhysicsRayQueryParameters2D.create(dari, dari + arah * jarak, LAPIS_HALANGAN)
 	var kecuali: Array[RID] = [get_rid()]
+	kecuali.append_array(abaikan)
 	pertanyaan.exclude = kecuali
 	pertanyaan.collide_with_areas = false
 	pertanyaan.collide_with_bodies = true
@@ -511,11 +645,21 @@ func _sinar_dinding(dari: Vector2, arah: Vector2, jarak: float) -> Dictionary:
 
 
 # Ada laluan lurus bebas dinding ke titik itu?
-func _ada_jarak_lihat(posisi: Vector2) -> bool:
+func _ada_jarak_lihat(posisi: Vector2, abaikan: Array[RID] = []) -> bool:
 	var arah := posisi - global_position
 	if arah.length() < 4.0:
 		return true
-	return _sinar_dinding(global_position, arah.normalized(), arah.length()).is_empty()
+	return _sinar_dinding(global_position, arah.normalized(), arah.length(), abaikan).is_empty()
+
+
+# Stesen cas sendiri berada pada layer "wall" (layer 2), jadi badannya akan
+# menghalang sinar ke pusatnya. Badan stesen itu dikecualikan semasa menguji
+# jarak lihat, kalau tidak setiap stesen nampak "di sebalik dinding".
+func _ada_laluan_lurus_ke_stesen(stesen: Node2D, titik: Vector2) -> bool:
+	if not is_instance_valid(stesen):
+		return _ada_jarak_lihat(titik)
+	var abaikan: Array[RID] = [stesen.get_rid()]
+	return _ada_jarak_lihat(titik, abaikan)
 
 
 # ==========================================================
