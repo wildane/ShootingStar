@@ -664,4 +664,5 @@ func _on_butang_demolish_pressed():
 	print("Sistem Khas: Objek perabot telah dimusnahkan!")
 	player_dekat = false
 	if sprite: sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	get_tree().call_group("PowerInverter", "tanda_kotor")
 	queue_free()

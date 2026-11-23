@@ -214,6 +214,7 @@ func _on_butang_demolish_pressed():
 	_lepas_pemain()
 	player_dekat = false
 	if sprite: sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	get_tree().call_group("PowerInverter", "tanda_kotor")
 	queue_free()
 
 func get_save_data() -> Dictionary:

@@ -106,11 +106,10 @@ func _on_butang_tutup_pressed():
 	if menu_ui: menu_ui.hide()
 
 func _on_butang_demolish_pressed():
-	if is_instance_valid(inverter_pembeli):
-		inverter_pembeli.kira_grid_kuasa_lokal()
 	inverter_pembeli = null
 	player_dekat = false
 	if sprite: sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	get_tree().call_group("PowerInverter", "tanda_kotor")
 	queue_free()
 
 func get_save_data() -> Dictionary:

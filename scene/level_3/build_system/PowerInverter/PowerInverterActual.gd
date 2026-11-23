@@ -34,6 +34,17 @@ const SELA_MASA_MINIMUM: float = 0.2
 var masa_semakan_terakhir: float = 0.0
 const SELA_MASA_SEMAKAN: float = 0.15 
 
+# Grid kuasa dikira hanya bila kotor (bina/roboh/load/perubahan pemilikan),
+# bukan setiap tick. Ini mengurangkan scan global berulang bila tiada perubahan.
+var _grid_kotor: bool = true
+
+static func tanda_grid_kotor(tree: SceneTree) -> void:
+	if tree:
+		tree.call_group("PowerInverter", "tanda_kotor")
+
+func tanda_kotor() -> void:
+	_grid_kotor = true
+
 func _ready():
 	add_to_group("PowerInverter")
 	bacaan_kuasa = Label.new()
@@ -60,82 +71,154 @@ func _ready():
 		TemaPerabot.pasang(menu_ui)
 	if bt_tutup: bt_tutup.pressed.connect(_on_butang_tutup_pressed)
 	if bt_demo: bt_demo.pressed.connect(_on_butang_demolish_pressed)
+	_grid_kotor = true
 	_kemas_kini_paparan_skrin()
+	# Pastikan inverter lain kira semula bila inverter baharu dimuat/dibina.
+	tanda_grid_kotor(get_tree())
 
 func _physics_process(_delta: float) -> void:
+	if not _grid_kotor:
+		return
 	var masa_sekarang = Time.get_ticks_msec() / 1000.0
-	if masa_sekarang - masa_semakan_terakhir >= SELA_MASA_SEMAKAN:
-		masa_semakan_terakhir = masa_sekarang
-		kira_grid_kuasa_lokal()
+	if masa_sekarang - masa_semakan_terakhir < SELA_MASA_SEMAKAN:
+		return
+	masa_semakan_terakhir = masa_sekarang
+	kira_grid_kuasa_lokal()
 
 func kira_grid_kuasa_lokal() -> void:
-	var semua_solar = get_tree().get_nodes_in_group("SolarModule")
-	if semua_solar.is_empty():
-		_set_kuasa_kosong()
-		_kemas_kini_status_perabot_tiada_kuasa()
+	# Kekalkan API sedia ada (dipanggil kod lain). Kira semua inverter sekali
+	# supaya pemilikan solar/perabot kekal konsisten merentas multi-inverter.
+	tanda_grid_kotor(get_tree())
+	kira_semua_grid(get_tree())
+
+static var _sedang_kira_grid: bool = false
+
+static func kira_semua_grid(tree: SceneTree) -> void:
+	if _sedang_kira_grid or tree == null:
 		return
-		
-	var solar_bersambung: Array[Node2D] = []
-	var senarai_semak: Array[Node2D] = []
-	var pos_inverter = global_position
-	
+	_sedang_kira_grid = true
+
+	var inverters_raw = tree.get_nodes_in_group("PowerInverter")
+	var inverters: Array = []
+	for inv in inverters_raw:
+		if is_instance_valid(inv) and not inv.is_queued_for_deletion() and inv.is_inside_tree():
+			inverters.append(inv)
+
+	var solar_raw = tree.get_nodes_in_group("SolarModule")
+	var semua_solar: Array = []
+	for solar in solar_raw:
+		if is_instance_valid(solar) and not solar.is_queued_for_deletion() and solar.is_inside_tree():
+			semua_solar.append(solar)
+
+	var perabot_raw = tree.get_nodes_in_group("Furniture")
+	var semua_perabot: Array = []
+	for perabot in perabot_raw:
+		if is_instance_valid(perabot) and not perabot.is_queued_for_deletion() and perabot.is_inside_tree() and "power_required" in perabot:
+			semua_perabot.append(perabot)
+
+	# Semua inverter akan dikira dalam pas ini.
+	for inv in inverters:
+		inv._grid_kotor = false
+
+	if inverters.is_empty():
+		_sedang_kira_grid = false
+		return
+
+	# Lepaskan pemilikan solar milik inverter yang tidak lagi wujud dalam pas ini.
 	for solar in semua_solar:
-		if is_instance_valid(solar) and solar.is_inside_tree():
-			solar.force_update_transform()
-			var pos_solar = solar.global_position
-			if pos_solar == Vector2.ZERO and pos_inverter != Vector2.ZERO: continue
-			var had_jarak = solar.jarak_cantuman if "jarak_cantuman" in solar else radius_inverter_to_solar
-			if pos_inverter.distance_to(pos_solar) <= had_jarak:
-				if solar.inverter_pembeli == null or solar.inverter_pembeli == self:
-					senarai_semak.append(solar)
-					solar.set_owner_inverter(self)
+		var pemilik = solar.inverter_pembeli
+		if is_instance_valid(pemilik) and pemilik.is_queued_for_deletion():
+			solar.release_owner_inverter(pemilik)
+
+	# Kira setiap inverter secara berpusat (urutan stabil kumpulan) untuk
+	# mengekalkan semantik multi-inverter: inverter hanya ambil solar/perabot
+	# yang tidak dimiliki atau miliknya sendiri.
+	for inv in inverters:
+		_kira_grid_untuk_inverter(inv, semua_solar, semua_perabot)
+
+	_sedang_kira_grid = false
+
+static func _kira_grid_untuk_inverter(inv: Node2D, semua_solar: Array, semua_perabot: Array) -> void:
+	var pos_inverter: Vector2 = inv.global_position
+
+	if semua_solar.is_empty():
+		inv._set_kuasa_kosong()
+		inv._kemas_kini_status_perabot_tiada_kuasa()
+		return
+
+	var solar_bersambung: Dictionary = {}
+	var senarai_semak: Array = []
+	var dalam_semak: Dictionary = {}
+
+	for solar in semua_solar:
+		if not is_instance_valid(solar) or solar.is_queued_for_deletion() or not solar.is_inside_tree():
+			continue
+		var pemilik = solar.inverter_pembeli
+		if pemilik != null and pemilik != inv and is_instance_valid(pemilik) and not pemilik.is_queued_for_deletion():
+			continue
+		var pos_solar: Vector2 = solar.global_position
+		if pos_solar == Vector2.ZERO and pos_inverter != Vector2.ZERO:
+			continue
+		var had_jarak: float = solar.jarak_cantuman if "jarak_cantuman" in solar else inv.radius_inverter_to_solar
+		if pos_inverter.distance_squared_to(pos_solar) <= had_jarak * had_jarak:
+			senarai_semak.append(solar)
+			dalam_semak[solar] = true
+			solar.set_owner_inverter(inv)
 
 	var jumlah_supply: float = 0.0
 	while senarai_semak.size() > 0:
 		var semasa = senarai_semak.pop_back()
-		if not is_instance_valid(semasa) or semasa in solar_bersambung: continue
-		solar_bersambung.append(semasa)
+		dalam_semak.erase(semasa)
+		if not is_instance_valid(semasa) or semasa.is_queued_for_deletion() or solar_bersambung.has(semasa):
+			continue
+		solar_bersambung[semasa] = true
 		jumlah_supply += semasa.power_production if "power_production" in semasa else 100.0
-		var had_cantuman = semasa.jarak_cantuman if "jarak_cantuman" in semasa else 300.0
-		var pos_semasa = semasa.global_position
+		var had_cantuman: float = semasa.jarak_cantuman if "jarak_cantuman" in semasa else 300.0
+		var had_cantuman_sq: float = had_cantuman * had_cantuman
+		var pos_semasa: Vector2 = semasa.global_position
 		for solar_lain in semua_solar:
-			if is_instance_valid(solar_lain) and not (solar_lain in solar_bersambung):
-				solar_lain.force_update_transform()
-				if solar_lain.global_position == Vector2.ZERO and pos_inverter != Vector2.ZERO: continue 
-				if pos_semasa.distance_to(solar_lain.global_position) <= had_cantuman and not (solar_lain in senarai_semak):
-					if solar_lain.inverter_pembeli == null or solar_lain.inverter_pembeli == self:
-						senarai_semak.append(solar_lain)
-						solar_lain.set_owner_inverter(self)
+			if not is_instance_valid(solar_lain) or solar_lain.is_queued_for_deletion() or solar_bersambung.has(solar_lain) or dalam_semak.has(solar_lain):
+				continue
+			var pemilik_lain = solar_lain.inverter_pembeli
+			if pemilik_lain != null and pemilik_lain != inv and is_instance_valid(pemilik_lain) and not pemilik_lain.is_queued_for_deletion():
+				continue
+			var pos_lain: Vector2 = solar_lain.global_position
+			if pos_lain == Vector2.ZERO and pos_inverter != Vector2.ZERO:
+				continue
+			if pos_semasa.distance_squared_to(pos_lain) <= had_cantuman_sq:
+				senarai_semak.append(solar_lain)
+				dalam_semak[solar_lain] = true
+				solar_lain.set_owner_inverter(inv)
 
 	for solar in semua_solar:
-		if is_instance_valid(solar) and solar.inverter_pembeli == self and not (solar in solar_bersambung):
-			solar.release_owner_inverter(self)
+		if is_instance_valid(solar) and solar.inverter_pembeli == inv and not solar_bersambung.has(solar):
+			solar.release_owner_inverter(inv)
 
-	var semua_perabot_game = get_tree().get_nodes_in_group("Furniture")
+	var radius_perabot_sq: float = inv.radius_inverter_to_furniture * inv.radius_inverter_to_furniture
 	var jumlah_requirement: float = 0.0
-	var tenaga_tersedia_semasa = jumlah_supply
-	for perabot in semua_perabot_game:
-		if is_instance_valid(perabot) and perabot.is_inside_tree() and "power_required" in perabot:
-			perabot.force_update_transform()
-			if global_position.distance_to(perabot.global_position) <= radius_inverter_to_furniture:
-				if not perabot.has_power or perabot.inverter_pembekal == self:
-					jumlah_requirement += perabot.power_required
-					if perabot.has_method("set_power_status"):
-						if tenaga_tersedia_semasa >= perabot.power_required and jumlah_supply > 0:
-							perabot.set_power_status(true, self)
-							tenaga_tersedia_semasa -= perabot.power_required 
-						else:
-							perabot.set_power_status(false, self)
-			else:
-				if perabot.inverter_pembekal == self and perabot.has_method("set_power_status"):
-					perabot.set_power_status(false, self)
+	var tenaga_tersedia_semasa: float = jumlah_supply
+	for perabot in semua_perabot:
+		if not is_instance_valid(perabot) or perabot.is_queued_for_deletion() or not perabot.is_inside_tree():
+			continue
+		if pos_inverter.distance_squared_to(perabot.global_position) <= radius_perabot_sq:
+			if not perabot.has_power or perabot.inverter_pembekal == inv:
+				jumlah_requirement += perabot.power_required
+				if perabot.has_method("set_power_status"):
+					if tenaga_tersedia_semasa >= perabot.power_required and jumlah_supply > 0.0:
+						perabot.set_power_status(true, inv)
+						tenaga_tersedia_semasa -= perabot.power_required
+					else:
+						perabot.set_power_status(false, inv)
+		else:
+			if perabot.inverter_pembekal == inv and perabot.has_method("set_power_status"):
+				perabot.set_power_status(false, inv)
 
-	var baki_dikira = jumlah_supply - jumlah_requirement
-	if total_power_supply != jumlah_supply or total_power_requirement != jumlah_requirement or baki_tenaga != baki_dikira:
-		total_power_supply = jumlah_supply
-		total_power_requirement = jumlah_requirement
-		baki_tenaga = baki_dikira
-		_kemas_kini_paparan_skrin()
+	var baki_dikira: float = jumlah_supply - jumlah_requirement
+	if inv.total_power_supply != jumlah_supply or inv.total_power_requirement != jumlah_requirement or inv.baki_tenaga != baki_dikira:
+		inv.total_power_supply = jumlah_supply
+		inv.total_power_requirement = jumlah_requirement
+		inv.baki_tenaga = baki_dikira
+		inv._kemas_kini_paparan_skrin()
 
 func _set_kuasa_kosong() -> void:
 	if total_power_supply != 0.0 or total_power_requirement != 0.0:
@@ -236,7 +319,14 @@ func _on_butang_demolish_pressed():
 	_bebaskan_semua_solar_milik_saya()
 	player_dekat = false
 	if sprite: sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	tanda_grid_kotor(get_tree())
 	queue_free()
+
+func _exit_tree() -> void:
+	# Bila inverter dibuang (demolish/load unload), inverter lain perlu kira semula.
+	var tree = get_tree()
+	if tree:
+		tree.call_group("PowerInverter", "tanda_kotor")
 
 func get_save_data() -> Dictionary:
 	var data_inverter: Dictionary = {}

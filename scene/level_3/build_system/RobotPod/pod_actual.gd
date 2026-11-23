@@ -381,6 +381,7 @@ func _on_butang_demolish_pressed() -> void:
 	_robot_dock = null
 	player_dekat = false
 	modulate = Color(1.0, 1.0, 1.0, 1.0)
+	get_tree().call_group("PowerInverter", "tanda_kotor")
 	queue_free()
 
 
