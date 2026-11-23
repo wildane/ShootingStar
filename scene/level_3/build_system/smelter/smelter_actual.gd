@@ -90,11 +90,22 @@ func _ready() -> void:
 	_bina_cahaya()
 	_bina_lapis_terapung()
 	_kemas_kini_ui()
+	_muat_saiz_menu()
 
 	var inv = get_node_or_null("/root/InventoryManager")
 	if inv and inv.has_signal("inventory_dikemaskini"):
 		if not inv.inventory_dikemaskini.is_connected(_kemas_kini_ui):
 			inv.inventory_dikemaskini.connect(_kemas_kini_ui)
+
+# Saiz menu diambil dari kandungan sebenar (font berbeza ikut peranti), jadi
+# panel sentiasa muat dan tidak terkeluar dari skrin 280x480.
+func _muat_saiz_menu() -> void:
+	await get_tree().process_frame
+	if not is_instance_valid(menu_ui):
+		return
+	var saiz: Vector2 = menu_ui.get_combined_minimum_size() + Vector2(8, 6)
+	var had: Vector2 = get_viewport_rect().size - Vector2(12, 12)
+	menu_ui.size = Vector2(minf(saiz.x, had.x), minf(saiz.y, had.y))
 
 # Ikon bahan dipasang dari fail PNG supaya menu nampak jelas (bukan teks kosong).
 func _pasang_ikon() -> void:

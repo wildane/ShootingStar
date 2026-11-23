@@ -40,29 +40,29 @@ metadata/_edit_lock_ = true
 layer = 10
 
 [node name="MenuUI" type="PanelContainer" parent="CanvasLayer"]
-custom_minimum_size = Vector2(320, 340)
+custom_minimum_size = Vector2(240, 0)
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -160.0
-offset_top = -170.0
-offset_right = 160.0
-offset_bottom = 170.0
+offset_left = -120.0
+offset_top = -120.0
+offset_right = 120.0
+offset_bottom = 120.0
 grow_horizontal = 2
 grow_vertical = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/MenuUI"]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 3
 
 [node name="Header" type="HBoxContainer" parent="CanvasLayer/MenuUI/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 4
 
 [node name="IkonSteel" type="TextureRect" parent="CanvasLayer/MenuUI/VBoxContainer/Header"]
-custom_minimum_size = Vector2(26, 26)
+custom_minimum_size = Vector2(18, 18)
 layout_mode = 2
 size_flags_vertical = 4
 texture = ExtResource("4_ikon")
@@ -74,13 +74,13 @@ texture_filter = 1
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 12
 text = "Smelter"
 
 [node name="LabelStatus" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer/Header"]
 layout_mode = 2
 size_flags_vertical = 4
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 8
 theme_override_colors/font_color = Color(0.5, 0.95, 0.62, 1)
 text = "Ready"
 horizontal_alignment = 2
@@ -90,16 +90,16 @@ layout_mode = 2
 
 [node name="LabelBahanTajuk" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 9
+theme_override_font_sizes/font_size = 7
 theme_override_colors/font_color = Color(0.55, 0.72, 0.82, 1)
 text = "MATERIALS"
 
 [node name="BarisBesi" type="HBoxContainer" parent="CanvasLayer/MenuUI/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 5
 
 [node name="IkonBesi" type="TextureRect" parent="CanvasLayer/MenuUI/VBoxContainer/BarisBesi"]
-custom_minimum_size = Vector2(22, 22)
+custom_minimum_size = Vector2(15, 15)
 layout_mode = 2
 size_flags_vertical = 4
 texture = ExtResource("5_ikon")
@@ -111,23 +111,23 @@ texture_filter = 1
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 9
 text = "Basic Iron Ore"
 
 [node name="BilBesi" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer/BarisBesi"]
 layout_mode = 2
 size_flags_vertical = 4
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 9
 theme_override_colors/font_color = Color(0.5, 0.95, 0.62, 1)
 text = "0 / 2"
 horizontal_alignment = 2
 
 [node name="BarisAis" type="HBoxContainer" parent="CanvasLayer/MenuUI/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 5
 
 [node name="IkonAis" type="TextureRect" parent="CanvasLayer/MenuUI/VBoxContainer/BarisAis"]
-custom_minimum_size = Vector2(22, 22)
+custom_minimum_size = Vector2(15, 15)
 layout_mode = 2
 size_flags_vertical = 4
 texture = ExtResource("6_ikon")
@@ -139,13 +139,13 @@ texture_filter = 1
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 9
 text = "Meteorite Ice"
 
 [node name="BilAis" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer/BarisAis"]
 layout_mode = 2
 size_flags_vertical = 4
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 9
 theme_override_colors/font_color = Color(0.5, 0.95, 0.62, 1)
 text = "0 / 1"
 horizontal_alignment = 2
@@ -155,10 +155,10 @@ layout_mode = 2
 
 [node name="BarisKeluaran" type="HBoxContainer" parent="CanvasLayer/MenuUI/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 5
 
 [node name="IkonKeluaran" type="TextureRect" parent="CanvasLayer/MenuUI/VBoxContainer/BarisKeluaran"]
-custom_minimum_size = Vector2(22, 22)
+custom_minimum_size = Vector2(15, 15)
 layout_mode = 2
 size_flags_vertical = 4
 texture = ExtResource("4_ikon")
@@ -170,84 +170,84 @@ texture_filter = 1
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 9
 theme_override_colors/font_color = Color(0.68, 0.88, 1, 1)
 text = "Steel"
 
 [node name="BilKeluaran" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer/BarisKeluaran"]
 layout_mode = 2
 size_flags_vertical = 4
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 9
 theme_override_colors/font_color = Color(0.68, 0.88, 1, 1)
 text = "x1"
 horizontal_alignment = 2
 
 [node name="Progress" type="ProgressBar" parent="CanvasLayer/MenuUI/VBoxContainer"]
-custom_minimum_size = Vector2(0, 12)
+custom_minimum_size = Vector2(0, 8)
 layout_mode = 2
 show_percentage = false
 
 [node name="BarisKuantiti" type="HBoxContainer" parent="CanvasLayer/MenuUI/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 4
 alignment = 1
 
 [node name="LabelKuantitiTajuk" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer/BarisKuantiti"]
 layout_mode = 2
 size_flags_vertical = 4
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 8
 theme_override_colors/font_color = Color(0.62, 0.8, 0.9, 1)
 text = "Amount"
 
 [node name="ButangKurang" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer/BarisKuantiti"]
-custom_minimum_size = Vector2(34, 30)
+custom_minimum_size = Vector2(26, 22)
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 12
 text = "-"
 
 [node name="LabelKuantiti" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer/BarisKuantiti"]
-custom_minimum_size = Vector2(36, 0)
+custom_minimum_size = Vector2(24, 0)
 layout_mode = 2
 size_flags_vertical = 4
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 11
 text = "1"
 horizontal_alignment = 1
 
 [node name="ButangTambah" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer/BarisKuantiti"]
-custom_minimum_size = Vector2(34, 30)
+custom_minimum_size = Vector2(26, 22)
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 12
 text = "+"
 
 [node name="LabelMaks" type="Label" parent="CanvasLayer/MenuUI/VBoxContainer/BarisKuantiti"]
 layout_mode = 2
 size_flags_vertical = 4
-theme_override_font_sizes/font_size = 9
+theme_override_font_sizes/font_size = 8
 theme_override_colors/font_color = Color(0.55, 0.72, 0.82, 1)
 text = "max 1"
 
 [node name="ButangLebur" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer"]
-custom_minimum_size = Vector2(0, 38)
+custom_minimum_size = Vector2(0, 28)
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 10
 text = "Smelt Steel"
 
 [node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/MenuUI/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 4
 
 [node name="ButtonTutup" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer/HBoxContainer"]
-custom_minimum_size = Vector2(0, 32)
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 9
 text = "Close"
 
 [node name="ButtonDemolish" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer/HBoxContainer"]
-custom_minimum_size = Vector2(0, 32)
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 9
 text = "Demolish"
 
 [node name="SaveComponent" type="Node2D" parent="."]
