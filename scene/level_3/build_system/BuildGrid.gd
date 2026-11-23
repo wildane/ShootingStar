@@ -208,7 +208,8 @@ func _susun_hud() -> void:
 	if _kumpulan != null:
 		_kumpulan.global_position = asas
 	if _label_status != null:
-		_label_status.global_position = asas + Vector2(LANGKAH_BUTANG + SAIZ_BUTANG + 6.0, 2.0)
+		# Label di kanan menu melintang (5 pilihan + cancel = 6 langkah selepas rumah)
+		_label_status.global_position = asas + Vector2(LANGKAH_BUTANG * 7.0, 2.0)
 
 # Buka / tutup menu. Menutup akan membatalkan mod bina (tutup mod home).
 func _tukar_buka() -> void:
@@ -320,7 +321,7 @@ func _batal() -> void:
 # ==========================================
 # INPUT: tap = letak, heret = gerak hantu
 # ==========================================
-# Tap di luar menu (dan di luar ikon rumah) menutup mod home (batal + tutup).
+# Tap pada butang atas lain dalam VBox (di atas rumah) menutup mod home.
 func _input(event: InputEvent) -> void:
 	if not _buka:
 		return
@@ -333,9 +334,13 @@ func _input(event: InputEvent) -> void:
 		return
 	if _tekan_dalam_hud(pos):
 		return
-	# Tutup mod home; tap ini tidak diteruskan ke aksi lain.
-	get_viewport().set_input_as_handled()
-	_batal()
+	# Jika tap di dalam VBox (butang BuildSystem/Inventory/Weapon di atas), tutup mod home.
+	var bekas := _bekas_butang()
+	if bekas != null and bekas.get_global_rect().has_point(pos):
+		get_viewport().set_input_as_handled()
+		_batal()
+		return
+	# Tap di tempat lain (dunia) — biar untuk letak tile, jangan tutup menu/mod.
 
 func _tekan_dalam_hud(pos: Vector2) -> bool:
 	if _butang_rumah != null and _butang_rumah.get_global_rect().has_point(pos):
