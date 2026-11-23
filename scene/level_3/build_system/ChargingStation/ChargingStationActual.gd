@@ -110,12 +110,16 @@ func _lepas_pemain() -> void:
 
 # ---- Sistem kuasa (dipanggil oleh PowerInverter) ----
 func set_power_status(status_elektrik: bool, pembekal: Node2D = null) -> void:
-	has_power = status_elektrik
+	var pembekal_baru: Node2D = inverter_pembekal
 	if status_elektrik:
-		inverter_pembekal = pembekal
+		pembekal_baru = pembekal
 	else:
 		if inverter_pembekal == pembekal or pembekal == null:
-			inverter_pembekal = null
+			pembekal_baru = null
+	if has_power == status_elektrik and inverter_pembekal == pembekal_baru:
+		return
+	has_power = status_elektrik
+	inverter_pembekal = pembekal_baru
 	_kemas_kini_warna_visual()
 	_kemas_kini_label_status()
 

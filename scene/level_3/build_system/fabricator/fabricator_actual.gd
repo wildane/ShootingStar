@@ -120,19 +120,21 @@ func get_save_data() -> Dictionary:
 
 # 🔴 Sistem Pengurusan Kuasa Elektrik
 func set_power_status(status_elektrik: bool, pembekal: Node2D = null) -> void:
-	var kuasa_berubah: bool = has_power != status_elektrik
-	has_power = status_elektrik
+	var pembekal_baru: Node2D = inverter_pembekal
 	if status_elektrik:
-		inverter_pembekal = pembekal
+		pembekal_baru = pembekal
 	else:
 		if inverter_pembekal == pembekal or pembekal == null:
-			inverter_pembekal = null
+			pembekal_baru = null
+	if has_power == status_elektrik and inverter_pembekal == pembekal_baru:
+		return
+	has_power = status_elektrik
+	inverter_pembekal = pembekal_baru
 	_kemas_kini_warna_visual()
 	# Butang craft kena ikut status kuasa semasa (menu mungkin tengah dibuka).
-	# Hanya kemas kini bila status betul-betul berubah supaya senarai harga
-	# tak dibina semula setiap 0.15s inverter.
-	if kuasa_berubah:
-		_kemas_kini_craft()
+	# Hanya kemas kini bila status/pembekal betul-betul berubah supaya senarai
+	# harga tak dibina semula setiap 0.15s inverter.
+	_kemas_kini_craft()
 
 # 🔴 Sistem Visual Feedback
 func _kemas_kini_warna_visual() -> void:

@@ -79,13 +79,16 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	_masa_anim += delta
 	if _robot_dock != null and (not is_instance_valid(_robot_dock) or _robot_dock.is_queued_for_deletion()):
 		_robot_dock = null
 		_kemas_kini_robot()
-	if _robot_dock != null and is_instance_valid(sprite_robot_baring) and not sprite_robot_baring.visible:
-		_kemas_kini_robot()
-	queue_redraw()
+		queue_redraw()
+		return
+	if _robot_dock != null:
+		_masa_anim += delta
+		if is_instance_valid(sprite_robot_baring) and not sprite_robot_baring.visible:
+			_kemas_kini_robot()
+		queue_redraw()
 
 
 ## Imej robot baring (robot + kanopi kaca) hanya dipaparkan semasa mengecas.
@@ -151,12 +154,16 @@ func posisi_keluar() -> Vector2:
 # KUASA
 # ==========================================================
 func set_power_status(status_elektrik: bool, pembekal: Node2D = null) -> void:
-	has_power = status_elektrik
+	var pembekal_baru: Node2D = inverter_pembekal
 	if status_elektrik:
-		inverter_pembekal = pembekal
+		pembekal_baru = pembekal
 	else:
 		if inverter_pembekal == pembekal or pembekal == null:
-			inverter_pembekal = null
+			pembekal_baru = null
+	if has_power == status_elektrik and inverter_pembekal == pembekal_baru:
+		return
+	has_power = status_elektrik
+	inverter_pembekal = pembekal_baru
 	# Kuasa terputus semasa robot mengecas: keluarkan robot dari pod.
 	if not has_power and is_instance_valid(_robot_dock) and _robot_dock.has_method("keluar_dari_pod"):
 		_robot_dock.call("keluar_dari_pod")
