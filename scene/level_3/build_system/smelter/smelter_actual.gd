@@ -62,8 +62,8 @@ var _baki_batch: int = 0
 var _jumlah_batch: int = 0
 var _unit_selesai: int = 0
 
-# Lapisan iklan terapung "+1"
-var _lapis_terapung: CanvasLayer = null
+# Bekas iklan terapung "+1" (dalam dunia, jadi ia ikut kamera)
+var _lapis_terapung: Node2D = null
 var _tekstur_steel: Texture2D = null
 
 func _ready() -> void:
@@ -174,11 +174,12 @@ func _bina_cahaya() -> void:
 	add_child(_cahaya)
 	move_child(_cahaya, 0)
 
-# Lapisan skrin untuk iklan terapung "+1 Steel" (sama gaya dengan BuildGrid).
+# Bekas iklan terapung "+1 Steel". Ia anak Node2D dalam dunia supaya iklan
+# kekal atas relau walaupun kamera/pemain bergerak.
 func _bina_lapis_terapung() -> void:
-	_lapis_terapung = CanvasLayer.new()
+	_lapis_terapung = Node2D.new()
 	_lapis_terapung.name = "HudSmelterTerapung"
-	_lapis_terapung.layer = 92
+	_lapis_terapung.z_index = 100
 	add_child(_lapis_terapung)
 
 func get_save_data() -> Dictionary:
@@ -341,12 +342,12 @@ func _apung_steel(banyak: int) -> void:
 		return
 	var baris := HBoxContainer.new()
 	baris.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	baris.add_theme_constant_override("separation", 2)
+	baris.add_theme_constant_override("separation", 1)
 
 	if _tekstur_steel:
 		var ikon := TextureRect.new()
 		ikon.texture = _tekstur_steel
-		ikon.custom_minimum_size = Vector2(12, 12)
+		ikon.custom_minimum_size = Vector2(7, 7)
 		ikon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		ikon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		ikon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -354,7 +355,7 @@ func _apung_steel(banyak: int) -> void:
 
 	var teks := Label.new()
 	teks.text = "+%d" % banyak
-	teks.add_theme_font_size_override("font_size", 10)
+	teks.add_theme_font_size_override("font_size", 7)
 	teks.add_theme_color_override("font_color", Color(0.45, 1.0, 0.55, 1.0))
 	teks.add_theme_color_override("font_outline_color", Color(0.02, 0.06, 0.09, 0.95))
 	teks.add_theme_constant_override("outline_size", 3)
@@ -362,12 +363,11 @@ func _apung_steel(banyak: int) -> void:
 
 	_lapis_terapung.add_child(baris)
 	baris.reset_size()
-	var skrin: Vector2 = get_viewport().get_canvas_transform() * (global_position + Vector2(0, -22))
-	baris.position = skrin - Vector2(baris.size.x * 0.5, 10.0) + Vector2(randf_range(-4.0, 4.0), 0.0)
+	baris.position = Vector2(-baris.size.x * 0.5, -26.0) + Vector2(randf_range(-2.0, 2.0), 0.0)
 
 	var tween := create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(baris, "position", baris.position + Vector2(0.0, -16.0), 0.9) \
+	tween.tween_property(baris, "position", baris.position + Vector2(0.0, -10.0), 0.9) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	tween.tween_property(baris, "modulate:a", 0.0, 0.45).set_delay(0.45)
 	tween.chain().tween_callback(baris.queue_free)
