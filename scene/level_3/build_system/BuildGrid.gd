@@ -363,8 +363,8 @@ func boleh_bina(g: Vector2i) -> bool:
 		return false
 	if _tile.is_empty() and _rancang.is_empty():
 		return true
-	for arah in [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]:
-		var jiran := g + arah
+	for arah: Vector2i in [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]:
+		var jiran: Vector2i = g + arah
 		if _tile.has(jiran) or _rancang.has(jiran):
 			return true
 	return false
@@ -716,8 +716,8 @@ func _topeng_dinding(g: Vector2i) -> int:
 		[Vector2i(0, 1), 4],
 		[Vector2i(-1, 0), 8],
 	]
-	for pasangan in arah_bit:
-		var jiran := g + pasangan[0]
+	for pasangan: Array in arah_bit:
+		var jiran: Vector2i = g + (pasangan[0] as Vector2i)
 		var j: int = int(_tile.get(jiran, -1))
 		if j == -1:
 			j = int(_rancang.get(jiran, -1))
