@@ -312,10 +312,17 @@ func _bina_tema() -> Theme:
 	disabled.bg_color = Color(0.05, 0.09, 0.13, 0.7)
 	disabled.border_color = Color(0.25, 0.42, 0.5, 0.5)
 
+	# Fokus (butang yang dipilih) tidak boleh mengisi latar, kalau tidak butang
+	# seperti OK nampak berbeza daripada butang lain walaupun tidak disentuh.
+	var fokus := normal.duplicate() as StyleBoxFlat
+	fokus.draw_center = false
+	fokus.bg_color = Color(0, 0, 0, 0)
+	fokus.border_color = hover.border_color
+
 	tema.set_stylebox("normal", "Button", normal)
 	tema.set_stylebox("hover", "Button", hover)
 	tema.set_stylebox("pressed", "Button", pressed)
-	tema.set_stylebox("focus", "Button", hover)
+	tema.set_stylebox("focus", "Button", fokus)
 	tema.set_stylebox("disabled", "Button", disabled)
 	tema.set_font_size("font_size", "Button", 10)
 	tema.set_color("font_color", "Button", Color(0.85, 0.97, 1, 1))
