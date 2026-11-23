@@ -30,6 +30,13 @@ const BulatanCraft := preload("res://scene/level_3/build_system/smelter/bulatan_
 
 const MASA_LEBUR: float = 3.0
 
+# Animasi iklan terapung "+1": naik dengan laju tetap dan pudar licin sampai
+# habis, jadi ia tidak nampak tersekat sebelum hilang.
+const MASA_IKLAN: float = 0.9
+const JARAK_IKLAN: float = 10.0
+const IKLAN_Y_ASAL: float = -26.0
+const IKLAN_MULA_PUDAR: float = 0.4
+
 const ID_STEEL := "item_0009"
 const LALUAN_STEEL := "res://scene/Item/0009Steel/Steel.tscn"
 const IKON_STEEL := "res://scene/Item/0009Steel/Image_steel.png"
@@ -73,7 +80,8 @@ var _lapis_terapung: Node2D = null
 var _iklan: HBoxContainer = null
 var _iklan_ikon: TextureRect = null
 var _iklan_teks: Label = null
-var _tween_iklan: Tween = null
+var _iklan_masa: float = -1.0
+var _iklan_x: float = 0.0
 # Cincin kemajuan di atas relau (ikon item + "1/7")
 var _bulatan: Node2D = null
 var _tekstur_steel: Texture2D = null
@@ -321,6 +329,7 @@ func _mula_unit() -> void:
 
 # Animasi relau + kemajuan peleburan.
 func _process(delta: float) -> void:
+	_kemas_kini_iklan(delta)
 	if not sedang_lebur:
 		return
 	masa_berlalu += delta
@@ -396,24 +405,34 @@ func _selesai_unit() -> void:
 func _apung_steel(banyak: int) -> void:
 	if _iklan == null:
 		return
-	_iklan_teks.text = "+%d" % banyak
+	var teks: String = "+%d" % banyak
+	# Label hanya diukur semula bila teksnya berubah; teks sama tidak perlu
+	# susun atur semula setiap unit.
+	if _iklan_teks.text != teks:
+		_iklan_teks.text = teks
+		_iklan.reset_size()
+	_iklan_x = -_iklan.size.x * 0.5 + randf_range(-2.0, 2.0)
+	_iklan_masa = 0.0
 	_iklan.modulate.a = 1.0
+	_iklan.position = Vector2(_iklan_x, IKLAN_Y_ASAL)
 	_iklan.visible = true
-	_iklan.reset_size()
-	_iklan.position = Vector2(-_iklan.size.x * 0.5, -26.0) + Vector2(randf_range(-2.0, 2.0), 0.0)
 
-	if _tween_iklan and _tween_iklan.is_valid():
-		_tween_iklan.kill()
-	_tween_iklan = create_tween()
-	_tween_iklan.set_parallel(true)
-	_tween_iklan.tween_property(_iklan, "position", _iklan.position + Vector2(0.0, -10.0), 0.9) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	_tween_iklan.tween_property(_iklan, "modulate:a", 0.0, 0.45).set_delay(0.45)
-	_tween_iklan.chain().tween_callback(_sembunyi_iklan)
-
-func _sembunyi_iklan() -> void:
-	if _iklan:
+# Animasi iklan dikira sendiri tiap frame (tanpa Tween): tiada Tween baru
+# setiap unit, dan iklan terus naik sehingga pupus supaya tidak nampak
+# tersekat pada penghujung pudar.
+func _kemas_kini_iklan(delta: float) -> void:
+	if _iklan_masa < 0.0:
+		return
+	_iklan_masa += delta
+	var t: float = _iklan_masa / MASA_IKLAN
+	if t >= 1.0:
+		_iklan_masa = -1.0
+		_iklan.modulate.a = 0.0
 		_iklan.visible = false
+		return
+	_iklan.position = Vector2(_iklan_x, IKLAN_Y_ASAL - JARAK_IKLAN * t)
+	var p: float = clampf((t - IKLAN_MULA_PUDAR) / (1.0 - IKLAN_MULA_PUDAR), 0.0, 1.0)
+	_iklan.modulate.a = 1.0 - (p * p * (3.0 - 2.0 * p))
 
 # Kemas kini menu: ikon + bilangan bahan, status, pilihan kuantiti, butang.
 func _kemas_kini_ui() -> void:
