@@ -38,6 +38,7 @@ func _ready():
 const NAMA_IKON: Dictionary = {
 	"ResearchTableButton": "Research",
 	"FabricatorButton": "Fabricator",
+	"SmelterButton": "Smelter",
 	"KitchenTableButton": "Kitchen",
 	"SolarModuleButton": "Solar",
 	"PowerInverterButton": "Inverter",

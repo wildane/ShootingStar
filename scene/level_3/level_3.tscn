@@ -13,6 +13,8 @@
 [ext_resource type="Script" uid="uid://bn6oipj4071ld" path="res://scene/level_3/level_3_inventory.gd" id="9_hsw8h"]
 [ext_resource type="PackedScene" uid="uid://bocyiw32ulb6v" path="res://scene/Inventory/Inventory.tscn" id="9_jlgbs"]
 [ext_resource type="Script" uid="uid://sryhfu5tdj4i" path="res://scene/level_3/build_system/fabricator.gd" id="10_sed1p"]
+[ext_resource type="Texture2D" path="res://scene/level_3/build_system/smelter/smelter_sprite.png" id="70_smel"]
+[ext_resource type="Script" path="res://scene/level_3/build_system/smelter.gd" id="71_smel"]
 [ext_resource type="Script" uid="uid://beflntar2msst" path="res://scene/level_3/build_system/BuildButton.gd" id="14_rnch0"]
 [ext_resource type="Script" path="res://scene/level_3/build_system/ChargingStation/charging_station.gd" id="40_cs"]
 [ext_resource type="Texture2D" path="res://scene/level_3/build_system/ChargingStation/ChargingStation.png" id="41_cs"]
@@ -240,6 +242,15 @@ icon_alignment = 1
 expand_icon = true
 script = ExtResource("10_sed1p")
 metadata/_edit_lock_ = true
+
+[node name="SmelterButton" type="Button" parent="CanvasLayer/MarginContainer/VBoxContainer/BuildSystem/HBoxContainer/ItemsPanel/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+icon = ExtResource("70_smel")
+flat = true
+icon_alignment = 1
+expand_icon = true
+script = ExtResource("71_smel")
 
 [node name="KitchenTableButton" type="Button" parent="CanvasLayer/MarginContainer/VBoxContainer/BuildSystem/HBoxContainer/ItemsPanel/MarginContainer/HBoxContainer" unique_id=535025963]
 custom_minimum_size = Vector2(32, 32)
