@@ -48,6 +48,12 @@ const SAIZ_JUBIN_DINDING: float = 64.0
 const TEKSTUR_PINTU: Texture2D = preload("res://scene/level_3/build_system/tile_door.png")
 const SKRIP_PINTU_GRID: Script = preload("res://scene/level_3/build_system/PintuGrid.gd")
 
+# Ikon PNG untuk butang HUD bina (menggantikan teks Floor / Wall / Door / Erase).
+const IKON_HUD_LANTAI: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_floor.png")
+const IKON_HUD_DINDING: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_wall.png")
+const IKON_HUD_PINTU: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_door.png")
+const IKON_HUD_ERASE: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_erase.png")
+
 # Dipakai oleh AstroStateMachine supaya tap semasa mod bina tidak
 # menggerakkan pemain.
 static var mod_aktif: bool = false
@@ -93,17 +99,23 @@ func _bina_hud() -> void:
 	# Diturunkan supaya tidak bertindih dengan butang Weapon Attachment di
 	# MarginContainer atas kiri (Inventory + Weapon Attachment).
 	lajur.position = Vector2(6, 128)
-	lajur.add_theme_constant_override("separation", 4)
+	lajur.add_theme_constant_override("separation", 6)
 	kanvas.add_child(lajur)
 
+	var ikon_jenis: Array[Texture2D] = [
+		IKON_HUD_LANTAI, IKON_HUD_DINDING, IKON_HUD_PINTU, IKON_HUD_ERASE,
+	]
 	var tema := _tema_butang()
 	for jenis in [JENIS_LANTAI, JENIS_DINDING, JENIS_PINTU, JENIS_ERASE]:
 		var butang := Button.new()
-		butang.text = NAMA_JENIS[jenis]
+		butang.text = ""
+		butang.icon = ikon_jenis[jenis]
+		butang.expand_icon = true
+		butang.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		butang.tooltip_text = NAMA_JENIS[jenis]
 		butang.toggle_mode = true
 		butang.focus_mode = Control.FOCUS_NONE
-		butang.custom_minimum_size = Vector2(58, 22)
-		butang.add_theme_font_size_override("font_size", 7)
+		butang.custom_minimum_size = Vector2(34, 34)
 		butang.theme = tema
 		butang.pressed.connect(_pilih.bind(jenis))
 		lajur.add_child(butang)
@@ -118,13 +130,14 @@ func _bina_hud() -> void:
 	batal.pressed.connect(_batal)
 	lajur.add_child(batal)
 
+	# Label status duduk dalam lajur yang sama supaya sentiasa betul-betul di
+	# bawah butang walaupun saiz butang berubah.
 	_label_status = Label.new()
-	_label_status.position = Vector2(6, lajur.position.y + lajur.get_child_count() * 26 + 4)
 	_label_status.custom_minimum_size = Vector2(150, 0)
 	_label_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_label_status.add_theme_font_size_override("font_size", 6)
 	_label_status.add_theme_color_override("font_color", Color(0.72, 0.93, 1.0))
-	kanvas.add_child(_label_status)
+	lajur.add_child(_label_status)
 
 func _tema_butang() -> Theme:
 	var tema := Theme.new()
@@ -138,7 +151,8 @@ func _tema_butang() -> Theme:
 	hover.bg_color = Color(0.098, 0.278, 0.38, 0.96)
 	hover.border_color = Color(0.5, 0.97, 1, 1)
 	var pressed := normal.duplicate() as StyleBoxFlat
-	pressed.bg_color = Color(0.2, 0.55, 0.68, 1)
+	# Tidak terlalu terang supaya ikon PNG kekal jelas di atasnya.
+	pressed.bg_color = Color(0.16, 0.46, 0.58, 1)
 	pressed.border_color = Color(0.75, 1, 1, 1)
 	tema.set_stylebox("normal", "Button", normal)
 	tema.set_stylebox("hover", "Button", hover)
@@ -146,6 +160,9 @@ func _tema_butang() -> Theme:
 	tema.set_stylebox("focus", "Button", hover)
 	tema.set_color("font_color", "Button", Color(0.85, 0.97, 1, 1))
 	tema.set_color("font_pressed_color", "Button", Color(0.05, 0.12, 0.16, 1))
+	tema.set_color("icon_normal_color", "Button", Color(0.9, 0.98, 1, 1))
+	tema.set_color("icon_hover_color", "Button", Color(1, 1, 1, 1))
+	tema.set_color("icon_pressed_color", "Button", Color(1, 1, 1, 1))
 	return tema
 
 # ==========================================
