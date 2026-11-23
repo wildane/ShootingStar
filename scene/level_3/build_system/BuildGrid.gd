@@ -117,6 +117,7 @@ func _bina_hud() -> void:
 		butang.toggle_mode = true
 		butang.focus_mode = Control.FOCUS_NONE
 		butang.custom_minimum_size = Vector2(34, 34)
+		butang.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 		butang.theme = tema
 		butang.pressed.connect(_pilih.bind(jenis))
 		lajur.add_child(butang)
@@ -130,6 +131,7 @@ func _bina_hud() -> void:
 	batal.tooltip_text = "Cancel"
 	batal.focus_mode = Control.FOCUS_NONE
 	batal.custom_minimum_size = Vector2(34, 34)
+	batal.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	batal.theme = tema
 	batal.pressed.connect(_batal)
 	lajur.add_child(batal)
@@ -144,29 +146,29 @@ func _bina_hud() -> void:
 	lajur.add_child(_label_status)
 
 func _tema_butang() -> Theme:
+	# Latar butang dibuang supaya hanya ikon PNG yang nampak. Margin kecil
+	# mengekalkan ruang nafas yang sama antara ikon.
 	var tema := Theme.new()
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.054, 0.145, 0.211, 0.92)
-	normal.border_color = Color(0.36, 0.9, 1, 0.7)
-	normal.set_border_width_all(1)
-	normal.set_corner_radius_all(3)
-	normal.set_content_margin_all(3.0)
-	var hover := normal.duplicate() as StyleBoxFlat
-	hover.bg_color = Color(0.098, 0.278, 0.38, 0.96)
-	hover.border_color = Color(0.5, 0.97, 1, 1)
-	var pressed := normal.duplicate() as StyleBoxFlat
-	# Tidak terlalu terang supaya ikon PNG kekal jelas di atasnya.
-	pressed.bg_color = Color(0.16, 0.46, 0.58, 1)
-	pressed.border_color = Color(0.75, 1, 1, 1)
-	tema.set_stylebox("normal", "Button", normal)
+	var kosong := StyleBoxEmpty.new()
+	kosong.set_content_margin_all(4.0)
+	var hover := StyleBoxFlat.new()
+	hover.bg_color = Color(1, 1, 1, 0.08)
+	hover.set_corner_radius_all(4)
+	hover.set_content_margin_all(4.0)
+	var pressed := StyleBoxFlat.new()
+	pressed.bg_color = Color(0.4, 0.85, 1.0, 0.18)
+	pressed.set_corner_radius_all(4)
+	pressed.set_content_margin_all(4.0)
+	tema.set_stylebox("normal", "Button", kosong)
 	tema.set_stylebox("hover", "Button", hover)
 	tema.set_stylebox("pressed", "Button", pressed)
-	tema.set_stylebox("focus", "Button", hover)
+	tema.set_stylebox("focus", "Button", StyleBoxEmpty.new())
+	tema.set_stylebox("disabled", "Button", kosong)
 	tema.set_color("font_color", "Button", Color(0.85, 0.97, 1, 1))
 	tema.set_color("font_pressed_color", "Button", Color(0.05, 0.12, 0.16, 1))
-	tema.set_color("icon_normal_color", "Button", Color(0.9, 0.98, 1, 1))
+	tema.set_color("icon_normal_color", "Button", Color(0.92, 0.98, 1, 1))
 	tema.set_color("icon_hover_color", "Button", Color(1, 1, 1, 1))
-	tema.set_color("icon_pressed_color", "Button", Color(1, 1, 1, 1))
+	tema.set_color("icon_pressed_color", "Button", Color(0.75, 0.95, 1, 1))
 	return tema
 
 # ==========================================
