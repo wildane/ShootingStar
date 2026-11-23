@@ -81,11 +81,14 @@ var _ada_hantu: bool = false
 var _butang: Array[Button] = []
 var _butang_rumah: Button
 var _kumpulan: Control
+var _kanvas_hud: CanvasLayer
 var _label_status: Label
 var _tween_buka: Tween
 var _buka: bool = false
-const SAIZ_BUTANG: float = 34.0
+const SAIZ_BUTANG: float = 32.0   # sama dengan butang Inventory / Weapon Attachment
+const SAIZ_PILIHAN: float = 34.0
 const LANGKAH_BUTANG: float = 38.0
+const MASA_BUKA: float = 0.18
 # Lapisan HUD untuk iklan terapung "-1" / "+1" besi dekat pemain.
 var _lapis_terapung: CanvasLayer
 const WARNA_BESI_KELUAR: Color = Color(1.0, 0.42, 0.36)
@@ -95,6 +98,9 @@ func _ready() -> void:
 	add_to_group("BuildGrid")
 	mod_aktif = false
 	_bina_hud()
+	# Tunggu container siap susun butang sebelum label diletak di sebelahnya.
+	await get_tree().process_frame
+	_susun_hud()
 
 func _exit_tree() -> void:
 	mod_aktif = false
@@ -103,43 +109,50 @@ func _exit_tree() -> void:
 # HUD: butang Floor / Wall / Door / X
 # ==========================================
 func _bina_hud() -> void:
-	var kanvas := CanvasLayer.new()
-	kanvas.name = "HudBinaGrid"
-	kanvas.layer = 90
-	add_child(kanvas)
-
 	_lapis_terapung = CanvasLayer.new()
 	_lapis_terapung.name = "HudBinaGridTerapung"
 	_lapis_terapung.layer = 91
 	add_child(_lapis_terapung)
 
-	# Pangkalan HUD: butang rumah di (0, 0), pilihan lain di bawahnya.
-	# Diturunkan supaya tidak bertindih dengan butang Weapon Attachment di
-	# MarginContainer atas kiri (Inventory + Weapon Attachment).
-	var akar := Control.new()
-	akar.name = "HudButangBina"
-	akar.position = Vector2(6, 128)
-	akar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	kanvas.add_child(akar)
+	# Butang rumah duduk dalam VBox yang sama dengan butang Weapon Attachment
+	# dan Inventory di kiri atas, jadi jarak dan susunannya sama.
+	var bekas := _bekas_butang()
+	if bekas != null:
+		_kanvas_hud = bekas.get_parent().get_parent() as CanvasLayer
+	else:
+		# Tanpa UI induk (ujian headless): bina bekas sendiri.
+		var kanvas := CanvasLayer.new()
+		kanvas.name = "HudBinaGrid"
+		kanvas.layer = 90
+		add_child(kanvas)
+		_kanvas_hud = kanvas
+		var margin := MarginContainer.new()
+		margin.position = Vector2(6, 128)
+		kanvas.add_child(margin)
+		bekas = VBoxContainer.new()
+		margin.add_child(bekas)
 
 	var tema := _tema_butang()
-	_butang_rumah = _buat_butang(IKON_HUD_RUMAH, "Build", tema)
+	_butang_rumah = _buat_butang(IKON_HUD_RUMAH, "Build", _tema_butang(0.0))
 	_butang_rumah.toggle_mode = true
-	_butang_rumah.position = Vector2.ZERO
+	_butang_rumah.custom_minimum_size = Vector2(SAIZ_BUTANG, SAIZ_BUTANG)
+	_butang_rumah.size = Vector2(SAIZ_BUTANG, SAIZ_BUTANG)
+	_butang_rumah.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_butang_rumah.pressed.connect(_tukar_buka)
-	akar.add_child(_butang_rumah)
+	bekas.add_child(_butang_rumah)
 
-	# Bekas pilihan yang mengembang: satu butang ke kanan, selebihnya ke bawah.
+	# Menu mengembang sebagai overlay supaya VBox tidak berubah saiz.
+	# Satu butang ke kanan ikon rumah, selebihnya ke bawah.
 	_kumpulan = Control.new()
 	_kumpulan.name = "PilihanBina"
 	_kumpulan.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_kumpulan.pivot_offset = Vector2.ZERO
-	akar.add_child(_kumpulan)
+	_kumpulan.visible = false
+	_kanvas_hud.add_child(_kumpulan)
 
 	var ikon_jenis: Array[Texture2D] = [
 		IKON_HUD_LANTAI, IKON_HUD_DINDING, IKON_HUD_PINTU, IKON_HUD_ERASE,
 	]
-	# Floor keluar ke kanan ikon rumah; Wall, Door dan Erase turun ke bawah.
 	var kedudukan: Array[Vector2] = [
 		Vector2(LANGKAH_BUTANG, 0),
 		Vector2(0, LANGKAH_BUTANG),
@@ -160,15 +173,25 @@ func _bina_hud() -> void:
 	_kumpulan.add_child(batal)
 
 	# Label status kekal nampak walaupun menu tertutup (menunjukkan mod aktif).
+	# Ia diletak di kanan ikon rumah supaya tidak bertindih dengan menu.
 	_label_status = Label.new()
 	_label_status.custom_minimum_size = Vector2(150, 54)
 	_label_status.size = Vector2(150, 54)
 	_label_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_label_status.add_theme_font_size_override("font_size", 6)
 	_label_status.add_theme_color_override("font_color", Color(0.72, 0.93, 1.0))
-	akar.add_child(_label_status)
+	_label_status.top_level = true
+	_kanvas_hud.add_child(_label_status)
 
+	_susun_hud()
 	_set_buka(false)
+
+func _bekas_butang() -> Control:
+	# VBox kiri atas yang menempatkan BuildSystem, Inventory dan Weapon Attachment.
+	var ibu := get_parent()
+	if ibu == null:
+		return null
+	return ibu.get_node_or_null("CanvasLayer/MarginContainer/VBoxContainer") as Control
 
 func _buat_butang(ikon: Texture2D, tooltip: String, tema: Theme) -> Button:
 	var butang := Button.new()
@@ -178,10 +201,20 @@ func _buat_butang(ikon: Texture2D, tooltip: String, tema: Theme) -> Button:
 	butang.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	butang.tooltip_text = tooltip
 	butang.focus_mode = Control.FOCUS_NONE
-	butang.custom_minimum_size = Vector2(SAIZ_BUTANG, SAIZ_BUTANG)
-	butang.size = Vector2(SAIZ_BUTANG, SAIZ_BUTANG)
+	butang.custom_minimum_size = Vector2(SAIZ_PILIHAN, SAIZ_PILIHAN)
+	butang.size = Vector2(SAIZ_PILIHAN, SAIZ_PILIHAN)
 	butang.theme = tema
 	return butang
+
+# Letak menu dan label berdasarkan kedudukan sebenar butang rumah dalam VBox.
+func _susun_hud() -> void:
+	if _butang_rumah == null:
+		return
+	var asas: Vector2 = _butang_rumah.global_position
+	if _kumpulan != null:
+		_kumpulan.global_position = asas
+	if _label_status != null:
+		_label_status.global_position = asas + Vector2(LANGKAH_BUTANG + SAIZ_BUTANG + 6.0, 2.0)
 
 # Buka / tutup menu. Bila tertutup, semua pilihan kembali jadi satu ikon rumah.
 func _tukar_buka() -> void:
@@ -192,36 +225,61 @@ func _set_buka(buka: bool) -> void:
 	_butang_rumah.set_pressed_no_signal(buka or _mod >= 0)
 	if _kumpulan == null:
 		return
+	_susun_hud()
 	if _tween_buka != null and _tween_buka.is_valid():
 		_tween_buka.kill()
-	_kumpulan.visible = true
 	if buka:
-		_kumpulan.scale.x = 0.0
-		_kumpulan.modulate.a = 0.0
+		_tutup_menu_lain()
+		if not _kumpulan.visible:
+			_kumpulan.scale.x = 0.0
+			_kumpulan.modulate.a = 0.0
+		_kumpulan.visible = true
 		_tween_buka = create_tween().set_parallel(true)
-		_tween_buka.tween_property(_kumpulan, "scale:x", 1.0, 0.18).set_trans(Tween.TRANS_CUBIC)
-		_tween_buka.tween_property(_kumpulan, "modulate:a", 1.0, 0.18)
-	else:
-		_kumpulan.scale.x = 0.0
-		_kumpulan.modulate.a = 0.0
-		_kumpulan.visible = false
-	if _label_status != null:
-		_label_status.position = Vector2(0, LANGKAH_BUTANG * 5 + 8.0 if buka else SAIZ_BUTANG + 6.0)
+		_tween_buka.tween_property(_kumpulan, "scale:x", 1.0, MASA_BUKA).set_trans(Tween.TRANS_CUBIC)
+		_tween_buka.tween_property(_kumpulan, "modulate:a", 1.0, MASA_BUKA)
+	elif _kumpulan.visible:
+		# Animasi tutup sama seperti buka, cuma terbalik, kemudian sembunyi.
+		_tween_buka = create_tween().set_parallel(true)
+		_tween_buka.tween_property(_kumpulan, "scale:x", 0.0, MASA_BUKA).set_trans(Tween.TRANS_CUBIC)
+		_tween_buka.tween_property(_kumpulan, "modulate:a", 0.0, MASA_BUKA)
+		_tween_buka.chain().tween_callback(_sembunyi_menu)
 
-func _tema_butang() -> Theme:
+# Tutup menu HUD jiran (bina / dron) supaya tidak bertindih dengan menu ini.
+func _tutup_menu_lain() -> void:
+	if _butang_rumah == null:
+		return
+	var bekas := _butang_rumah.get_parent()
+	if bekas == null:
+		return
+	for nod in bekas.get_children():
+		if nod == _butang_rumah:
+			continue
+		if nod.has_method("tutup_menu_cepat"):
+			nod.call("tutup_menu_cepat")
+		elif nod.has_method("tutup_menu"):
+			nod.call("tutup_menu")
+
+func _sembunyi_menu() -> void:
+	if _kumpulan == null or _buka:
+		return
+	_kumpulan.visible = false
+	_kumpulan.scale.x = 0.0
+	_kumpulan.modulate.a = 0.0
+
+func _tema_butang(margin: float = 4.0) -> Theme:
 	# Latar butang dibuang supaya hanya ikon PNG yang nampak. Margin kecil
 	# mengekalkan ruang nafas yang sama antara ikon.
 	var tema := Theme.new()
 	var kosong := StyleBoxEmpty.new()
-	kosong.set_content_margin_all(4.0)
+	kosong.set_content_margin_all(margin)
 	var hover := StyleBoxFlat.new()
 	hover.bg_color = Color(1, 1, 1, 0.08)
 	hover.set_corner_radius_all(4)
-	hover.set_content_margin_all(4.0)
+	hover.set_content_margin_all(margin)
 	var pressed := StyleBoxFlat.new()
 	pressed.bg_color = Color(0.4, 0.85, 1.0, 0.18)
 	pressed.set_corner_radius_all(4)
-	pressed.set_content_margin_all(4.0)
+	pressed.set_content_margin_all(margin)
 	tema.set_stylebox("normal", "Button", kosong)
 	tema.set_stylebox("hover", "Button", hover)
 	tema.set_stylebox("pressed", "Button", pressed)
@@ -267,6 +325,33 @@ func _batal() -> void:
 # ==========================================
 # INPUT: tap = letak, heret = gerak hantu
 # ==========================================
+# Tap di luar menu (dan di luar ikon rumah) menutup menu semula.
+func _input(event: InputEvent) -> void:
+	if not _buka:
+		return
+	var pos := Vector2.ZERO
+	if event is InputEventScreenTouch and event.pressed:
+		pos = event.position
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		pos = event.position
+	else:
+		return
+	if _tekan_dalam_hud(pos):
+		return
+	# Tutup menu sahaja; tap ini tidak diteruskan ke aksi lain.
+	get_viewport().set_input_as_handled()
+	_set_buka(false)
+
+func _tekan_dalam_hud(pos: Vector2) -> bool:
+	if _butang_rumah != null and _butang_rumah.get_global_rect().has_point(pos):
+		return true
+	if _kumpulan == null or not _kumpulan.visible:
+		return false
+	for anak in _kumpulan.get_children():
+		if anak is Control and anak.visible and (anak as Control).get_global_rect().has_point(pos):
+			return true
+	return false
+
 func _unhandled_input(event: InputEvent) -> void:
 	if _mod < 0:
 		return
