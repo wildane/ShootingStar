@@ -8,6 +8,7 @@ extends StaticBody2D
 @onready var sprite = get_node_or_null("Sprite2D")
 @onready var area_penderia = get_node_or_null("Area2D")
 const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
+const BulatanCraft := preload("res://scene/level_3/build_system/smelter/bulatan_craft.gd")
 
 @onready var menu_ui = get_node_or_null("CanvasLayer/Pusat/MenuUI")
 @onready var butang_tutup = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/HBoxContainer/ButtonTutup")
@@ -64,6 +65,8 @@ var _unit_selesai: int = 0
 
 # Bekas iklan terapung "+1" (dalam dunia, jadi ia ikut kamera)
 var _lapis_terapung: Node2D = null
+# Cincin kemajuan di atas relau (ikon item + "1/7")
+var _bulatan: Node2D = null
 var _tekstur_steel: Texture2D = null
 
 func _ready() -> void:
@@ -92,6 +95,7 @@ func _ready() -> void:
 	_pasang_gaya_kad()
 	_bina_cahaya()
 	_bina_lapis_terapung()
+	_bina_bulatan()
 	_kemas_kini_ui()
 
 	var inv = get_node_or_null("/root/InventoryManager")
@@ -143,6 +147,15 @@ func _pasang_gaya_kad() -> void:
 		butang_lebur.add_theme_color_override("font_hover_color", Color(0.01, 0.05, 0.08, 1))
 		butang_lebur.add_theme_color_override("font_pressed_color", Color(0.75, 0.95, 1, 1))
 		butang_lebur.add_theme_color_override("font_disabled_color", Color(0.4, 0.52, 0.6, 1))
+
+# Cincin kemajuan kecil di atas relau, hanya nampak semasa melebur.
+func _bina_bulatan() -> void:
+	_bulatan = BulatanCraft.new()
+	_bulatan.name = "BulatanCraft"
+	_bulatan.position = Vector2(0, -34)
+	_bulatan.tekstur = _tekstur_steel
+	_bulatan.visible = false
+	add_child(_bulatan)
 
 # Ikon bahan dipasang dari fail PNG supaya menu nampak jelas (bukan teks kosong).
 func _pasang_ikon() -> void:
@@ -415,24 +428,23 @@ func _kemas_kini_ui() -> void:
 # Bar kemajuan bawah ikon steel: "1/7" semasa unit pertama, naik sampai "7/7".
 func _kemas_progres(nisbah: float = 0.0) -> void:
 	var jumlah: int = maxi(1, _jumlah_batch if _jumlah_batch > 0 else kuantiti_pilihan)
+	var teks: String = "0/%d" % kuantiti_pilihan
+	var nilai: float = 0.0
 	if sedang_lebur:
-		var unit_ke: int = mini(_unit_selesai + 1, jumlah)
-		if label_progress:
-			label_progress.text = "%d/%d" % [unit_ke, jumlah]
-		# Bar untuk SATU item sahaja: penuh setiap unit, kemudian mula semula.
-		if bar_progres:
-			bar_progres.value = clampf(nisbah, 0.0, 1.0) * 100.0
-		return
-	if _jumlah_batch > 0 and _unit_selesai >= _jumlah_batch:
-		if label_progress:
-			label_progress.text = "%d/%d" % [_jumlah_batch, _jumlah_batch]
-		if bar_progres:
-			bar_progres.value = 100.0
-		return
+		teks = "%d/%d" % [mini(_unit_selesai + 1, jumlah), jumlah]
+		# Bar/cincin untuk SATU item sahaja: penuh setiap unit, kemudian mula semula.
+		nilai = clampf(nisbah, 0.0, 1.0)
+	elif _jumlah_batch > 0 and _unit_selesai >= _jumlah_batch:
+		teks = "%d/%d" % [_jumlah_batch, _jumlah_batch]
+		nilai = 1.0
+
 	if label_progress:
-		label_progress.text = "0/%d" % kuantiti_pilihan
+		label_progress.text = teks
 	if bar_progres:
-		bar_progres.value = 0.0
+		bar_progres.value = nilai * 100.0
+	if _bulatan:
+		_bulatan.visible = sedang_lebur
+		_bulatan.set_kemajuan(nilai, teks)
 
 func _tulis_bilangan(label: Label, ada: int, perlu: int) -> void:
 	if label == null:
