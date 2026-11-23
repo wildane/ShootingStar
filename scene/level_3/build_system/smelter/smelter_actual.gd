@@ -14,16 +14,17 @@ const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
 @onready var butang_demolish = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/HBoxContainer/ButtonDemolish")
 @onready var label_status = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Header/LabelStatus")
 @onready var bar_progres = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Progress")
-@onready var butang_lebur = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/ButangLebur")
-@onready var label_bil_besi = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisBesi/BilBesi")
-@onready var label_bil_ais = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisAis/BilAis")
-@onready var label_bil_keluaran = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKeluaran/BilKeluaran")
+@onready var butang_lebur = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/ButangCraft")
+@onready var kad = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad")
+@onready var label_bil_besi = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Besi/BilBesi")
+@onready var label_bil_ais = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Ais/BilAis")
+@onready var label_bil_keluaran = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/IkonBekas/BilanganDimiliki")
 @onready var label_kuantiti = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti/LabelKuantiti")
 @onready var label_maks = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti/LabelMaks")
 @onready var butang_kurang = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti/ButangKurang")
 @onready var butang_tambah = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti/ButangTambah")
-@onready var ikon_besi = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisBesi/IkonBesi")
-@onready var ikon_ais = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisAis/IkonAis")
+@onready var ikon_besi = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Besi/IkonBesi")
+@onready var ikon_ais = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Ais/IkonAis")
 
 const MASA_LEBUR: float = 4.0
 
@@ -87,6 +88,7 @@ func _ready() -> void:
 		_skala_asal = sprite.scale
 
 	_pasang_ikon()
+	_pasang_gaya_kad()
 	_bina_cahaya()
 	_bina_lapis_terapung()
 	_kemas_kini_ui()
@@ -95,6 +97,44 @@ func _ready() -> void:
 	if inv and inv.has_signal("inventory_dikemaskini"):
 		if not inv.inventory_dikemaskini.is_connected(_kemas_kini_ui):
 			inv.inventory_dikemaskini.connect(_kemas_kini_ui)
+
+# Kad resipi gelap + butang Craft yang menonjol (gaya senarai kad).
+func _pasang_gaya_kad() -> void:
+	if kad:
+		var gaya := StyleBoxFlat.new()
+		gaya.bg_color = Color(0.031, 0.082, 0.13, 0.95)
+		gaya.border_color = Color(0.28, 0.55, 0.68, 0.7)
+		gaya.set_border_width_all(1)
+		gaya.set_corner_radius_all(4)
+		gaya.set_content_margin_all(5.0)
+		kad.add_theme_stylebox_override("panel", gaya)
+
+	if butang_lebur:
+		var normal := StyleBoxFlat.new()
+		normal.bg_color = Color(0.24, 0.64, 0.8, 1.0)
+		normal.border_color = Color(0.72, 0.98, 1, 1)
+		normal.set_border_width_all(1)
+		normal.set_corner_radius_all(5)
+		normal.set_content_margin_all(4.0)
+		var hover := normal.duplicate() as StyleBoxFlat
+		hover.bg_color = Color(0.33, 0.78, 0.95, 1.0)
+		var pressed := normal.duplicate() as StyleBoxFlat
+		pressed.bg_color = Color(0.16, 0.5, 0.65, 1.0)
+		var disabled := normal.duplicate() as StyleBoxFlat
+		disabled.bg_color = Color(0.09, 0.17, 0.22, 1.0)
+		disabled.border_color = Color(0.28, 0.45, 0.53, 0.6)
+		var fokus := normal.duplicate() as StyleBoxFlat
+		fokus.draw_center = false
+		fokus.bg_color = Color(0, 0, 0, 0)
+		butang_lebur.add_theme_stylebox_override("normal", normal)
+		butang_lebur.add_theme_stylebox_override("hover", hover)
+		butang_lebur.add_theme_stylebox_override("pressed", pressed)
+		butang_lebur.add_theme_stylebox_override("disabled", disabled)
+		butang_lebur.add_theme_stylebox_override("focus", fokus)
+		butang_lebur.add_theme_color_override("font_color", Color(0.02, 0.09, 0.13, 1))
+		butang_lebur.add_theme_color_override("font_hover_color", Color(0.01, 0.05, 0.08, 1))
+		butang_lebur.add_theme_color_override("font_pressed_color", Color(0.75, 0.95, 1, 1))
+		butang_lebur.add_theme_color_override("font_disabled_color", Color(0.4, 0.52, 0.6, 1))
 
 # Ikon bahan dipasang dari fail PNG supaya menu nampak jelas (bukan teks kosong).
 func _pasang_ikon() -> void:
@@ -222,7 +262,7 @@ func _process(delta: float) -> void:
 	if bar_progres:
 		bar_progres.value = nisbah * 100.0
 	if butang_lebur:
-		butang_lebur.text = "Smelting... %0.1fs" % max(0.0, MASA_LEBUR - masa_berlalu)
+		butang_lebur.text = "%0.1fs" % max(0.0, MASA_LEBUR - masa_berlalu)
 
 	var denyut: float = (sin(masa_hiasan * 7.5) + 1.0) * 0.5
 	if sprite:
@@ -322,7 +362,7 @@ func _kemas_kini_ui() -> void:
 	_tulis_bilangan(label_bil_besi, ada_besi, perlu_besi)
 	_tulis_bilangan(label_bil_ais, ada_ais, perlu_ais)
 	if label_bil_keluaran:
-		label_bil_keluaran.text = "x%d" % kuantiti_pilihan
+		label_bil_keluaran.text = str(_bilangan_dalam_beg(ID_STEEL))
 	if label_kuantiti:
 		label_kuantiti.text = str(kuantiti_pilihan)
 	if label_maks:
@@ -346,17 +386,13 @@ func _kemas_kini_ui() -> void:
 			label_status.add_theme_color_override("font_color", WARNA_KURANG)
 
 	if butang_lebur and not sedang_lebur:
-		if _bahan_cukup():
-			butang_lebur.text = "Smelt Steel"
-			butang_lebur.disabled = false
-		else:
-			butang_lebur.text = "Not enough materials"
-			butang_lebur.disabled = true
+		butang_lebur.text = "Craft"
+		butang_lebur.disabled = not _bahan_cukup()
 
 func _tulis_bilangan(label: Label, ada: int, perlu: int) -> void:
 	if label == null:
 		return
-	label.text = "%d / %d" % [ada, perlu]
+	label.text = str(perlu)
 	if sedang_lebur:
 		label.add_theme_color_override("font_color", WARNA_SEDANG)
 	elif ada >= perlu:

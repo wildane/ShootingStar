@@ -48,22 +48,22 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="MenuUI" type="PanelContainer" parent="CanvasLayer/Pusat"]
-custom_minimum_size = Vector2(240, 0)
+custom_minimum_size = Vector2(252, 0)
 layout_mode = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/Pusat/MenuUI"]
 layout_mode = 2
-theme_override_constants/separation = 3
+theme_override_constants/separation = 4
 
 [node name="Header" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 5
 
-[node name="IkonSteel" type="TextureRect" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Header"]
+[node name="IkonTajuk" type="TextureRect" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Header"]
 custom_minimum_size = Vector2(18, 18)
 layout_mode = 2
 size_flags_vertical = 4
-texture = ExtResource("4_ikon")
+texture = ExtResource("2_smel")
 expand_mode = 1
 stretch_mode = 5
 texture_filter = 1
@@ -72,7 +72,7 @@ texture_filter = 1
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 13
 text = "Smelter"
 
 [node name="LabelStatus" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Header"]
@@ -86,18 +86,86 @@ horizontal_alignment = 2
 [node name="Garis1" type="HSeparator" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
 layout_mode = 2
 
-[node name="LabelBahanTajuk" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
+[node name="Kad" type="PanelContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBox" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="IkonBekas" type="Control" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox"]
+custom_minimum_size = Vector2(42, 42)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="IkonSteel" type="TextureRect" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/IkonBekas"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("4_ikon")
+expand_mode = 1
+stretch_mode = 5
+texture_filter = 1
+
+[node name="BilanganDimiliki" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/IkonBekas"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -18.0
+offset_top = -14.0
+offset_right = -1.0
+offset_bottom = 1.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 9
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.02, 0.04, 0.07, 1)
+theme_override_constants/outline_size = 3
+text = "0"
+horizontal_alignment = 2
+vertical_alignment = 2
+
+[node name="Maklumat" type="VBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 1
+
+[node name="NamaResipi" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Steel"
+
+[node name="Keterangan" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat"]
+custom_minimum_size = Vector2(70, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 7
-theme_override_colors/font_color = Color(0.55, 0.72, 0.82, 1)
-text = "MATERIALS"
+theme_override_colors/font_color = Color(0.62, 0.75, 0.84, 1)
+text = "Melt iron with meteorite ice into steel."
+autowrap_mode = 3
 
-[node name="BarisBesi" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
+[node name="Bahan" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat"]
 layout_mode = 2
-theme_override_constants/separation = 5
+theme_override_constants/separation = 6
 
-[node name="IkonBesi" type="TextureRect" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisBesi"]
-custom_minimum_size = Vector2(15, 15)
+[node name="Besi" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="IkonBesi" type="TextureRect" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Besi"]
+custom_minimum_size = Vector2(16, 16)
 layout_mode = 2
 size_flags_vertical = 4
 texture = ExtResource("5_ikon")
@@ -105,27 +173,21 @@ expand_mode = 1
 stretch_mode = 5
 texture_filter = 1
 
-[node name="NamaBesi" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisBesi"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-theme_override_font_sizes/font_size = 9
-text = "Basic Iron Ore"
-
-[node name="BilBesi" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisBesi"]
+[node name="BilBesi" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Besi"]
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_font_sizes/font_size = 9
-theme_override_colors/font_color = Color(0.5, 0.95, 0.62, 1)
-text = "0 / 2"
-horizontal_alignment = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.02, 0.04, 0.07, 1)
+theme_override_constants/outline_size = 3
+text = "2"
 
-[node name="BarisAis" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
+[node name="Ais" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan"]
 layout_mode = 2
-theme_override_constants/separation = 5
+theme_override_constants/separation = 2
 
-[node name="IkonAis" type="TextureRect" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisAis"]
-custom_minimum_size = Vector2(15, 15)
+[node name="IkonAis" type="TextureRect" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Ais"]
+custom_minimum_size = Vector2(16, 16)
 layout_mode = 2
 size_flags_vertical = 4
 texture = ExtResource("6_ikon")
@@ -133,52 +195,21 @@ expand_mode = 1
 stretch_mode = 5
 texture_filter = 1
 
-[node name="NamaAis" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisAis"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-theme_override_font_sizes/font_size = 9
-text = "Meteorite Ice"
-
-[node name="BilAis" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisAis"]
+[node name="BilAis" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Ais"]
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_font_sizes/font_size = 9
-theme_override_colors/font_color = Color(0.5, 0.95, 0.62, 1)
-text = "0 / 1"
-horizontal_alignment = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.02, 0.04, 0.07, 1)
+theme_override_constants/outline_size = 3
+text = "1"
 
-[node name="Garis2" type="HSeparator" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
-layout_mode = 2
-
-[node name="BarisKeluaran" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
-layout_mode = 2
-theme_override_constants/separation = 5
-
-[node name="IkonKeluaran" type="TextureRect" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKeluaran"]
-custom_minimum_size = Vector2(15, 15)
+[node name="ButangCraft" type="Button" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox"]
+custom_minimum_size = Vector2(58, 34)
 layout_mode = 2
 size_flags_vertical = 4
-texture = ExtResource("4_ikon")
-expand_mode = 1
-stretch_mode = 5
-texture_filter = 1
-
-[node name="NamaKeluaran" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKeluaran"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-theme_override_font_sizes/font_size = 9
-theme_override_colors/font_color = Color(0.68, 0.88, 1, 1)
-text = "Steel"
-
-[node name="BilKeluaran" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKeluaran"]
-layout_mode = 2
-size_flags_vertical = 4
-theme_override_font_sizes/font_size = 9
-theme_override_colors/font_color = Color(0.68, 0.88, 1, 1)
-text = "x1"
-horizontal_alignment = 2
+theme_override_font_sizes/font_size = 10
+text = "Craft"
 
 [node name="Progress" type="ProgressBar" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
 custom_minimum_size = Vector2(0, 8)
@@ -223,12 +254,6 @@ size_flags_vertical = 4
 theme_override_font_sizes/font_size = 8
 theme_override_colors/font_color = Color(0.55, 0.72, 0.82, 1)
 text = "max 1"
-
-[node name="ButangLebur" type="Button" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
-custom_minimum_size = Vector2(0, 28)
-layout_mode = 2
-theme_override_font_sizes/font_size = 10
-text = "Smelt Steel"
 
 [node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
 layout_mode = 2
