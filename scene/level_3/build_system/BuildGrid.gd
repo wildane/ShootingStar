@@ -53,6 +53,7 @@ const IKON_HUD_LANTAI: Texture2D = preload("res://scene/level_3/build_system/ico
 const IKON_HUD_DINDING: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_wall.png")
 const IKON_HUD_PINTU: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_door.png")
 const IKON_HUD_ERASE: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_erase.png")
+const IKON_HUD_BATAL: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_cancel.png")
 
 # Dipakai oleh AstroStateMachine supaya tap semasa mod bina tidak
 # menggerakkan pemain.
@@ -122,10 +123,13 @@ func _bina_hud() -> void:
 		_butang.append(butang)
 
 	var batal := Button.new()
-	batal.text = "Cancel"
+	batal.text = ""
+	batal.icon = IKON_HUD_BATAL
+	batal.expand_icon = true
+	batal.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	batal.tooltip_text = "Cancel"
 	batal.focus_mode = Control.FOCUS_NONE
-	batal.custom_minimum_size = Vector2(58, 22)
-	batal.add_theme_font_size_override("font_size", 7)
+	batal.custom_minimum_size = Vector2(34, 34)
 	batal.theme = tema
 	batal.pressed.connect(_batal)
 	lajur.add_child(batal)
