@@ -28,6 +28,16 @@ const LAYER_HALANGAN: int = 8
 const LAYER_ZON_BINA: int = 4
 const JARAK_BUKA_PINTU: float = 22.0
 
+# Pembinaan / nyahbina: tile dirancang (hijau/merah) dahulu, kemudian dibina
+# atau dinyahbina apabila pemain cukup dekat. Setiap tile kos 1 Basic Iron.
+const JARAK_BINA: float = 28.0
+const MASA_BINA: float = 0.9
+const ID_BESI: String = "item_0001"
+const NAMA_BESI: String = "Basic Iron Ore"
+const IKON_BESI: String = "res://scene/Item/0001BasicIronOre/Image_959.png"
+const LALUAN_BESI: String = "res://scene/Item/0001BasicIronOre/0001BasicIronOre.tscn"
+const KOS_BESI: int = 1
+
 # Aset tile: lantai, dinding dan pintu.
 const TEKSTUR_LANTAI: Texture2D = preload("res://scene/level_3/build_system/tile_floor.png")
 const TEKSTUR_DINDING: Texture2D = preload("res://scene/level_3/build_system/tile_wall_atlas.png")
@@ -42,11 +52,17 @@ const SKRIP_PINTU_GRID: Script = preload("res://scene/level_3/build_system/Pintu
 # menggerakkan pemain.
 static var mod_aktif: bool = false
 
-var _tile: Dictionary = {}        # Vector2i -> jenis
+var _tile: Dictionary = {}        # Vector2i -> jenis (tile siap dibina)
 var _badan_pintu: Dictionary = {} # Vector2i -> StaticBody2D
 var _pintu_dekat: Dictionary = {} # Vector2i -> bool
 var _zon_lantai: Dictionary = {}  # Vector2i -> Area2D (zon bina perabot)
 var _paun_pintu: Dictionary = {}  # Vector2i -> PintuGrid (paun laluan robot)
+
+# Tile dirancang (belum dibina) dan tanda nyahbina (belum dibuang).
+var _rancang: Dictionary = {}     # Vector2i -> jenis
+var _bina_kemajuan: Dictionary = {} # Vector2i -> float 0..1 (sedang dibina)
+var _padam_tanda: Dictionary = {} # Vector2i -> true (ditanda untuk nyahbina)
+var _padam_kemajuan: Dictionary = {} # Vector2i -> float 0..1 (sedang nyahbina)
 
 var _mod: int = -1
 var _jari: int = -1
@@ -143,11 +159,9 @@ func _pilih(jenis: int) -> void:
 	for i in range(_butang.size()):
 		_butang[i].set_pressed_no_signal(i == jenis)
 	if jenis == JENIS_ERASE:
-		_label_status.text = "Erase: tap a tile to remove it"
-	elif jenis == JENIS_LANTAI:
-		_label_status.text = "Floor: tap inside the asteroid, then place furniture on it"
+		_label_status.text = "Erase: tap a built tile to mark it. Go near to deconstruct and get 1 Iron back"
 	else:
-		_label_status.text = NAMA_JENIS[jenis] + ": tap inside the asteroid"
+		_label_status.text = NAMA_JENIS[jenis] + ": tap to plan (1 Iron). Go near to build"
 
 func _batal() -> void:
 	_mod = -1
@@ -218,32 +232,55 @@ func letak(g: Vector2i) -> bool:
 		return false
 
 	var jenis := _mod
-	_tile[g] = jenis
-	_bina_kolider(g, jenis)
-	_label_status.text = NAMA_JENIS[jenis] + " placed"
+	_rancang[g] = jenis
+	_bina_kemajuan.erase(g)
+	_label_status.text = NAMA_JENIS[jenis] + " planned (1 Iron)"
 	queue_redraw()
 	return true
 
 # Buang tile (dan kolidernya) dari grid. Boleh dipanggil terus untuk ujian.
 func padam(g: Vector2i) -> bool:
-	if not _tile.has(g):
-		_label_status.text = "Nothing to erase here"
-		return false
-	_buang_tile(g)
-	_label_status.text = "Tile erased"
-	queue_redraw()
-	return true
+	# Batal rancangan: jika pembinaan sudah bermula, pulangkan bahan.
+	if _rancang.has(g):
+		var sedang_bina := _bina_kemajuan.has(g)
+		_rancang.erase(g)
+		_bina_kemajuan.erase(g)
+		if sedang_bina:
+			_pulangkan_besi()
+			_label_status.text = "Plan cancelled (+1 Iron)"
+		else:
+			_label_status.text = "Plan cancelled"
+		queue_redraw()
+		return true
+	# Tanda tile siap untuk nyahbina.
+	if _tile.has(g):
+		if _padam_tanda.has(g):
+			_label_status.text = "Already marked for deconstruction"
+			return false
+		_padam_tanda[g] = true
+		_padam_kemajuan.erase(g)
+		_label_status.text = "Marked for deconstruction. Go near to recover 1 Iron"
+		queue_redraw()
+		return true
+	_label_status.text = "Nothing to erase here"
+	return false
 
 # Buang semua tile: dipakai sebelum memuat semula grid dari fail simpanan.
 func kosongkan() -> void:
-	for g in _tile.keys():
+	for g in _tile.keys().duplicate():
 		_buang_tile(g)
 	_tile.clear()
+	_rancang.clear()
+	_bina_kemajuan.clear()
+	_padam_tanda.clear()
+	_padam_kemajuan.clear()
 	queue_redraw()
 
-# Buang satu tile sahaja (tanpa sentuh teks status).
+# Buang satu tile siap sahaja (tanpa sentuh teks status).
 func _buang_tile(g: Vector2i) -> void:
 	_tile.erase(g)
+	_padam_tanda.erase(g)
+	_padam_kemajuan.erase(g)
 	var badan: StaticBody2D = _badan_pintu.get(g, null)
 	if badan == null:
 		badan = get_node_or_null("Grid_%d_%d" % [g.x, g.y]) as StaticBody2D
@@ -263,12 +300,24 @@ func _buang_tile(g: Vector2i) -> void:
 # ==========================================
 # SIMPAN / MUAT TILE
 # ==========================================
-# Semua tile (lantai, dinding, pintu) disimpan sebagai senarai koordinat grid.
+# Semua tile siap dan rancangan disimpan sebagai senarai koordinat grid.
 func dapatkan_data_save() -> Dictionary:
 	var senarai: Array = []
 	for g in _tile:
 		senarai.append({"x": g.x, "y": g.y, "jenis": int(_tile[g])})
-	return {"tiles": senarai}
+	var senarai_rancang: Array = []
+	for g in _rancang:
+		var entri: Dictionary = {"x": g.x, "y": g.y, "jenis": int(_rancang[g])}
+		if _bina_kemajuan.has(g):
+			entri["kemajuan"] = float(_bina_kemajuan[g])
+		senarai_rancang.append(entri)
+	var senarai_padam: Array = []
+	for g in _padam_tanda:
+		var entri_padam: Dictionary = {"x": g.x, "y": g.y}
+		if _padam_kemajuan.has(g):
+			entri_padam["kemajuan"] = float(_padam_kemajuan[g])
+		senarai_padam.append(entri_padam)
+	return {"tiles": senarai, "rancang": senarai_rancang, "padam_tanda": senarai_padam}
 
 # Bina semula tile dari fail simpanan. Grid dikosongkan dahulu supaya tiada
 # tile berganda kalau fungsi ini dipanggil dua kali.
@@ -284,17 +333,39 @@ func muat_data_save(data: Dictionary) -> void:
 		var g := Vector2i(int(item.get("x", 0)), int(item.get("y", 0)))
 		_tile[g] = jenis
 		_bina_kolider(g, jenis)
+	# Pulihkan tanda nyahbina (hanya untuk tile siap yang wujud).
+	for item in data.get("padam_tanda", []):
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var g := Vector2i(int(item.get("x", 0)), int(item.get("y", 0)))
+		if _tile.has(g):
+			_padam_tanda[g] = true
+			if item.has("kemajuan"):
+				_padam_kemajuan[g] = clampf(float(item.get("kemajuan", 0.0)), 0.0, 0.99)
+	# Pulihkan rancangan (hanya sel kosong di atas asteroid).
+	for item in data.get("rancang", []):
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var jenis := int(item.get("jenis", JENIS_LANTAI))
+		if jenis < JENIS_LANTAI or jenis > JENIS_PINTU:
+			continue
+		var g := Vector2i(int(item.get("x", 0)), int(item.get("y", 0)))
+		if not _tile.has(g) and not _rancang.has(g):
+			_rancang[g] = jenis
+			if item.has("kemajuan"):
+				_bina_kemajuan[g] = clampf(float(item.get("kemajuan", 0.0)), 0.0, 0.99)
 	queue_redraw()
 
 func boleh_bina(g: Vector2i) -> bool:
-	if _tile.has(g):
+	if _tile.has(g) or _rancang.has(g):
 		return false
 	if not _atas_asteroid(_tengah_sel(g)):
 		return false
-	if _tile.is_empty():
+	if _tile.is_empty() and _rancang.is_empty():
 		return true
 	for arah in [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]:
-		if _tile.has(g + arah):
+		var jiran := g + arah
+		if _tile.has(jiran) or _rancang.has(jiran):
 			return true
 	return false
 
@@ -369,17 +440,158 @@ func _bina_zon_lantai(g: Vector2i) -> void:
 	add_child(zon)
 	_zon_lantai[g] = zon
 
+# ==========================================
+# PEMBINAAN / NYAHBINA BERASASKAN JARAK
+# ==========================================
+func _ada_besi() -> bool:
+	var inv = get_node_or_null("/root/InventoryManager")
+	return inv != null and inv.bilangan_item(ID_BESI) >= KOS_BESI
+
+func _tolak_besi() -> bool:
+	var inv = get_node_or_null("/root/InventoryManager")
+	return inv != null and inv.tolak_item(ID_BESI, KOS_BESI)
+
+func _pulangkan_besi() -> void:
+	var inv = get_node_or_null("/root/InventoryManager")
+	if inv == null:
+		return
+	var ikon_tex: Texture2D = null
+	if ResourceLoader.exists(IKON_BESI):
+		ikon_tex = load(IKON_BESI)
+	inv.tambah_item({
+		"id": ID_BESI,
+		"nama": NAMA_BESI,
+		"ikon": ikon_tex,
+		"scene_path": LALUAN_BESI,
+	})
+
+func _pemain_dekat(g: Vector2i, pos_pemain: Vector2) -> bool:
+	return pos_pemain.x < INF \
+		and pos_pemain.distance_to(to_global(_tengah_sel(g))) <= JARAK_BINA
+
+func _kemas_kini_pembinaan(delta: float, pos_pemain: Vector2) -> void:
+	if _rancang.is_empty():
+		return
+	# Bina satu demi satu: jika ada binaan bermula, hanya sambung bila pemain dekat.
+	var ada_bermula := not _bina_kemajuan.is_empty()
+	var sasaran: Vector2i = Vector2i.ZERO
+	var ada_sasaran := false
+	var jarak_terbaik := INF
+	var sudah_bermula := false
+
+	for g in _rancang.keys():
+		var bermula := _bina_kemajuan.has(g)
+		if ada_bermula and not bermula:
+			continue
+		if not _pemain_dekat(g, pos_pemain):
+			continue
+		if bermula:
+			sasaran = g
+			ada_sasaran = true
+			sudah_bermula = true
+			break
+		var jarak := pos_pemain.distance_to(to_global(_tengah_sel(g)))
+		if jarak < jarak_terbaik:
+			jarak_terbaik = jarak
+			sasaran = g
+			ada_sasaran = true
+
+	if not ada_sasaran:
+		# Tiada yang dalam jarak / binaan bermula sedang menunggu pemain kembali.
+		return
+
+	# Mula binaan: tolak bahan sekarang.
+	if not sudah_bermula:
+		if not _ada_besi():
+			_label_status.text = "Need 1 Basic Iron to build " + NAMA_JENIS[int(_rancang[sasaran])]
+			return
+		if not _tolak_besi():
+			return
+		_bina_kemajuan[sasaran] = 0.0
+		_label_status.text = "Constructing " + NAMA_JENIS[int(_rancang[sasaran])] + "..."
+
+	_bina_kemajuan[sasaran] = float(_bina_kemajuan.get(sasaran, 0.0)) + delta / MASA_BINA
+	queue_redraw()
+	if float(_bina_kemajuan[sasaran]) < 1.0:
+		return
+
+	# Siap dibina: jadikan tile sebenar.
+	var jenis := int(_rancang[sasaran])
+	_rancang.erase(sasaran)
+	_bina_kemajuan.erase(sasaran)
+	_tile[sasaran] = jenis
+	_bina_kolider(sasaran, jenis)
+	_label_status.text = NAMA_JENIS[jenis] + " built"
+	queue_redraw()
+
+func _kemas_kini_nyahbina(delta: float, pos_pemain: Vector2) -> void:
+	if _padam_tanda.is_empty():
+		return
+	var ada_bermula := not _padam_kemajuan.is_empty()
+	var sasaran: Vector2i = Vector2i.ZERO
+	var ada_sasaran := false
+	var jarak_terbaik := INF
+	var sudah_bermula := false
+
+	for g in _padam_tanda.keys().duplicate():
+		if not _tile.has(g):
+			_padam_tanda.erase(g)
+			_padam_kemajuan.erase(g)
+			continue
+		var bermula := _padam_kemajuan.has(g)
+		if ada_bermula and not bermula:
+			continue
+		if not _pemain_dekat(g, pos_pemain):
+			continue
+		if bermula:
+			sasaran = g
+			ada_sasaran = true
+			sudah_bermula = true
+			break
+		var jarak := pos_pemain.distance_to(to_global(_tengah_sel(g)))
+		if jarak < jarak_terbaik:
+			jarak_terbaik = jarak
+			sasaran = g
+			ada_sasaran = true
+
+	if not ada_sasaran:
+		return
+
+	if not sudah_bermula:
+		_padam_kemajuan[sasaran] = 0.0
+		_label_status.text = "Deconstructing " + NAMA_JENIS[int(_tile[sasaran])] + "..."
+
+	_padam_kemajuan[sasaran] = float(_padam_kemajuan.get(sasaran, 0.0)) + delta / MASA_BINA
+	queue_redraw()
+	if float(_padam_kemajuan[sasaran]) < 1.0:
+		return
+
+	# Siap nyahbina: buang tile dan pulangkan bahan.
+	var jenis := int(_tile.get(sasaran, JENIS_LANTAI))
+	_buang_tile(sasaran)
+	_pulangkan_besi()
+	_label_status.text = NAMA_JENIS[jenis] + " deconstructed (+1 Iron)"
+	queue_redraw()
+
 # Pintu terbuka (kolider dimatikan) bila pemain ATAU robot pekerja berada
-# dekat, supaya robot boleh masuk dan keluar bilik yang dibina pemain.
-func _physics_process(_delta: float) -> void:
+# dekat. Tile dirancang dibina satu demi satu apabila pemain dekat; tile yang
+# ditanda nyahbina dipadam satu demi satu dan bahan dipulangkan.
+func _physics_process(delta: float) -> void:
+	var pemain := get_tree().get_first_node_in_group("Player") as Node2D
+	var pos_pemain := Vector2(INF, INF)
+	if pemain != null and is_instance_valid(pemain):
+		pos_pemain = pemain.global_position
+
+	_kemas_kini_pembinaan(delta, pos_pemain)
+	_kemas_kini_nyahbina(delta, pos_pemain)
+
 	if _badan_pintu.is_empty():
 		return
-	var pemain := get_tree().get_first_node_in_group("Player") as Node2D
 	var robot := get_tree().get_nodes_in_group("RobotPekerja")
 	for g in _badan_pintu:
 		var pusat := to_global(_tengah_sel(g))
-		var dekat: bool = pemain != null and is_instance_valid(pemain) \
-			and pemain.global_position.distance_to(pusat) <= JARAK_BUKA_PINTU
+		var dekat: bool = pos_pemain.x < INF \
+			and pos_pemain.distance_to(pusat) <= JARAK_BUKA_PINTU
 		if not dekat:
 			for nod in robot:
 				if nod is Node2D and is_instance_valid(nod) \
@@ -426,9 +638,50 @@ func _draw() -> void:
 				if terbuka:
 					draw_rect(rect, Color(0.5, 1.0, 1.0, 0.5), false, 1.0)
 
+		# Tanda nyahbina: overlay merah + bar kemajuan.
+		if _padam_tanda.has(g):
+			var kemajuan := float(_padam_kemajuan.get(g, 0.0))
+			draw_rect(rect, Color(1.0, 0.25, 0.2, 0.28))
+			draw_rect(rect, Color(1.0, 0.35, 0.25, 0.9), false, 1.5)
+			if kemajuan > 0.0:
+				var isi := Rect2(rect.position.x + 1, rect.end.y - 4, (rect.size.x - 2) * clampf(kemajuan, 0.0, 1.0), 3)
+				draw_rect(Rect2(rect.position.x + 1, rect.end.y - 4, rect.size.x - 2, 3), Color(0.15, 0.05, 0.05, 0.8))
+				draw_rect(isi, Color(1.0, 0.45, 0.35, 0.95))
+
+	# Tile dirancang (belum dibina): hijau + bar kemajuan pembinaan.
+	for g in _rancang:
+		var rect := Rect2(Vector2(g) * SAIZ_SEL, saiz)
+		var jenis := int(_rancang[g])
+		var kemajuan := float(_bina_kemajuan.get(g, 0.0))
+		var alfa := 0.45 + kemajuan * 0.35
+		match jenis:
+			JENIS_LANTAI:
+				draw_texture_rect(TEKSTUR_LANTAI, rect, false, Color(0.45, 1.0, 0.55, alfa))
+			JENIS_DINDING:
+				var topeng := _topeng_dinding_rancang(g)
+				var jubin := Rect2(
+					Vector2(float(topeng % 4), float(topeng / 4)) * SAIZ_JUBIN_DINDING,
+					Vector2(SAIZ_JUBIN_DINDING, SAIZ_JUBIN_DINDING))
+				draw_texture_rect_region(TEKSTUR_DINDING, rect, jubin, Color(0.45, 1.0, 0.55, alfa))
+			JENIS_PINTU:
+				var menegak: bool = _jiran_jenis_rancang_atau_bina(g, Vector2i(0, -1), JENIS_DINDING) \
+					and _jiran_jenis_rancang_atau_bina(g, Vector2i(0, 1), JENIS_DINDING)
+				var warna := Color(0.45, 1.0, 0.55, alfa)
+				if menegak:
+					draw_set_transform(rect.get_center(), PI * 0.5, Vector2.ONE)
+					draw_texture_rect(TEKSTUR_PINTU, Rect2(-saiz * 0.5, saiz), false, warna)
+					draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+				else:
+					draw_texture_rect(TEKSTUR_PINTU, rect, false, warna)
+		draw_rect(rect, Color(0.4, 1.0, 0.5, 0.85), false, 1.5)
+		if kemajuan > 0.0:
+			draw_rect(Rect2(rect.position.x + 1, rect.end.y - 4, rect.size.x - 2, 3), Color(0.05, 0.15, 0.05, 0.8))
+			var isi := Rect2(rect.position.x + 1, rect.end.y - 4, (rect.size.x - 2) * clampf(kemajuan, 0.0, 1.0), 3)
+			draw_rect(isi, Color(0.45, 1.0, 0.55, 0.95))
+
 	if _ada_hantu and _mod >= 0:
 		var rect := Rect2(Vector2(_hantu) * SAIZ_SEL, saiz)
-		var sah: bool = _tile.has(_hantu) if _mod == JENIS_ERASE else boleh_bina(_hantu)
+		var sah: bool = _boleh_padam_hantu(_hantu) if _mod == JENIS_ERASE else boleh_bina(_hantu)
 		var warna := Color(1.0, 0.42, 0.32, 0.35) if _mod == JENIS_ERASE and sah \
 			else (Color(0.4, 1.0, 0.6, 0.30) if sah else Color(1.0, 0.35, 0.35, 0.30))
 		draw_rect(rect, warna)
@@ -449,8 +702,12 @@ func _tengah_sel(g: Vector2i) -> Vector2:
 func _jiran_jenis(g: Vector2i, arah: Vector2i, jenis: int) -> bool:
 	return int(_tile.get(g + arah, -1)) == jenis
 
-# Bitmask jiran dinding: pintu dikira sebagai sambungan dinding supaya tile
-# di sebelah pintu tidak melukis rim dan nampak bersambung.
+func _jiran_jenis_rancang_atau_bina(g: Vector2i, arah: Vector2i, jenis: int) -> bool:
+	var jiran := g + arah
+	return int(_tile.get(jiran, -1)) == jenis or int(_rancang.get(jiran, -1)) == jenis
+
+# Bitmask jiran dinding: pintu dan rancangan dinding/pintu dikira sebagai
+# sambungan supaya rim tidak putus semasa merancang atau selepas dibina.
 func _topeng_dinding(g: Vector2i) -> int:
 	var topeng := 0
 	var arah_bit := [
@@ -460,7 +717,16 @@ func _topeng_dinding(g: Vector2i) -> int:
 		[Vector2i(-1, 0), 8],
 	]
 	for pasangan in arah_bit:
-		var j: int = int(_tile.get(g + pasangan[0], -1))
+		var jiran := g + pasangan[0]
+		var j: int = int(_tile.get(jiran, -1))
+		if j == -1:
+			j = int(_rancang.get(jiran, -1))
 		if j == JENIS_DINDING or j == JENIS_PINTU:
 			topeng |= int(pasangan[1])
 	return topeng
+
+func _topeng_dinding_rancang(g: Vector2i) -> int:
+	return _topeng_dinding(g)
+
+func _boleh_padam_hantu(g: Vector2i) -> bool:
+	return _rancang.has(g) or (_tile.has(g) and not _padam_tanda.has(g))
