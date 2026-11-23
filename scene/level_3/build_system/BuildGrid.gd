@@ -142,7 +142,7 @@ func _bina_hud() -> void:
 	bekas.add_child(_butang_rumah)
 
 	# Menu mengembang sebagai overlay supaya VBox tidak berubah saiz.
-	# Semua butang pilihan terhampar dalam satu baris mendatar ke kanan ikon rumah.
+	# Semua butang pilihan disusun dalam 1 lajur menegak ke bawah (5 baris).
 	_kumpulan = Control.new()
 	_kumpulan.name = "PilihanBina"
 	_kumpulan.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -156,13 +156,13 @@ func _bina_hud() -> void:
 	for i in range(ikon_jenis.size()):
 		var butang := _buat_butang(ikon_jenis[i], NAMA_JENIS[i], tema)
 		butang.toggle_mode = true
-		butang.position = Vector2(LANGKAH_BUTANG * float(i + 1), 0.0)
+		butang.position = Vector2(0.0, LANGKAH_BUTANG * float(i + 1))
 		butang.pressed.connect(_pilih.bind(i))
 		_kumpulan.add_child(butang)
 		_butang.append(butang)
 
 	var batal := _buat_butang(IKON_HUD_BATAL, "Cancel", tema)
-	batal.position = Vector2(LANGKAH_BUTANG * float(ikon_jenis.size() + 1), 0.0)
+	batal.position = Vector2(0.0, LANGKAH_BUTANG * float(ikon_jenis.size() + 1))
 	batal.pressed.connect(_batal)
 	_kumpulan.add_child(batal)
 
@@ -208,8 +208,7 @@ func _susun_hud() -> void:
 	if _kumpulan != null:
 		_kumpulan.global_position = asas
 	if _label_status != null:
-		# Label di kanan menu melintang (5 pilihan + cancel = 6 langkah selepas rumah)
-		_label_status.global_position = asas + Vector2(LANGKAH_BUTANG * 7.0, 2.0)
+		_label_status.global_position = asas + Vector2(LANGKAH_BUTANG + SAIZ_BUTANG + 6.0, 2.0)
 
 # Buka / tutup menu. Menutup akan membatalkan mod bina (tutup mod home).
 func _tukar_buka() -> void:
