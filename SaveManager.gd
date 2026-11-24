@@ -66,6 +66,10 @@ func _sediakan_direktori() -> void:
 func _laluan_slot(id: String) -> String:
 	return DIREKTORI_SAVE.path_join("data_%s.json" % id)
 
+# Salinan sah terakhir slot, dipakai kalau fail utama rosak.
+func _laluan_backup(id: String) -> String:
+	return _laluan_slot(id) + ".bak"
+
 func _baca_katalog() -> Dictionary:
 	if not FileAccess.file_exists(KATALOG_PATH):
 		return {}
@@ -325,29 +329,77 @@ func _slot_autosave_berikut() -> String:
 	return paling_lama
 
 func _tulis_data_ke_slot(id: String, data: Dictionary, nama_lalai: String = "") -> bool:
-	_sediakan_direktori()
-	var file := FileAccess.open(_laluan_slot(id), FileAccess.WRITE)
-	if file == null:
+	if not _tulis_fail_slot(id, data):
 		return false
-	file.store_string(JSON.stringify(data, "\t"))
-	file.close()
 	_kemas_kini_masa_slot(id, nama_lalai)
 	return true
+
+# Tulis JSON slot secara atomik: fail sementara -> backup fail lama (.bak) ->
+# ganti fail utama. Fail asal kekal sah sehingga tulisan baharu lengkap, jadi
+# app yang dibunuh semasa menyimpan tidak merosakkan save. buat_backup=false
+# dipakai bila memulihkan fail utama daripada .bak (jangan timpa backup baik
+# dengan fail yang rosak).
+func _tulis_fail_slot(id: String, data: Dictionary, buat_backup: bool = true) -> bool:
+	if id == "":
+		return false
+	_sediakan_direktori()
+	var laluan := _laluan_slot(id)
+	var sementara := laluan + ".tmp"
+	var file := FileAccess.open(sementara, FileAccess.WRITE)
+	if file == null:
+		push_warning("[Save] Gagal buka fail sementara untuk slot %s" % id)
+		return false
+	file.store_string(JSON.stringify(data, "\t"))
+	var ralat_tulis := file.get_error()
+	file.close()
+	if ralat_tulis != OK:
+		push_warning("[Save] Gagal tulis slot %s (ralat %d)" % [id, ralat_tulis])
+		DirAccess.remove_absolute(sementara)
+		return false
+	if buat_backup and FileAccess.file_exists(laluan):
+		# Satu backup sahaja: simpanan sah terakhir sebelum ditimpa.
+		DirAccess.remove_absolute(_laluan_backup(id))
+		if DirAccess.copy_absolute(laluan, _laluan_backup(id)) != OK:
+			push_warning("[Save] Gagal buat backup slot %s" % id)
+	if DirAccess.rename_absolute(sementara, laluan) != OK:
+		push_warning("[Save] Gagal ganti fail slot %s" % id)
+		DirAccess.remove_absolute(sementara)
+		return false
+	return true
+
+# Baca satu fail slot. Kamus kosong = fail tiada atau JSON rosak.
+func _baca_fail_slot(laluan: String) -> Dictionary:
+	if not FileAccess.file_exists(laluan):
+		return {}
+	var file := FileAccess.open(laluan, FileAccess.READ)
+	if file == null:
+		return {}
+	var teks := file.get_as_text()
+	file.close()
+	# Guna JSON.new() supaya fail rosak tidak mencetak ralat enjin: ia keadaan
+	# yang dijangka dan dikendalikan (cuba .bak / main permainan baharu).
+	var json := JSON.new()
+	if json.parse(teks) != OK or typeof(json.data) != TYPE_DICTIONARY:
+		return {}
+	return json.data
 
 func load_game(scene_aktif: Node = null):
 	# Buang data pemain lama supaya fail tanpa player_data tidak guna nilai basi.
 	data_player = {}
 	# Tiada slot aktif = permainan baharu: mula tanpa data simpanan.
-	if slot_aktif == "" or not FileAccess.file_exists(_laluan_slot(slot_aktif)):
+	if slot_aktif == "":
 		semua_data_siap_di_load.emit()
 		return
-	
-	var file = FileAccess.open(_laluan_slot(slot_aktif), FileAccess.READ)
-	var saved_data = JSON.parse_string(file.get_as_text())
-	file.close()
-	if not saved_data:
-		semua_data_siap_di_load.emit()
-		return
+
+	var saved_data := _baca_fail_slot(_laluan_slot(slot_aktif))
+	if saved_data.is_empty():
+		# Fail utama rosak/hilang: cuba backup terakhir yang sah.
+		saved_data = _baca_fail_slot(_laluan_backup(slot_aktif))
+		if saved_data.is_empty():
+			semua_data_siap_di_load.emit()
+			return
+		print("[Save] Simpanan %s rosak; dipulihkan dari fail .bak" % slot_aktif)
+		_tulis_fail_slot(slot_aktif, saved_data, false)
 
 	# Data pemain dipakai semasa spawn (lihat posisi_awal_player / pakai_data_player).
 	data_player = saved_data.get("player_data", {})
@@ -368,7 +420,7 @@ func load_game(scene_aktif: Node = null):
 	saved_data["placed_objects"] = objek_bersih
 
 	if inventori_bersih.size() < inventori_lama.size() or objek_bersih.size() < objek_lama.size():
-		_tulis_semula_slot(slot_aktif, saved_data)
+		_tulis_fail_slot(slot_aktif, saved_data)
 
 	var scene_utama = scene_aktif if scene_aktif != null else Engine.get_main_loop().current_scene
 	
@@ -482,23 +534,6 @@ func _tapisan_scene_wujud(senarai: Array) -> Array:
 	if bersih.size() < senarai.size():
 		print("[Save] %d entri basi dibuang daripada simpanan (scene tiada)." % (senarai.size() - bersih.size()))
 	return bersih
-
-# Tulis semula fail slot tanpa menyentuh masa dalam katalog. Ditulis ke fail
-# sementara dahulu supaya simpanan asal tidak rosak kalau penulisan gagal.
-func _tulis_semula_slot(id: String, data: Dictionary) -> void:
-	if id == "":
-		return
-	var laluan := _laluan_slot(id)
-	var sementara := laluan + ".tmp"
-	var file := FileAccess.open(sementara, FileAccess.WRITE)
-	if file == null:
-		push_warning("[Save] Gagal tulis semula slot %s" % id)
-		return
-	file.store_string(JSON.stringify(data, "\t"))
-	file.close()
-	if DirAccess.rename_absolute(sementara, laluan) != OK:
-		push_warning("[Save] Gagal ganti fail slot %s" % id)
-		DirAccess.remove_absolute(sementara)
 
 # Pulihkan HP/tenaga objek dunia daripada data simpanan.
 func _pakai_data_objek(nod: Node, data: Dictionary) -> void:
