@@ -69,6 +69,9 @@ var _ui_tick: float = 0.0
 
 # Keadaan peleburan
 var sedang_lebur: bool = false
+# Pemain tekan Stop: unit yang sedang dilebur dihabiskan dahulu, kemudian batch
+# berhenti. Kuasa terputus tidak guna flag ini (terus berhenti).
+var _berhenti_selepas_unit: bool = false
 var masa_berlalu: float = 0.0
 var masa_hiasan: float = 0.0
 var _cahaya: Sprite2D = null
@@ -318,8 +321,13 @@ func _reset_paparan_batch() -> void:
 
 func _on_butang_lebur_pressed() -> void:
 	if sedang_lebur:
-		# Butang bertukar jadi Stop semasa batch berjalan.
-		_henti_batch("Smelting stopped")
+		# Butang bertukar jadi Stop semasa batch berjalan: unit yang sedang
+		# dilebur dibiarkan siap dulu, batch berhenti selepas itu.
+		if _berhenti_selepas_unit:
+			return
+		_berhenti_selepas_unit = true
+		_tulis_info("Stopping after current unit...")
+		_kemas_kini_ui()
 		return
 	if not has_power:
 		_tulis_info("No power - connect to Power Inverter")
@@ -414,9 +422,12 @@ func _selesai_unit() -> void:
 		bar_progres.value = 0.0
 
 	if _baki_batch > 0:
+		# Stop diminta pemain: unit ini tetap dikira, batch tamat di sini.
+		if _berhenti_selepas_unit:
+			_baki_batch = 0
 		# Bayar unit seterusnya sekarang (bukan di awal batch). Kalau bahan
 		# tidak cukup lagi, batch berhenti di sini.
-		if _tolak_bahan_satu_unit():
+		elif _tolak_bahan_satu_unit():
 			masa_berlalu = 0.0
 			masa_hiasan = 0.0
 			print("Smelter: 1 Steel dihasilkan (%d/%d)" % [_unit_selesai, _jumlah_batch])
@@ -431,7 +442,10 @@ func _selesai_unit() -> void:
 		sprite.scale = _skala_asal
 	if _cahaya:
 		_cahaya.visible = false
-	if _unit_selesai < _jumlah_batch:
+	if _berhenti_selepas_unit:
+		_berhenti_selepas_unit = false
+		_tulis_info("Smelting stopped")
+	elif _unit_selesai < _jumlah_batch:
 		_tulis_info("Not enough materials - smelting stopped")
 	else:
 		_tulis_info("Steel produced! +%d" % _unit_selesai)
@@ -524,8 +538,8 @@ func _kemas_kini_ui() -> void:
 
 	if butang_lebur:
 		if sedang_lebur:
-			butang_lebur.text = "Stop"
-			butang_lebur.disabled = false
+			butang_lebur.text = "Stopping" if _berhenti_selepas_unit else "Stop"
+			butang_lebur.disabled = _berhenti_selepas_unit
 		else:
 			butang_lebur.text = "Craft"
 			butang_lebur.disabled = (not has_power) or (not _bahan_cukup())
@@ -603,6 +617,7 @@ func _henti_lebur_kerana_tiada_kuasa() -> void:
 # kehilangan kuasa.
 func _henti_batch(teks_info: String) -> void:
 	sedang_lebur = false
+	_berhenti_selepas_unit = false
 	masa_berlalu = 0.0
 	_baki_batch = 0
 	_jumlah_batch = 0
