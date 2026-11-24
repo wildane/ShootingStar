@@ -485,8 +485,11 @@ func _kemas_kini_ui() -> void:
 	var maks: int = _maks_unit()
 	if not sedang_lebur:
 		kuantiti_pilihan = clampi(kuantiti_pilihan, 1, maxi(1, maks))
-	var perlu_besi: int = int(resipi[0]["kuantiti"]) * kuantiti_pilihan
-	var perlu_ais: int = int(resipi[1]["kuantiti"]) * kuantiti_pilihan
+	# Semasa batch berjalan, papar bahan yang masih perlu dibayar untuk baki
+	# batch. Unit yang sedang dilebur sudah dibayar, jadi tolak satu unit.
+	var unit_paparan: int = maxi(0, _baki_batch - 1) if sedang_lebur else kuantiti_pilihan
+	var perlu_besi: int = int(resipi[0]["kuantiti"]) * unit_paparan
+	var perlu_ais: int = int(resipi[1]["kuantiti"]) * unit_paparan
 	var ada_besi: int = _bilangan_dalam_beg(resipi[0]["id"])
 	var ada_ais: int = _bilangan_dalam_beg(resipi[1]["id"])
 
