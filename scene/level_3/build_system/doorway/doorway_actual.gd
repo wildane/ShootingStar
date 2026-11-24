@@ -15,7 +15,6 @@ const INSIDE_POS := Vector2(144, 128)
 
 
 func _ready():
-	# Robot pekerja cari pintu melalui group ini.
 	add_to_group("Pintu")
 	area.input_pickable = true
 	area.body_entered.connect(_on_enter)
@@ -43,8 +42,7 @@ func _on_exit(body):
 			sprite.modulate = Color(1, 1, 1)
 
 
-# Robot pekerja juga CharacterBody2D, jadi klik pintu mesti kekal milik
-# pemain sahaja. Tanpa semakan ini, klik pemain boleh teleport robot.
+# Klik pintu mesti kekal milik pemain sahaja.
 func _ialah_pemain(body) -> bool:
 	if body == null or not is_instance_valid(body):
 		return false
@@ -132,27 +130,6 @@ func _on_input(_viewport, event, _shape_idx):
 					var state_base = sm.get_node_or_null("BaseState")
 					if state_base:
 						sm.tukar_state(state_base)
-
-
-# =========================
-# ROBOT LALU SENDIRI (tanpa klik pemain)
-# =========================
-# Dua sisi pintu ini. Sistem navigasi robot guna titik ini untuk menyambung
-# laluan, jadi robot tahu pintu mana yang perlu dilalui.
-func titik_pintasan() -> Array[Vector2]:
-	return [INSIDE_POS, OUTSIDE_POS]
-
-
-# Robot pekerja panggil fungsi ini bila ia sampai di pintu. Teleport
-# mengikut sisi yang sama seperti klik pemain, jadi robot boleh masuk
-# dan keluar kawasan walaupun pintu itu asalnya perlu diklik.
-func lalu_automatik(body: Node2D) -> void:
-	if body == null or not is_instance_valid(body):
-		return
-	if body.global_position.y > global_position.y:
-		_teleport_badan(body, INSIDE_POS)
-	else:
-		_teleport_badan(body, OUTSIDE_POS)
 
 
 # =========================

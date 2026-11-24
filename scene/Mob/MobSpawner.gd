@@ -30,10 +30,9 @@ extends Area2D
 @export var spawner_id: String = "spawner_1" 
 
 @export_group("Penapis Spawn")
-# Jarak minimum daripada pemain, robot pekerja dan musuh lain supaya mob tidak
+# Jarak minimum daripada pemain dan musuh lain supaya mob tidak
 # muncul bertindih atau terus di atas pemain.
 @export var jarak_selamat_pemain: float = 120.0
-@export var jarak_selamat_robot: float = 60.0
 @export var jarak_selamat_mob: float = 32.0
 # Jejari badan mob untuk ujian pertindihan dengan dinding.
 @export var jejari_kolider_mob: float = 14.0
@@ -101,8 +100,6 @@ func cari_posisi_spawn() -> Vector2:
 
 func posisi_sah_untuk_mob(titik: Vector2) -> bool:
 	if terlalu_dekat_kumpulan(titik, "Player", jarak_selamat_pemain):
-		return false
-	if terlalu_dekat_kumpulan(titik, "RobotPekerja", jarak_selamat_robot):
 		return false
 	if terlalu_dekat_kumpulan(titik, "enemy", jarak_selamat_mob):
 		return false

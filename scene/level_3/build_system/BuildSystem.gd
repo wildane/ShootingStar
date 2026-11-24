@@ -43,7 +43,6 @@ const NAMA_IKON: Dictionary = {
 	"SolarModuleButton": "Solar",
 	"PowerInverterButton": "Inverter",
 	"ChargingStationButton": "Charger",
-	"RobotPodButton": "Pod",
 }
 
 func _tambah_label_ikon() -> void:

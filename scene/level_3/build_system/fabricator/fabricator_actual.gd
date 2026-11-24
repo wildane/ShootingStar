@@ -483,8 +483,7 @@ func _pilih_craft(i: int) -> void:
 	_kemas_kini_craft()
 
 
-# Semua resipi dron dalam satu menu craft. Robot pekerja kini dibuat di
-# Robot Pod, bukan di Fabricator.
+# Semua resipi dron dalam satu menu craft.
 func _semua_resipi() -> Array[Dictionary]:
 	var senarai: Array[Dictionary] = []
 	senarai.append_array(resipi_dron)

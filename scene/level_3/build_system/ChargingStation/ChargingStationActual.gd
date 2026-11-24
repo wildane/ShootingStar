@@ -38,7 +38,6 @@ var _ikon_cas: Node2D = null
 
 func _ready() -> void:
 	add_to_group("Furniture")
-	# Robot pekerja cari stesen melalui group ini untuk mengecas tenaga.
 	add_to_group("StesenCas")
 
 	if area_penderia:
