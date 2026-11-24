@@ -7,7 +7,6 @@ extends StaticBody2D
 const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
 const PowerGridRef := preload("res://scene/level_3/build_system/PowerInverter/PowerGrid.gd")
 
-@onready var save_component = $SaveComponent
 @onready var sprite = get_node_or_null("Sprite2D")
 @onready var area_penderia = get_node_or_null("Area2D")
 
@@ -218,21 +217,6 @@ func _on_butang_demolish_pressed():
 	if sprite: sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
 	PowerGridRef.nyahdaftar_perabot(self)
 	queue_free()
-
-func get_save_data() -> Dictionary:
-	var data_stesen: Dictionary = {}
-	if save_component and save_component.has_method("get_data"):
-		data_stesen = save_component.get_data()
-	data_stesen["scene_path"] = scene_file_path
-	data_stesen["pos_x"] = global_position.x
-	data_stesen["pos_y"] = global_position.y
-	return data_stesen
-
-func load_save_data(data: Dictionary) -> void:
-	if data.has("global_position"):
-		global_position = data["global_position"]
-	PowerGridRef.kemas_kini_pos_nod(self, "perabot")
-	PowerGridRef.tanda_kotor_dari_pos(global_position, 400.0, "load_perabot")
 
 func _exit_tree() -> void:
 	_lepas_pemain()

@@ -3,7 +3,6 @@ extends StaticBody2D
 const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
 const PowerGridRef := preload("res://scene/level_3/build_system/PowerInverter/PowerGrid.gd")
 
-@onready var save_component = $SaveComponent
 @onready var sprite = get_node_or_null("Sprite2D")
 @onready var area_penderia = get_node_or_null("Area2D")
 
@@ -215,15 +214,6 @@ func _exit_tree() -> void:
 			perabot.set_power_status(false, null)
 	PowerGridRef.nyahdaftar_inverter(self)
 
-func get_save_data() -> Dictionary:
-	var data_inverter: Dictionary = {}
-	if save_component and save_component.has_method("get_data"):
-		data_inverter = save_component.get_data()
-	data_inverter["scene_path"] = scene_file_path
-	data_inverter["pos_x"] = global_position.x
-	data_inverter["pos_y"] = global_position.y
-	return data_inverter
-
 func _pastikan_debug_overlay() -> void:
 	var tree = get_tree()
 	if tree == null:
@@ -236,10 +226,3 @@ func _pastikan_debug_overlay() -> void:
 	var nod = CanvasLayer.new()
 	nod.set_script(skrip)
 	tree.root.call_deferred("add_child", nod)
-
-func load_save_data(data: Dictionary) -> void:
-	if data.has("global_position"):
-		global_position = data["global_position"]
-	_grid_kotor = true
-	PowerGridRef.kemas_kini_pos_nod(self, "inverter")
-	PowerGridRef.tanda_kotor_semua("load_inverter")

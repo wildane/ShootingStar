@@ -1,8 +1,5 @@
 extends StaticBody2D
 
-# 🔴 Komponen Save
-@onready var save_component = $SaveComponent 
-
 # 🔴 Rujukan Nod Utama
 @onready var sprite = get_node_or_null("Sprite2D")
 @onready var area_penderia = get_node_or_null("Area2D")
@@ -106,19 +103,6 @@ func _ready():
 	if boleh_craft_drone:
 		_bina_ui_craft.call_deferred()
 	PowerGridRef.daftar_perabot(self)
-
-# 🔴 DIKEMASKINI: Hanya kumpul fail laluan objek dan kedudukan koordinat dunia sahaja (Bersih Tanpa Logik Kuasa)
-func get_save_data() -> Dictionary:
-	var data_perabot: Dictionary = {}
-	if save_component and save_component.has_method("get_data"):
-		data_perabot = save_component.get_data()
-	
-	# Set koordinat sahaja secara bersih mengikut keperluan SaveManager
-	data_perabot["scene_path"] = scene_file_path  
-	data_perabot["pos_x"] = global_position.x     
-	data_perabot["pos_y"] = global_position.y     
-	
-	return data_perabot
 
 # 🔴 Sistem Pengurusan Kuasa Elektrik
 func set_power_status(status_elektrik: bool, pembekal: Node2D = null) -> void:

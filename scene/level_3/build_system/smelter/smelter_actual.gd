@@ -4,7 +4,6 @@ extends StaticBody2D
 ## Semasa melebur, sprite berdenyut warna relau dan ada cahaya api di mulut.
 ## Menu ada ikon bahan, pilihan kuantiti (batch) dan iklan terapung "+1".
 
-@onready var save_component = $SaveComponent
 @onready var sprite = get_node_or_null("Sprite2D")
 @onready var area_penderia = get_node_or_null("Area2D")
 const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
@@ -244,15 +243,6 @@ func _bina_lapis_terapung() -> void:
 	_iklan_teks.add_theme_color_override("font_outline_color", Color(0.02, 0.06, 0.09, 0.95))
 	_iklan_teks.add_theme_constant_override("outline_size", 3)
 	_iklan.add_child(_iklan_teks)
-
-func get_save_data() -> Dictionary:
-	var data_perabot: Dictionary = {}
-	if save_component and save_component.has_method("get_data"):
-		data_perabot = save_component.get_data()
-	data_perabot["scene_path"] = scene_file_path
-	data_perabot["pos_x"] = global_position.x
-	data_perabot["pos_y"] = global_position.y
-	return data_perabot
 
 # ==========================================================
 # CRAFT STEEL
