@@ -328,17 +328,31 @@ func _on_butang_lebur_pressed() -> void:
 		return
 	kuantiti_pilihan = clampi(kuantiti_pilihan, 1, maks)
 	# Simpan nilai dulu: tolak_item memancar isyarat inventori yang boleh
-	# mengubah kuantiti_pilihan di tengah gelung.
+	# mengubah kuantiti_pilihan.
 	var banyak: int = kuantiti_pilihan
-	var inv = get_node_or_null("/root/InventoryManager")
-	if inv == null:
+	# Hanya unit pertama dibayar sekarang; unit seterusnya dibayar satu demi
+	# satu selepas setiap unit siap.
+	if not _tolak_bahan_satu_unit():
+		_tulis_info("Not enough materials for Steel")
 		return
-	for bahan in resipi:
-		inv.tolak_item(bahan["id"], int(bahan["kuantiti"]) * banyak)
 	_jumlah_batch = banyak
 	_baki_batch = banyak
 	_unit_selesai = 0
 	_mula_unit()
+
+# Tolak bahan untuk SATU unit sahaja. Dipanggil bila batch bermula dan setiap
+# kali satu unit siap, supaya bahan untuk 10 unit tidak ditolak sekaligus.
+func _tolak_bahan_satu_unit() -> bool:
+	var inv = get_node_or_null("/root/InventoryManager")
+	if inv == null:
+		return false
+	# Semak semua bahan dahulu supaya tiada tolakan separa.
+	for bahan in resipi:
+		if inv.bilangan_item(bahan["id"]) < int(bahan["kuantiti"]):
+			return false
+	for bahan in resipi:
+		inv.tolak_item(bahan["id"], int(bahan["kuantiti"]))
+	return true
 
 func _mula_unit() -> void:
 	sedang_lebur = true
@@ -400,11 +414,15 @@ func _selesai_unit() -> void:
 		bar_progres.value = 0.0
 
 	if _baki_batch > 0:
-		masa_berlalu = 0.0
-		masa_hiasan = 0.0
-		print("Smelter: 1 Steel dihasilkan (%d/%d)" % [_unit_selesai, _jumlah_batch])
-		_kemas_kini_ui()
-		return
+		# Bayar unit seterusnya sekarang (bukan di awal batch). Kalau bahan
+		# tidak cukup lagi, batch berhenti di sini.
+		if _tolak_bahan_satu_unit():
+			masa_berlalu = 0.0
+			masa_hiasan = 0.0
+			print("Smelter: 1 Steel dihasilkan (%d/%d)" % [_unit_selesai, _jumlah_batch])
+			_kemas_kini_ui()
+			return
+		_baki_batch = 0
 
 	sedang_lebur = false
 	masa_berlalu = 0.0
@@ -413,11 +431,11 @@ func _selesai_unit() -> void:
 		sprite.scale = _skala_asal
 	if _cahaya:
 		_cahaya.visible = false
-	if _jumlah_batch > 1:
-		_tulis_info("Steel produced! +%d" % _jumlah_batch)
+	if _unit_selesai < _jumlah_batch:
+		_tulis_info("Not enough materials - smelting stopped")
 	else:
-		_tulis_info("Steel produced! +1")
-	print("Smelter: %d Steel dihasilkan" % _jumlah_batch)
+		_tulis_info("Steel produced! +%d" % _unit_selesai)
+	print("Smelter: %d Steel dihasilkan" % _unit_selesai)
 	# Batch habis: kemajuan terus kosong (0/1) dan Amount kembali ke 1.
 	_jumlah_batch = 0
 	_unit_selesai = 0
