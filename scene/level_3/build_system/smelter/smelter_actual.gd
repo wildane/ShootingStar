@@ -295,8 +295,7 @@ func _rujuk_kad(nama_kad: String) -> Dictionary:
 			get_node_or_null(akar + "/HBox/Kiri/IkonBekas/Slot1/BilanganDimiliki"),
 			get_node_or_null(akar + "/HBox/Kiri/IkonBekas/Slot2/BilanganDimiliki2"),
 		],
-		"bar": get_node_or_null(akar + "/HBox/Kiri/Progress"),
-		"label_progress": get_node_or_null(akar + "/HBox/Kiri/LabelProgress"),
+		"kemajuan": get_node_or_null(akar + "/HBox/Kemajuan"),
 	}
 
 func _on_kad_input(event: InputEvent, indeks: int) -> void:
@@ -697,44 +696,36 @@ func _kemas_kini_ui() -> void:
 
 	_kemas_progres()
 
-# Bar kemajuan bawah ikon keluaran: "1/7" semasa unit pertama, naik sampai "7/7".
+# Cincin kemajuan di kanan kad: penuh untuk SATU unit, kemudian mula semula.
+# Cincin hanya wujud secara visual semasa relau melebur; kad menganggur tiada
+# cincin (teks kosong = lukis tiada apa-apa).
 func _kemas_progres(nisbah: float = 0.0) -> void:
 	var jumlah: int = maxi(1, _jumlah_batch if _jumlah_batch > 0 else kuantiti_pilihan)
-	var teks: String = "0/%d" % kuantiti_pilihan
+	var teks: String = ""
 	var nilai: float = 0.0
 	if sedang_lebur:
 		teks = "%d/%d" % [mini(_unit_selesai + 1, jumlah), jumlah]
-		# Bar/cincin untuk SATU item sahaja: penuh setiap unit, kemudian mula semula.
 		nilai = clampf(nisbah, 0.0, 1.0)
-	elif _jumlah_batch > 0 and _unit_selesai >= _jumlah_batch:
-		teks = "%d/%d" % [_jumlah_batch, _jumlah_batch]
-		nilai = 1.0
 
-	# Hanya kad aktif tunjuk kemajuan; kad lain sentiasa 0/1.
+	# Hanya kad aktif tunjuk cincin, dan hanya semasa melebur.
 	for i in kad_ui.size():
-		var bar: ProgressBar = kad_ui[i]["bar"]
-		var label: Label = kad_ui[i]["label_progress"]
-		if i == resipi_semasa:
-			if label:
-				label.text = teks
-			if bar:
-				bar.value = nilai * 100.0
-		else:
-			if label:
-				label.text = "0/1"
-			if bar:
-				bar.value = 0.0
+		var cincin = kad_ui[i]["kemajuan"]
+		if cincin:
+			if i == resipi_semasa:
+				cincin.set_kemajuan(nilai, teks)
+			else:
+				cincin.set_kemajuan(0.0, "")
 	if _bulatan:
 		_bulatan.visible = sedang_lebur
-		_bulatan.set_kemajuan(nilai, teks)
+		var teks_bulatan: String = teks if sedang_lebur else "0/%d" % kuantiti_pilihan
+		_bulatan.set_kemajuan(nilai, teks_bulatan)
 
-# Satu kad resipi: ikon bahan + keperluan, ikon keluaran + kiraan dimiliki.
-# Kosongkan bar kemajuan semua kad (mula/henti unit).
+# Kosongkan cincin kemajuan semua kad (mula/henti unit).
 func _kosongkan_bar_kad() -> void:
-	for i in kad_ui.size():
-		var bar: ProgressBar = kad_ui[i]["bar"]
-		if bar:
-			bar.value = 0.0
+	for kad in kad_ui:
+		var cincin = kad["kemajuan"]
+		if cincin:
+			cincin.set_kemajuan(0.0, "")
 
 func _kemas_kini_kad(indeks: int, unit_paparan: int) -> void:
 	if indeks < 0 or indeks >= kad_ui.size() or indeks >= senarai_resipi.size():
@@ -784,7 +775,9 @@ func _kemas_kini_kad(indeks: int, unit_paparan: int) -> void:
 func _tulis_bilangan(label: Label, ada: int, perlu: int, aktif: bool = true) -> void:
 	if label == null:
 		return
-	label.text = str(perlu)
+	# Format "perlu/dimiliki", cth. "5/352": keperluan unit yang dipilih dan
+	# jumlah bahan yang ada dalam beg.
+	label.text = "%d/%d" % [perlu, ada]
 	if aktif and sedang_lebur:
 		label.add_theme_color_override("font_color", WARNA_SEDANG)
 	elif ada >= perlu:

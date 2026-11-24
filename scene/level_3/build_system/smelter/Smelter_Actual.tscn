@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scene/level_3/build_system/smelter/smelter_actual.gd" id="1_smel"]
 [ext_resource type="Texture2D" path="res://scene/level_3/build_system/smelter/smelter_sprite.png" id="2_smel"]
@@ -8,6 +8,7 @@
 [ext_resource type="Texture2D" path="res://scene/Item/0002MeteoriteIce/Image_393.png" id="6_ais"]
 [ext_resource type="Texture2D" path="res://scene/Item/0010BottleOfWater/Image_water_bottle.png" id="7_air"]
 [ext_resource type="Texture2D" path="res://scene/Item/0011OxygenCan/Image_oxygen_can.png" id="8_oksigen"]
+[ext_resource type="Script" path="res://scene/level_3/build_system/smelter/cincin_kemajuan.gd" id="9_cincin"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
 size = Vector2(20, 12.5)
@@ -192,20 +193,6 @@ text = "0"
 horizontal_alignment = 2
 vertical_alignment = 2
 
-[node name="Progress" type="ProgressBar" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadSteel/HBox/Kiri"]
-custom_minimum_size = Vector2(28, 3)
-layout_mode = 2
-mouse_filter = 2
-show_percentage = false
-
-[node name="LabelProgress" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadSteel/HBox/Kiri"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_font_sizes/font_size = 5
-theme_override_colors/font_color = Color(0.7, 0.88, 0.98, 1)
-text = "0/1"
-horizontal_alignment = 1
-
 [node name="Maklumat" type="VBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadSteel/HBox"]
 layout_mode = 2
 mouse_filter = 2
@@ -225,15 +212,16 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 4
 
-[node name="Bahan1" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadSteel/HBox/Maklumat/Bahan"]
+[node name="Bahan1" type="VBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadSteel/HBox/Maklumat/Bahan"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 1
+theme_override_constants/separation = 0
 
 [node name="IkonBahan1" type="TextureRect" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadSteel/HBox/Maklumat/Bahan/Bahan1"]
 custom_minimum_size = Vector2(10, 10)
 layout_mode = 2
 mouse_filter = 2
+size_flags_horizontal = 4
 size_flags_vertical = 4
 texture = ExtResource("5_besi")
 expand_mode = 1
@@ -243,22 +231,23 @@ texture_filter = 1
 [node name="BilBahan1" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadSteel/HBox/Maklumat/Bahan/Bahan1"]
 layout_mode = 2
 mouse_filter = 2
-size_flags_vertical = 4
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 5
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0.02, 0.04, 0.07, 1)
-theme_override_constants/outline_size = 3
-text = "2"
+theme_override_constants/outline_size = 2
+text = "2/0"
+horizontal_alignment = 1
 
-[node name="Bahan2" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadSteel/HBox/Maklumat/Bahan"]
+[node name="Bahan2" type="VBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadSteel/HBox/Maklumat/Bahan"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 1
+theme_override_constants/separation = 0
 
 [node name="IkonBahan2" type="TextureRect" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadSteel/HBox/Maklumat/Bahan/Bahan2"]
 custom_minimum_size = Vector2(10, 10)
 layout_mode = 2
 mouse_filter = 2
+size_flags_horizontal = 4
 size_flags_vertical = 4
 texture = ExtResource("6_ais")
 expand_mode = 1
@@ -268,12 +257,19 @@ texture_filter = 1
 [node name="BilBahan2" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadSteel/HBox/Maklumat/Bahan/Bahan2"]
 layout_mode = 2
 mouse_filter = 2
-size_flags_vertical = 4
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 5
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0.02, 0.04, 0.07, 1)
-theme_override_constants/outline_size = 3
-text = "1"
+theme_override_constants/outline_size = 2
+text = "1/0"
+horizontal_alignment = 1
+
+[node name="Kemajuan" type="Control" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadSteel/HBox"]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 2
+mouse_filter = 2
+size_flags_vertical = 4
+script = ExtResource("9_cincin")
 
 [node name="KadAir" type="PanelContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi"]
 custom_minimum_size = Vector2(160, 34)
@@ -387,20 +383,6 @@ text = "0"
 horizontal_alignment = 2
 vertical_alignment = 2
 
-[node name="Progress" type="ProgressBar" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadAir/HBox/Kiri"]
-custom_minimum_size = Vector2(28, 3)
-layout_mode = 2
-mouse_filter = 2
-show_percentage = false
-
-[node name="LabelProgress" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadAir/HBox/Kiri"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_font_sizes/font_size = 5
-theme_override_colors/font_color = Color(0.7, 0.88, 0.98, 1)
-text = "0/1"
-horizontal_alignment = 1
-
 [node name="Maklumat" type="VBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadAir/HBox"]
 layout_mode = 2
 mouse_filter = 2
@@ -420,15 +402,16 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 4
 
-[node name="Bahan1" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadAir/HBox/Maklumat/Bahan"]
+[node name="Bahan1" type="VBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadAir/HBox/Maklumat/Bahan"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 1
+theme_override_constants/separation = 0
 
 [node name="IkonBahan1" type="TextureRect" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadAir/HBox/Maklumat/Bahan/Bahan1"]
 custom_minimum_size = Vector2(10, 10)
 layout_mode = 2
 mouse_filter = 2
+size_flags_horizontal = 4
 size_flags_vertical = 4
 texture = ExtResource("6_ais")
 expand_mode = 1
@@ -438,23 +421,24 @@ texture_filter = 1
 [node name="BilBahan1" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadAir/HBox/Maklumat/Bahan/Bahan1"]
 layout_mode = 2
 mouse_filter = 2
-size_flags_vertical = 4
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 5
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0.02, 0.04, 0.07, 1)
-theme_override_constants/outline_size = 3
-text = "5"
+theme_override_constants/outline_size = 2
+text = "5/0"
+horizontal_alignment = 1
 
-[node name="Bahan2" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadAir/HBox/Maklumat/Bahan"]
+[node name="Bahan2" type="VBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadAir/HBox/Maklumat/Bahan"]
 visible = false
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 1
+theme_override_constants/separation = 0
 
 [node name="IkonBahan2" type="TextureRect" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadAir/HBox/Maklumat/Bahan/Bahan2"]
 custom_minimum_size = Vector2(10, 10)
 layout_mode = 2
 mouse_filter = 2
+size_flags_horizontal = 4
 size_flags_vertical = 4
 expand_mode = 1
 stretch_mode = 5
@@ -463,12 +447,19 @@ texture_filter = 1
 [node name="BilBahan2" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadAir/HBox/Maklumat/Bahan/Bahan2"]
 layout_mode = 2
 mouse_filter = 2
-size_flags_vertical = 4
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 5
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0.02, 0.04, 0.07, 1)
-theme_override_constants/outline_size = 3
-text = ""
+theme_override_constants/outline_size = 2
+text = "0/0"
+horizontal_alignment = 1
+
+[node name="Kemajuan" type="Control" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadAir/HBox"]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 2
+mouse_filter = 2
+size_flags_vertical = 4
+script = ExtResource("9_cincin")
 
 [node name="Ruang" type="Control" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer"]
 layout_mode = 2
