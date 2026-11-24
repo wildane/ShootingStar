@@ -326,15 +326,12 @@ func _on_butang_lebur_pressed() -> void:
 		if _berhenti_selepas_unit:
 			return
 		_berhenti_selepas_unit = true
-		_tulis_info("Stopping after current unit...")
 		_kemas_kini_ui()
 		return
 	if not has_power:
-		_tulis_info("No power - connect to Power Inverter")
 		return
 	var maks: int = _maks_unit()
 	if maks <= 0:
-		_tulis_info("Not enough materials for Steel")
 		return
 	kuantiti_pilihan = clampi(kuantiti_pilihan, 1, maks)
 	# Simpan nilai dulu: tolak_item memancar isyarat inventori yang boleh
@@ -343,7 +340,6 @@ func _on_butang_lebur_pressed() -> void:
 	# Hanya unit pertama dibayar sekarang; unit seterusnya dibayar satu demi
 	# satu selepas setiap unit siap.
 	if not _tolak_bahan_satu_unit():
-		_tulis_info("Not enough materials for Steel")
 		return
 	_jumlah_batch = banyak
 	_baki_batch = banyak
@@ -374,10 +370,6 @@ func _mula_unit() -> void:
 	if bar_progres:
 		bar_progres.value = 0.0
 	_kemas_kini_ui()
-	if _jumlah_batch > 1:
-		_tulis_info("Smelting Steel %d/%d..." % [_unit_selesai + 1, _jumlah_batch])
-	else:
-		_tulis_info("Smelting Steel...")
 
 # Animasi relau + kemajuan peleburan.
 func _process(delta: float) -> void:
@@ -444,11 +436,6 @@ func _selesai_unit() -> void:
 		_cahaya.visible = false
 	if _berhenti_selepas_unit:
 		_berhenti_selepas_unit = false
-		_tulis_info("Smelting stopped")
-	elif _unit_selesai < _jumlah_batch:
-		_tulis_info("Not enough materials - smelting stopped")
-	else:
-		_tulis_info("Steel produced! +%d" % _unit_selesai)
 	print("Smelter: %d Steel dihasilkan" % _unit_selesai)
 	# Batch habis: kemajuan terus kosong (0/1) dan Amount kembali ke 1.
 	_jumlah_batch = 0
@@ -578,18 +565,6 @@ func _tulis_bilangan(label: Label, ada: int, perlu: int) -> void:
 	else:
 		label.add_theme_color_override("font_color", WARNA_KURANG)
 
-func _tulis_info(teks: String) -> void:
-	var adegan := get_tree().current_scene
-	if adegan == null:
-		return
-	var lbl := adegan.find_child("InfoText", true, false) as Label
-	if lbl == null:
-		return
-	lbl.text = teks
-	await get_tree().create_timer(2.5).timeout
-	if is_instance_valid(lbl) and lbl.text == teks:
-		lbl.text = ""
-
 # ==========================================================
 # SISTEM KUASA
 # ==========================================================
@@ -610,12 +585,12 @@ func set_power_status(status_elektrik: bool, pembekal: Node2D = null) -> void:
 	_kemas_kini_ui()
 
 func _henti_lebur_kerana_tiada_kuasa() -> void:
-	_henti_batch("Smelting stopped: no power")
+	_henti_batch()
 
 # Hentikan batch semasa (kuasa terputus atau pemain tekan Stop). Bahan untuk
 # unit yang sedang dilebur sudah dibayar dan tidak dikembalikan, sama seperti
 # kehilangan kuasa.
-func _henti_batch(teks_info: String) -> void:
+func _henti_batch() -> void:
 	sedang_lebur = false
 	_berhenti_selepas_unit = false
 	masa_berlalu = 0.0
@@ -632,7 +607,6 @@ func _henti_batch(teks_info: String) -> void:
 		sprite.scale = _skala_asal
 	if _cahaya:
 		_cahaya.visible = false
-	_tulis_info(teks_info)
 	_kemas_kini_warna_visual()
 	_kemas_kini_ui()
 
