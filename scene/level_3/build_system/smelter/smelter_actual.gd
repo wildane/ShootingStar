@@ -1,6 +1,7 @@
 extends StaticBody2D
 
-## Relau pelebur: 2 Basic Iron Ore + 1 Meteorite Ice -> 1 Steel.
+## Relau pelebur: 2 Basic Iron Ore + 1 Meteorite Ice -> 1 Steel,
+## atau 5 Meteorite Ice -> 1 Bottle of Water + 1 Oxygen Can.
 ## Semasa melebur, sprite berdenyut warna relau dan ada cahaya api di mulut.
 ## Menu ada ikon bahan, pilihan kuantiti (batch) dan iklan terapung "+1".
 
@@ -18,15 +19,40 @@ const PowerGridRef := preload("res://scene/level_3/build_system/PowerInverter/Po
 @onready var label_progress = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri/LabelProgress")
 @onready var butang_lebur = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/ButangCraft")
 @onready var kad = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad")
-@onready var label_bil_besi = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Besi/BilBesi")
-@onready var label_bil_ais = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Ais/BilAis")
-@onready var label_bil_keluaran = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri/IkonBekas/BilanganDimiliki")
+@onready var label_nama_resipi = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/NamaResipi")
+# Slot bahan/keluaran dipegang dalam tatasusunan: UI yang sama dipakai untuk
+# semua resipi (resipi air hanya ada satu bahan, tetapi dua keluaran).
+@onready var label_bahan = [
+	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Bahan1/BilBahan1"),
+	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Bahan2/BilBahan2"),
+]
+@onready var ikon_bahan = [
+	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Bahan1/IkonBahan1"),
+	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Bahan2/IkonBahan2"),
+]
+@onready var slot_bahan = [
+	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Bahan1"),
+	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Bahan2"),
+]
+@onready var ikon_keluaran = [
+	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri/IkonBekas/Slot1/IkonKeluaran"),
+	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri/IkonBekas/Slot2/IkonKeluaran2"),
+]
+@onready var label_keluaran = [
+	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri/IkonBekas/Slot1/BilanganDimiliki"),
+	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri/IkonBekas/Slot2/BilanganDimiliki2"),
+]
+@onready var slot_keluaran = [
+	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri/IkonBekas/Slot1"),
+	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri/IkonBekas/Slot2"),
+]
+@onready var butang_resipi_steel = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisResipi/ButangSteel")
+@onready var butang_resipi_air = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisResipi/ButangAir")
 @onready var label_kuantiti = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti/LabelKuantiti")
 @onready var label_maks = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti/LabelMaks")
 @onready var butang_kurang = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti/ButangKurang")
 @onready var butang_tambah = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti/ButangTambah")
-@onready var ikon_besi = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Besi/IkonBesi")
-@onready var ikon_ais = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Ais/IkonAis")
+
 
 const MASA_LEBUR: float = 3.0
 
@@ -40,6 +66,12 @@ const IKLAN_MULA_PUDAR: float = 0.35
 const ID_STEEL := "item_0009"
 const LALUAN_STEEL := "res://scene/Item/0009Steel/Steel.tscn"
 const IKON_STEEL := "res://scene/Item/0009Steel/Image_steel.png"
+const ID_AIR := "item_0010"
+const LALUAN_AIR := "res://scene/Item/0010BottleOfWater/BottleOfWater.tscn"
+const IKON_AIR := "res://scene/Item/0010BottleOfWater/Image_water_bottle.png"
+const ID_OKSIGEN := "item_0011"
+const LALUAN_OKSIGEN := "res://scene/Item/0011OxygenCan/OxygenCan.tscn"
+const IKON_OKSIGEN := "res://scene/Item/0011OxygenCan/Image_oxygen_can.png"
 const LALUAN_BESI := "res://scene/Item/0001BasicIronOre/Image_959.png"
 const LALUAN_AIS := "res://scene/Item/0002MeteoriteIce/Image_393.png"
 
@@ -47,11 +79,34 @@ const WARNA_CUKUP := Color(0.5, 0.95, 0.62, 1.0)
 const WARNA_KURANG := Color(1.0, 0.44, 0.44, 1.0)
 const WARNA_SEDANG := Color(0.72, 0.86, 0.95, 1.0)
 
-# Resipi peleburan steel.
-@export var resipi: Array[Dictionary] = [
-	{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 2, "ikon": LALUAN_BESI},
-	{"id": "item_0002", "nama": "Meteorite Ice", "kuantiti": 1, "ikon": LALUAN_AIS},
+# Senarai resipi relau. Setiap resipi ada bahan (yang ditolak dari beg untuk
+# satu unit) dan keluaran (item yang dimasukkan ke beg setiap unit siap).
+var senarai_resipi: Array[Dictionary] = [
+	{
+		"nama": "Steel",
+		"bahan": [
+			{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 2, "ikon": LALUAN_BESI},
+			{"id": "item_0002", "nama": "Meteorite Ice", "kuantiti": 1, "ikon": LALUAN_AIS},
+		],
+		"keluaran": [
+			{"id": ID_STEEL, "nama": "Steel", "kuantiti": 1, "ikon": IKON_STEEL, "scene_path": LALUAN_STEEL},
+		],
+	},
+	{
+		"nama": "Water + Oxygen",
+		"bahan": [
+			{"id": "item_0002", "nama": "Meteorite Ice", "kuantiti": 5, "ikon": LALUAN_AIS},
+		],
+		"keluaran": [
+			{"id": ID_AIR, "nama": "Bottle of Water", "kuantiti": 1, "ikon": IKON_AIR, "scene_path": LALUAN_AIR},
+			{"id": ID_OKSIGEN, "nama": "Oxygen Can", "kuantiti": 1, "ikon": IKON_OKSIGEN, "scene_path": LALUAN_OKSIGEN},
+		],
+	},
 ]
+var resipi_semasa: int = 0
+# Ikon dimuatkan sekali sahaja (laluan -> tekstur) dan diguna semula oleh menu,
+# iklan terapung dan cincin kemajuan.
+var _cache_ikon: Dictionary = {}
 
 @export_category("Sistem Kuasa")
 @export var power_required: float = 200.0
@@ -112,6 +167,8 @@ func _ready() -> void:
 	if butang_lebur: butang_lebur.pressed.connect(_on_butang_lebur_pressed)
 	if butang_kurang: butang_kurang.pressed.connect(_on_kurang_pressed)
 	if butang_tambah: butang_tambah.pressed.connect(_on_tambah_pressed)
+	if butang_resipi_steel: butang_resipi_steel.pressed.connect(_on_butang_resipi_steel_pressed)
+	if butang_resipi_air: butang_resipi_air.pressed.connect(_on_butang_resipi_air_pressed)
 
 	if sprite:
 		_skala_asal = sprite.scale
@@ -184,14 +241,55 @@ func _bina_bulatan() -> void:
 	_bulatan.visible = false
 	add_child(_bulatan)
 
-# Ikon bahan dipasang dari fail PNG supaya menu nampak jelas (bukan teks kosong).
+# Ikon bahan/keluaran dimuatkan awal supaya menu nampak jelas (bukan teks kosong).
 func _pasang_ikon() -> void:
-	if ikon_besi and ResourceLoader.exists(LALUAN_BESI):
-		ikon_besi.texture = load(LALUAN_BESI)
-	if ikon_ais and ResourceLoader.exists(LALUAN_AIS):
-		ikon_ais.texture = load(LALUAN_AIS)
-	if ResourceLoader.exists(IKON_STEEL):
-		_tekstur_steel = load(IKON_STEEL)
+	for resipi in senarai_resipi:
+		for bahan in resipi["bahan"]:
+			_muat_ikon(str(bahan["ikon"]))
+		for produk in resipi["keluaran"]:
+			_muat_ikon(str(produk["ikon"]))
+	_tekstur_steel = _muat_ikon(IKON_STEEL)
+
+func _muat_ikon(laluan: String) -> Texture2D:
+	if _cache_ikon.has(laluan):
+		return _cache_ikon[laluan]
+	if not ResourceLoader.exists(laluan):
+		return null
+	var tekstur: Texture2D = load(laluan)
+	_cache_ikon[laluan] = tekstur
+	return tekstur
+
+# Resipi yang sedang dipilih.
+func _resipi() -> Dictionary:
+	return senarai_resipi[clampi(resipi_semasa, 0, senarai_resipi.size() - 1)]
+
+func _bahan_resipi() -> Array:
+	return _resipi()["bahan"]
+
+func _keluaran_resipi() -> Array:
+	return _resipi()["keluaran"]
+
+func _nama_keluaran() -> String:
+	return str(_keluaran_resipi()[0]["nama"])
+
+# Tukar resipi hanya bila relau menganggur; perubahan ini juga mengemas kini
+# ikon bahan/keluaran pada menu.
+func _pilih_resipi(indeks: int) -> void:
+	if sedang_lebur:
+		return
+	indeks = clampi(indeks, 0, senarai_resipi.size() - 1)
+	if indeks == resipi_semasa:
+		return
+	resipi_semasa = indeks
+	kuantiti_pilihan = 1
+	_reset_paparan_batch()
+	_kemas_kini_ui()
+
+func _on_butang_resipi_steel_pressed() -> void:
+	_pilih_resipi(0)
+
+func _on_butang_resipi_air_pressed() -> void:
+	_pilih_resipi(1)
 
 # Cahaya api di muncung relau (dibina dalam kod, tiada aset tambahan).
 func _bina_cahaya() -> void:
@@ -248,7 +346,7 @@ func _bina_lapis_terapung() -> void:
 	_iklan.add_child(_iklan_teks)
 
 # ==========================================================
-# CRAFT STEEL
+# CRAFT
 # ==========================================================
 func _bilangan_dalam_beg(id_item: String) -> int:
 	var inv = get_node_or_null("/root/InventoryManager")
@@ -257,15 +355,15 @@ func _bilangan_dalam_beg(id_item: String) -> int:
 	return inv.bilangan_item(id_item)
 
 func _bahan_cukup(banyak: int = 1) -> bool:
-	for bahan in resipi:
+	for bahan in _bahan_resipi():
 		if _bilangan_dalam_beg(bahan["id"]) < int(bahan["kuantiti"]) * banyak:
 			return false
 	return true
 
-# Berapa unit steel boleh dilebur dengan bahan dalam beg sekarang.
+# Berapa unit boleh dilebur dengan bahan dalam beg sekarang.
 func _maks_unit() -> int:
 	var maks: int = 99
-	for bahan in resipi:
+	for bahan in _bahan_resipi():
 		var perlu: int = maxi(1, int(bahan["kuantiti"]))
 		maks = mini(maks, int(floor(float(_bilangan_dalam_beg(bahan["id"])) / float(perlu))))
 	return maxi(0, maks)
@@ -293,6 +391,7 @@ func get_data_simpanan_tambahan() -> Dictionary:
 	if not sedang_lebur or _baki_batch <= 0:
 		return {}
 	return {
+		"smelter_resipi": resipi_semasa,
 		"smelter_baki_batch": _baki_batch,
 		"smelter_jumlah_batch": _jumlah_batch,
 		"smelter_unit_selesai": _unit_selesai,
@@ -303,6 +402,8 @@ func pakai_data_simpanan_tambahan(data: Dictionary) -> void:
 	var baki := int(data.get("smelter_baki_batch", 0))
 	if baki <= 0:
 		return
+	# Resipi mesti dipulihkan dahulu: pengawal unit guna bahan/keluaran resipi ini.
+	resipi_semasa = clampi(int(data.get("smelter_resipi", 0)), 0, senarai_resipi.size() - 1)
 	_baki_batch = baki
 	_jumlah_batch = maxi(baki, int(data.get("smelter_jumlah_batch", baki)))
 	_unit_selesai = clampi(int(data.get("smelter_unit_selesai", 0)), 0, _jumlah_batch - baki)
@@ -353,10 +454,10 @@ func _tolak_bahan_satu_unit() -> bool:
 	if inv == null:
 		return false
 	# Semak semua bahan dahulu supaya tiada tolakan separa.
-	for bahan in resipi:
+	for bahan in _bahan_resipi():
 		if inv.bilangan_item(bahan["id"]) < int(bahan["kuantiti"]):
 			return false
-	for bahan in resipi:
+	for bahan in _bahan_resipi():
 		inv.tolak_item(bahan["id"], int(bahan["kuantiti"]))
 	return true
 
@@ -395,19 +496,23 @@ func _process(delta: float) -> void:
 	if nisbah >= 1.0:
 		_selesai_unit()
 
-# Satu unit steel siap: tambah item, iklan terapung, sambung unit seterusnya.
+# Satu unit siap: masukkan semua keluaran resipi, iklan terapung, sambung unit
+# seterusnya. Resipi air menghasilkan dua item serentak.
 func _selesai_unit() -> void:
 	var inv = get_node_or_null("/root/InventoryManager")
 	if inv:
 		# senyap=true: jangan pancar isyarat inventori setiap unit (itu membina
 		# semula UI semua perabot). Isyarat dipancar sekali bila batch habis.
-		inv.tambah_item({
-			"id": ID_STEEL,
-			"nama": "Steel",
-			"ikon": _tekstur_steel if _tekstur_steel else load(IKON_STEEL),
-			"scene_path": LALUAN_STEEL,
-		}, true)
-	_apung_steel(1)
+		for produk in _keluaran_resipi():
+			var ikon_produk: Texture2D = _muat_ikon(str(produk["ikon"]))
+			for _i in int(produk.get("kuantiti", 1)):
+				inv.tambah_item({
+					"id": str(produk["id"]),
+					"nama": str(produk["nama"]),
+					"ikon": ikon_produk,
+					"scene_path": str(produk["scene_path"]),
+				}, true)
+	_apung_hasil()
 	_baki_batch -= 1
 	_unit_selesai += 1
 	if bar_progres:
@@ -422,7 +527,7 @@ func _selesai_unit() -> void:
 		elif _tolak_bahan_satu_unit():
 			masa_berlalu = 0.0
 			masa_hiasan = 0.0
-			print("Smelter: 1 Steel dihasilkan (%d/%d)" % [_unit_selesai, _jumlah_batch])
+			print("Smelter: 1 %s dihasilkan (%d/%d)" % [_nama_keluaran(), _unit_selesai, _jumlah_batch])
 			_kemas_kini_ui()
 			return
 		_baki_batch = 0
@@ -436,7 +541,7 @@ func _selesai_unit() -> void:
 		_cahaya.visible = false
 	if _berhenti_selepas_unit:
 		_berhenti_selepas_unit = false
-	print("Smelter: %d Steel dihasilkan" % _unit_selesai)
+	print("Smelter: %d %s dihasilkan" % [_unit_selesai, _nama_keluaran()])
 	# Batch habis: kemajuan terus kosong (0/1) dan Amount kembali ke 1.
 	_jumlah_batch = 0
 	_unit_selesai = 0
@@ -447,12 +552,20 @@ func _selesai_unit() -> void:
 	if inv:
 		inv.kemas_kini_selepas_batch()
 
-# Iklan terapung ikon steel + "+1" di atas relau, naik lalu pudar.
+# Iklan terapung ikon keluaran + "+1" di atas relau, naik lalu pudar.
 # Guna semula node yang sudah ada: tiada Control baru setiap unit.
-func _apung_steel(banyak: int) -> void:
+func _apung_hasil() -> void:
 	if _iklan == null:
 		return
-	var teks: String = "+%d" % banyak
+	var keluaran: Array = _keluaran_resipi()
+	var ikon_utama: Texture2D = _muat_ikon(str(keluaran[0]["ikon"]))
+	if ikon_utama and _iklan_ikon.texture != ikon_utama:
+		_iklan_ikon.texture = ikon_utama
+	# Dua keluaran serentak (air + oksigen) dipaparkan sebagai "+1 +1".
+	var bahagian: PackedStringArray = []
+	for produk in keluaran:
+		bahagian.append("+%d" % int(produk.get("kuantiti", 1)))
+	var teks: String = " ".join(bahagian)
 	# Label hanya diukur semula bila teksnya berubah; teks sama tidak perlu
 	# susun atur semula setiap unit.
 	if _iklan_teks.text != teks:
@@ -481,23 +594,61 @@ func _kemas_kini_iklan(delta: float) -> void:
 	var p: float = clampf((t - IKLAN_MULA_PUDAR) / (1.0 - IKLAN_MULA_PUDAR), 0.0, 1.0)
 	_iklan.modulate.a = 1.0 - (p * p * (3.0 - 2.0 * p))
 
-# Kemas kini menu: ikon + bilangan bahan, status, pilihan kuantiti, butang.
+# Kemas kini menu: ikon + bilangan bahan, keluaran, status, pilihan kuantiti, butang.
 func _kemas_kini_ui() -> void:
+	var resipi: Dictionary = _resipi()
+	var bahan: Array = resipi["bahan"]
+	var keluaran: Array = _keluaran_resipi()
 	var maks: int = _maks_unit()
 	if not sedang_lebur:
 		kuantiti_pilihan = clampi(kuantiti_pilihan, 1, maxi(1, maks))
 	# Semasa batch berjalan, papar bahan yang masih perlu dibayar untuk baki
 	# batch. Unit yang sedang dilebur sudah dibayar, jadi tolak satu unit.
 	var unit_paparan: int = maxi(0, _baki_batch - 1) if sedang_lebur else kuantiti_pilihan
-	var perlu_besi: int = int(resipi[0]["kuantiti"]) * unit_paparan
-	var perlu_ais: int = int(resipi[1]["kuantiti"]) * unit_paparan
-	var ada_besi: int = _bilangan_dalam_beg(resipi[0]["id"])
-	var ada_ais: int = _bilangan_dalam_beg(resipi[1]["id"])
 
-	_tulis_bilangan(label_bil_besi, ada_besi, perlu_besi)
-	_tulis_bilangan(label_bil_ais, ada_ais, perlu_ais)
-	if label_bil_keluaran:
-		label_bil_keluaran.text = str(_bilangan_dalam_beg(ID_STEEL))
+	# Slot bahan fleksibel: Steel guna dua bahan, resipi air guna satu.
+	for i in slot_bahan.size():
+		var wadah_bahan: Control = slot_bahan[i]
+		if wadah_bahan == null:
+			continue
+		if i >= bahan.size():
+			wadah_bahan.visible = false
+			continue
+		wadah_bahan.visible = true
+		var data_bahan: Dictionary = bahan[i]
+		var ikon: Texture2D = _muat_ikon(str(data_bahan["ikon"]))
+		if ikon and ikon_bahan[i]:
+			ikon_bahan[i].texture = ikon
+		_tulis_bilangan(label_bahan[i], _bilangan_dalam_beg(str(data_bahan["id"])), int(data_bahan["kuantiti"]) * unit_paparan)
+
+	# Slot keluaran: Steel satu item, resipi air dua (botol air + tin oksigen).
+	for i in slot_keluaran.size():
+		var wadah_keluar: Control = slot_keluaran[i]
+		if wadah_keluar == null:
+			continue
+		if i >= keluaran.size():
+			wadah_keluar.visible = false
+			continue
+		wadah_keluar.visible = true
+		var data_keluaran: Dictionary = keluaran[i]
+		var ikon_keluar: Texture2D = _muat_ikon(str(data_keluaran["ikon"]))
+		if ikon_keluar and ikon_keluaran[i]:
+			ikon_keluaran[i].texture = ikon_keluar
+		if label_keluaran[i]:
+			label_keluaran[i].text = str(_bilangan_dalam_beg(str(data_keluaran["id"])))
+
+	if label_nama_resipi:
+		label_nama_resipi.text = str(resipi["nama"])
+	if _bulatan:
+		# Cincin di atas relau ikut ikon keluaran resipi yang dipilih.
+		_bulatan.tekstur = _muat_ikon(str(keluaran[0]["ikon"]))
+	if butang_resipi_steel:
+		butang_resipi_steel.set_pressed_no_signal(resipi_semasa == 0)
+		butang_resipi_steel.disabled = sedang_lebur
+	if butang_resipi_air:
+		butang_resipi_air.set_pressed_no_signal(resipi_semasa == 1)
+		butang_resipi_air.disabled = sedang_lebur
+
 	if label_kuantiti:
 		# Sama asas dengan paparan bahan: semasa lebur ia bilangan unit yang
 		# tinggal, supaya kuantiti × resipi sepadan dengan nombor keperluan.
@@ -533,7 +684,7 @@ func _kemas_kini_ui() -> void:
 
 	_kemas_progres()
 
-# Bar kemajuan bawah ikon steel: "1/7" semasa unit pertama, naik sampai "7/7".
+# Bar kemajuan bawah ikon keluaran: "1/7" semasa unit pertama, naik sampai "7/7".
 func _kemas_progres(nisbah: float = 0.0) -> void:
 	var jumlah: int = maxi(1, _jumlah_batch if _jumlah_batch > 0 else kuantiti_pilihan)
 	var teks: String = "0/%d" % kuantiti_pilihan
