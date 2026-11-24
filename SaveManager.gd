@@ -386,8 +386,10 @@ func load_game(scene_aktif: Node = null):
 				obj_instance.global_position = Vector2(data.get("pos_x", 0.0), data.get("pos_y", 0.0))
 				obj_instance.scene_file_path = path_fail
 				y_sort_node.add_child(obj_instance)
-				# Pulihkan HP/tenaga objek (contoh: robot pekerja) selepas _ready.
+				# Pulihkan HP/tenaga objek selepas _ready.
 				_pakai_data_objek(obj_instance, data)
+			elif path_fail != "":
+				push_warning("[Save] Objek dilangkau kerana scene tidak ditemui: %s" % path_fail)
 
 	# 2b. Bina semula tile grid (lantai, dinding, pintu) dari simpanan.
 	var grid_bina := get_tree().get_first_node_in_group("BuildGrid")
