@@ -1,7 +1,7 @@
 extends Control
 
 const IKON_TENGKORAK: Texture2D = preload("res://scene/ui/cheat_skull.svg")
-const JEJARI_TABURAN := 42.0
+const JARAK_POPUP_Y := 22.0
 
 var aktif := false
 # id_barang -> jadual drop penuh (Array[PackedScene]).
@@ -12,10 +12,8 @@ var _jadual_drop: Dictionary = {}
 # di-instantiate berulang kali setiap kali musuh baru muncul.
 var _cache_data: Dictionary = {}
 var _status: Label
-var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
-	_rng.randomize()
 	set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	# Diletakkan di atas butang MENU yang berada di hujung bawah kanan.
 	offset_left = -88.0
@@ -122,7 +120,9 @@ func _ganjar_semua_drop(item_drop: Node) -> void:
 	var pusat_drop := (item_drop as Node2D).global_position
 	# Item dikredit terus ke inventori, animasi guna popup "+N" yang sama
 	# seperti drop biasa (bukan terbang ke butang inventori).
+	# Susun menegak supaya popup tidak bertindih bila banyak jenis item keluar.
 	var ada_item := false
+	var indeks_popup := 0
 	for adegan in jadual:
 		if not aktif or not is_instance_valid(inventori):
 			break
@@ -138,9 +138,9 @@ func _ganjar_semua_drop(item_drop: Node) -> void:
 
 		var ikon = data.get("ikon")
 		var ikon_tekstur: Texture2D = ikon if ikon is Texture2D else null
-		var sudut := _rng.randf_range(0.0, TAU)
-		var jarak := _rng.randf_range(0.0, JEJARI_TABURAN)
-		DropComponent.tunjuk_popup_terapung(ikon_tekstur, "+" + str(bilangan), pusat_drop + Vector2.from_angle(sudut) * jarak, item_drop)
+		var ofset_popup := Vector2(0.0, -indeks_popup * JARAK_POPUP_Y)
+		DropComponent.tunjuk_popup_terapung(ikon_tekstur, "+" + str(bilangan), pusat_drop + ofset_popup, item_drop)
+		indeks_popup += 1
 
 	if ada_item and is_instance_valid(inventori) and inventori.has_method("kemas_kini_selepas_batch"):
 		inventori.kemas_kini_selepas_batch()
