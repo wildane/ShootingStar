@@ -9,6 +9,7 @@ extends StaticBody2D
 @onready var area_penderia = get_node_or_null("Area2D")
 const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
 const BulatanCraft := preload("res://scene/level_3/build_system/smelter/bulatan_craft.gd")
+const PowerGridRef := preload("res://scene/level_3/build_system/PowerInverter/PowerGrid.gd")
 
 @onready var menu_ui = get_node_or_null("CanvasLayer/Pusat/MenuUI")
 @onready var butang_tutup = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/HBoxContainer/ButtonTutup")
@@ -52,6 +53,11 @@ const WARNA_SEDANG := Color(0.72, 0.86, 0.95, 1.0)
 	{"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 2, "ikon": LALUAN_BESI},
 	{"id": "item_0002", "nama": "Meteorite Ice", "kuantiti": 1, "ikon": LALUAN_AIS},
 ]
+
+@export_category("Sistem Kuasa")
+@export var power_required: float = 200.0
+var has_power: bool = false
+var inverter_pembekal: Node2D = null
 
 var player_dekat: bool = false
 var masa_ketikan_terakhir: float = 0.0
@@ -114,11 +120,13 @@ func _ready() -> void:
 	_bina_lapis_terapung()
 	_bina_bulatan()
 	_kemas_kini_ui()
+	_kemas_kini_warna_visual()
 
 	var inv = get_node_or_null("/root/InventoryManager")
 	if inv and inv.has_signal("inventory_dikemaskini"):
 		if not inv.inventory_dikemaskini.is_connected(_kemas_kini_ui):
 			inv.inventory_dikemaskini.connect(_kemas_kini_ui)
+	PowerGridRef.daftar_perabot(self)
 
 # Kad resipi gelap + butang Craft yang menonjol (gaya senarai kad).
 func _pasang_gaya_kad() -> void:
@@ -294,6 +302,9 @@ func _reset_paparan_batch() -> void:
 func _on_butang_lebur_pressed() -> void:
 	if sedang_lebur:
 		return
+	if not has_power:
+		_tulis_info("No power - connect to Power Inverter")
+		return
 	var maks: int = _maks_unit()
 	if maks <= 0:
 		_tulis_info("Not enough materials for Steel")
@@ -458,7 +469,10 @@ func _kemas_kini_ui() -> void:
 		butang_tambah.disabled = sedang_lebur or kuantiti_pilihan >= maks
 
 	if label_status:
-		if sedang_lebur:
+		if not has_power:
+			label_status.text = "No power"
+			label_status.add_theme_color_override("font_color", WARNA_KURANG)
+		elif sedang_lebur:
 			label_status.text = "Smelting %d/%d" % [_unit_selesai + 1, maxi(1, _jumlah_batch)]
 			label_status.add_theme_color_override("font_color", WARNA_SEDANG)
 		elif _bahan_cukup():
@@ -470,7 +484,7 @@ func _kemas_kini_ui() -> void:
 
 	if butang_lebur and not sedang_lebur:
 		butang_lebur.text = "Craft"
-		butang_lebur.disabled = not _bahan_cukup()
+		butang_lebur.disabled = (not has_power) or (not _bahan_cukup())
 
 	_kemas_progres()
 
@@ -519,19 +533,66 @@ func _tulis_info(teks: String) -> void:
 		lbl.text = ""
 
 # ==========================================================
+# SISTEM KUASA
+# ==========================================================
+func set_power_status(status_elektrik: bool, pembekal: Node2D = null) -> void:
+	var pembekal_baru: Node2D = inverter_pembekal
+	if status_elektrik:
+		pembekal_baru = pembekal
+	else:
+		if inverter_pembekal == pembekal or pembekal == null:
+			pembekal_baru = null
+	if has_power == status_elektrik and inverter_pembekal == pembekal_baru:
+		return
+	has_power = status_elektrik
+	inverter_pembekal = pembekal_baru
+	if not has_power and sedang_lebur:
+		_henti_lebur_kerana_tiada_kuasa()
+	_kemas_kini_warna_visual()
+	_kemas_kini_ui()
+
+func _henti_lebur_kerana_tiada_kuasa() -> void:
+	sedang_lebur = false
+	masa_berlalu = 0.0
+	_baki_batch = 0
+	_jumlah_batch = 0
+	_unit_selesai = 0
+	kuantiti_pilihan = 1
+	if bar_progres:
+		bar_progres.value = 0.0
+	if _bulatan:
+		_bulatan.visible = false
+		_bulatan.set_kemajuan(0.0, "0/1")
+	if sprite:
+		sprite.scale = _skala_asal
+	if _cahaya:
+		_cahaya.visible = false
+	_tulis_info("Smelting stopped: no power")
+
+func _kemas_kini_warna_visual() -> void:
+	if not sprite:
+		return
+	if sedang_lebur:
+		return # animasi lebur kawal warna
+	if player_dekat:
+		sprite.modulate = Color(0.3, 1.0, 0.3, 1.0)
+	elif has_power:
+		sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	else:
+		sprite.modulate = Color(0.4, 0.4, 0.4, 1.0)
+
+# ==========================================================
 # PENDERIA & INPUT
 # ==========================================================
 func _on_body_entered(body: Node2D) -> void:
 	if body is CharacterBody2D:
 		player_dekat = true
-		if sprite:
-			sprite.modulate = Color(0.3, 1.0, 0.3, 1.0)
+		_kemas_kini_warna_visual()
 
 func _on_body_exited(body: Node2D) -> void:
 	if body is CharacterBody2D:
 		player_dekat = false
-		if not sedang_lebur and sprite:
-			sprite.modulate = Color.WHITE
+		_kemas_kini_warna_visual()
 		if menu_ui:
 			menu_ui.hide()
 
@@ -590,5 +651,8 @@ func _on_butang_demolish_pressed() -> void:
 	if sprite:
 		sprite.modulate = Color.WHITE
 		sprite.scale = _skala_asal
-	PowerGrid.tanda_kotor_semua("bina_atau_roboh")
+	PowerGridRef.nyahdaftar_perabot(self)
 	queue_free()
+
+func _exit_tree() -> void:
+	PowerGridRef.nyahdaftar_perabot(self)
