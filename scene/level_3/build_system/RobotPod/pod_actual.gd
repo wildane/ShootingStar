@@ -21,6 +21,7 @@ const PowerGridRef := preload("res://scene/level_3/build_system/PowerInverter/Po
 @onready var label_status = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/LabelStatus")
 @onready var label_bahan = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/LabelBahan")
 @onready var butang_craft = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/ButtonCraft")
+@onready var butang_destroy_robot = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/ButtonDestroyRobot")
 @onready var butang_tutup = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonTutup")
 @onready var butang_demolish = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonDemolish")
 @onready var sprite_pod = get_node_or_null("SpritePod")
@@ -69,6 +70,7 @@ func _ready() -> void:
 	if butang_tutup: butang_tutup.pressed.connect(_on_butang_tutup_pressed)
 	if butang_demolish: butang_demolish.pressed.connect(_on_butang_demolish_pressed)
 	if butang_craft: butang_craft.pressed.connect(_on_butang_craft_pressed)
+	if butang_destroy_robot: butang_destroy_robot.pressed.connect(_on_butang_destroy_robot_pressed)
 
 	var inv = get_node_or_null("/root/InventoryManager")
 	if inv and inv.has_signal("inventory_dikemaskini"):
@@ -208,8 +210,9 @@ func _kemas_kini_menu() -> void:
 			teks += str(bahan["nama"]) + " " + str(_bilangan_dalam_beg(str(bahan["id"]))) + "/" + str(int(bahan["kuantiti"])) + "\n"
 		label_bahan.text = teks.strip_edges()
 
+	var robot_wujud := _robot_wujud()
 	if butang_craft != null:
-		if _robot_wujud():
+		if robot_wujud:
 			butang_craft.text = "Already crafted"
 			butang_craft.disabled = true
 		elif not has_power:
@@ -221,6 +224,9 @@ func _kemas_kini_menu() -> void:
 		else:
 			butang_craft.text = "Not enough materials"
 			butang_craft.disabled = true
+	if butang_destroy_robot != null:
+		butang_destroy_robot.disabled = not robot_wujud
+		butang_destroy_robot.text = "Destroy Robot" if robot_wujud else "No Robot"
 
 
 # ==========================================================
@@ -267,6 +273,38 @@ func _on_butang_craft_pressed() -> void:
 	_cipta_robot()
 	_kemas_kini_menu()
 	_tulis_info(str(RESIPI_ROBOT["nama"]) + " built! It is heading out to mine meteorites.")
+
+
+func _on_butang_destroy_robot_pressed() -> void:
+	var robot := _cari_robot_sasaran()
+	if robot == null:
+		_tulis_info("No worker robot to destroy")
+		_kemas_kini_menu()
+		return
+	# Jika robot sedang dock di pod ini, lepaskan rujukan pod dahulu.
+	if is_instance_valid(_robot_dock) and _robot_dock == robot:
+		if robot.has_method("keluar_dari_pod"):
+			robot.call("keluar_dari_pod")
+		_robot_dock = null
+		_kemas_kini_robot()
+		queue_redraw()
+		set_process(false)
+	elif robot.has_method("keluar_dari_pod"):
+		# Bersihkan keadaan pod jika robot sedang dock di pod lain.
+		robot.call("keluar_dari_pod")
+	robot.queue_free()
+	_kemas_kini_menu()
+	_tulis_info("Worker robot destroyed")
+
+
+func _cari_robot_sasaran() -> Node2D:
+	# Utamakan robot yang sedang dock di pod ini.
+	if is_instance_valid(_robot_dock) and not _robot_dock.is_queued_for_deletion():
+		return _robot_dock
+	for nod in get_tree().get_nodes_in_group("RobotPekerja"):
+		if is_instance_valid(nod) and not nod.is_queued_for_deletion() and nod is Node2D:
+			return nod as Node2D
+	return null
 
 
 func _cipta_robot() -> void:

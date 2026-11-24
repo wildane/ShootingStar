@@ -43,16 +43,16 @@ layer = 10
 
 [node name="MenuUI" type="PanelContainer" parent="CanvasLayer"]
 clip_contents = true
-custom_minimum_size = Vector2(160, 140)
+custom_minimum_size = Vector2(160, 170)
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -110.0
-offset_top = -70.0
+offset_top = -85.0
 offset_right = 110.0
-offset_bottom = 70.0
+offset_bottom = 85.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -79,6 +79,10 @@ autowrap_mode = 3
 [node name="ButtonCraft" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer"]
 layout_mode = 2
 text = "Craft Robot"
+
+[node name="ButtonDestroyRobot" type="Button" parent="CanvasLayer/MenuUI/VBoxContainer"]
+layout_mode = 2
+text = "Destroy Robot"
 
 [node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/MenuUI/VBoxContainer"]
 layout_mode = 2
