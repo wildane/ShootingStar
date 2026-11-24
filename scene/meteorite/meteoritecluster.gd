@@ -120,9 +120,17 @@ func take_damage() -> void:
 	_kilat()
 	_gegar_kuat = maxf(_gegar_kuat, GEGAR_KETUKAN)
 	Sfx.mainkan_di("lombong", global_position, -4.0)
+	_jatuhkan_item()
 	
 	if hp <= 0:
 		destroy()
+
+func _jatuhkan_item() -> void:
+	var drop_comp = find_child("DropComponent", true, false)
+	if drop_comp != null and drop_comp.has_method("trigger_drop"):
+		drop_comp.trigger_drop()
+	else:
+		print("Sistem Meteor: AMARAN! Tiada DropComponent diletakkan sebagai anak di Inspector!")
 
 func _on_objek_masuk(target: Node2D) -> void:
 	if target.name == "Player" or target.is_in_group("Player") or target.name == "SpaceShip":
@@ -148,16 +156,8 @@ func _on_objek_keluar(target: Node2D) -> void:
 				spark_vfx.visible = false
 
 func destroy() -> void:
-	print("Sistem Meteor: Meteor hancur! Mencari DropComponent...")
+	print("Sistem Meteor: Meteor hancur!")
 	Sfx.mainkan_di("pecah", global_position, -3.0)
-	
-	# Mencari DropComponent di dalam nod anak meteorcluster
-	var drop_comp = find_child("DropComponent", true, false)
-	
-	if drop_comp != null and drop_comp.has_method("trigger_drop"):
-		drop_comp.trigger_drop()
-	else:
-		print("Sistem Meteor: AMARAN! Tiada DropComponent diletakkan sebagai anak di Inspector!")
 	
 	# Peledakan serpihan sebelum hilang
 	_serpihan_letup()
