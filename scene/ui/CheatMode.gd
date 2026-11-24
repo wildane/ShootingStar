@@ -2,14 +2,8 @@ extends Control
 
 const IKON_TENGKORAK: Texture2D = preload("res://scene/ui/cheat_skull.svg")
 const JEJARI_TABURAN := 42.0
-const MASA_PENERBANGAN := 0.6
-# Bilangan visual dibina setiap frame. Membina semua item serentak
-# memakan satu frame yang sangat panjang (fps drop).
-const SPAWN_SETIAP_FRAME := 6
 
 var aktif := false
-# Bilangan visual yang belum selesai dikredit ke inventori.
-var _baki_inventori := 0
 # id_barang -> jadual drop penuh (Array[PackedScene]).
 # Jadual dikumpul daripada setiap DropComponent yang pernah masuk tree,
 # jadi cheat tidak bergantung pada musuh yang masih hidup di sebelah item.
@@ -75,8 +69,6 @@ func _on_node_added(nod: Node) -> void:
 		_daftar_jadual(nod)
 	if not aktif or not (nod is Area2D) or not ("id_barang" in nod):
 		return
-	if nod.has_meta("cheat_visual_item"):
-		return
 	call_deferred("_ganjar_semua_drop", nod)
 
 # Imbas adegan semasa untuk DropComponent yang sudah wujud sebelum cheat
@@ -128,12 +120,12 @@ func _ganjar_semua_drop(item_drop: Node) -> void:
 		return
 
 	var pusat_drop := (item_drop as Node2D).global_position
-	var posisi_sasaran := _posisi_inventori(item_drop)
-
-	# Kumpul semua item dahulu. Visual kemudian dibina sedikit demi sedikit
-	# antara frame supaya satu frame tidak terpaksa instantiate puluhan item.
-	var senarai: Array[Dictionary] = []
+	# Item dikredit terus ke inventori, animasi guna popup "+N" yang sama
+	# seperti drop biasa (bukan terbang ke butang inventori).
+	var ada_item := false
 	for adegan in jadual:
+		if not aktif or not is_instance_valid(inventori):
+			break
 		if adegan == null:
 			continue
 		var data := _data_barang(adegan)
@@ -141,94 +133,17 @@ func _ganjar_semua_drop(item_drop: Node) -> void:
 			continue
 		var bilangan := 9 if str(data.get("id")) == id_drop else 10
 		for _i in range(bilangan):
-			senarai.append({"adegan": adegan, "data": data.duplicate()})
+			inventori.tambah_item(data.duplicate(), true)
+		ada_item = true
 
-	var dikira := 0
-	for entri in senarai:
-		if not aktif or not is_instance_valid(inventori):
-			return
-		_tayang_item(entri["adegan"], entri["data"], pusat_drop, posisi_sasaran, inventori, adegan_semasa)
-		dikira += 1
-		if dikira % SPAWN_SETIAP_FRAME == 0:
-			await get_tree().process_frame
+		var ikon = data.get("ikon")
+		var ikon_tekstur: Texture2D = ikon if ikon is Texture2D else null
+		var sudut := _rng.randf_range(0.0, TAU)
+		var jarak := _rng.randf_range(0.0, JEJARI_TABURAN)
+		DropComponent.tunjuk_popup_terapung(ikon_tekstur, "+" + str(bilangan), pusat_drop + Vector2.from_angle(sudut) * jarak, item_drop)
 
-func _tayang_item(adegan: PackedScene, data: Dictionary, pusat_drop: Vector2, posisi_sasaran: Vector2, inventori: Node, induk: Node) -> void:
-	var visual := adegan.instantiate() as Node2D
-	if visual == null:
-		inventori.tambah_item(data)
-		return
-
-	visual.set_meta("cheat_visual_item", true)
-	# Matikan skrip/fizik visual SEBELUM masuk tree supaya ia tidak sempat
-	# memproses apa-apa pada frame ia di-spawn.
-	visual.set_process(false)
-	visual.set_physics_process(false)
-	if "monitoring" in visual:
-		visual.set("monitoring", false)
-		visual.set("monitorable", false)
-	induk.add_child(visual)
-	if visual.has_node("CollisionShape2D"):
-		visual.get_node("CollisionShape2D").set_deferred("disabled", true)
-
-	var sudut := _rng.randf_range(0.0, TAU)
-	var jarak := _rng.randf_range(8.0, JEJARI_TABURAN)
-	var posisi_mula := pusat_drop + Vector2.from_angle(sudut) * jarak
-	visual.global_position = posisi_mula
-
-	# Sasaran dikira semula setiap frame ikut kedudukan butang inventori di
-	# skrin, jadi item tetap terbang tepat ke butang walaupun kamera bergerak.
-	var butang := _butang_inventori()
-	_baki_inventori += 1
-	var tween := get_tree().create_tween().set_parallel(true)
-	tween.tween_method(func(masa: float) -> void:
-		if not is_instance_valid(visual):
-			return
-		var t := clampf(masa / MASA_PENERBANGAN, 0.0, 1.0)
-		var e := t * t # EASE_IN_QUAD
-		var sasaran := posisi_sasaran
-		if is_instance_valid(butang) and butang.is_visible_in_tree():
-			sasaran = visual.get_canvas_transform().affine_inverse() * (butang.global_position + butang.size / 2.0)
-		visual.global_position = posisi_mula.lerp(sasaran, e)
-	, 0.0, MASA_PENERBANGAN, MASA_PENERBANGAN)
-	tween.tween_property(visual, "scale", Vector2.ZERO, MASA_PENERBANGAN).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	tween.chain().tween_callback(func() -> void:
-		if is_instance_valid(inventori):
-			# senyap: UI/simpanan dikemas kini sekali sahaja bila semua habis.
-			inventori.tambah_item(data, true)
-		if is_instance_valid(visual):
-			visual.queue_free()
-		_baki_inventori -= 1
-		if _baki_inventori <= 0:
-			_baki_inventori = 0
-			if is_instance_valid(inventori) and inventori.has_method("kemas_kini_selepas_batch"):
-				inventori.kemas_kini_selepas_batch()
-	)
-
-func _butang_inventori() -> Control:
-	var adegan_semasa := get_tree().current_scene
-	if adegan_semasa == null:
-		return null
-	var kanvas := adegan_semasa.find_child("CanvasLayer", true, false)
-	if kanvas == null:
-		return null
-	return kanvas.find_child("InventoryButton", true, false) as Control
-
-func _posisi_inventori(item_drop: Node) -> Vector2:
-	var sasaran := (item_drop as Node2D).global_position
-	var adegan_semasa := get_tree().current_scene
-	if adegan_semasa == null:
-		return sasaran
-
-	var butang := _butang_inventori()
-	if butang and butang.is_visible_in_tree():
-		return (item_drop as Node2D).get_canvas_transform().affine_inverse() * (butang.global_position + butang.size / 2.0)
-
-	var pemain := adegan_semasa.find_child("SpaceShip", true, false)
-	if not pemain:
-		pemain = adegan_semasa.find_child("Player", true, false)
-	if pemain is Node2D:
-		return pemain.global_position
-	return sasaran
+	if ada_item and is_instance_valid(inventori) and inventori.has_method("kemas_kini_selepas_batch"):
+		inventori.kemas_kini_selepas_batch()
 
 # Fallback lama: cari DropComponent pada musuh yang masih ada di kedudukan
 # item. Hanya digunakan kalau jadual id tersebut belum pernah didaftar.

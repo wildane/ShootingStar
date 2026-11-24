@@ -63,16 +63,30 @@ func trigger_drop() -> void:
 	
 	# --- ANIMASI +1 TERAPUNG, MELEKAT PADA POSISI DUNIA ---
 	var pos_dunia: Vector2 = barang_baru.global_position
+	var ikon_tex: Texture2D = ikon_b if ikon_b is Texture2D else null
 	barang_baru.queue_free()
+	tunjuk_popup_terapung(ikon_tex, "+1", pos_dunia, self)
 
-	var canvas = get_tree().current_scene.find_child("CanvasLayer", true, false)
+# Animasi "+N" (ikon + teks) terapung yang melekat pada posisi dunia, jadi ia
+# ikut kamera bergerak. Statik supaya skrip drop lain (contoh: cheat mode)
+# boleh guna rupa animasi yang sama.
+static func tunjuk_popup_terapung(ikon_tex: Texture2D, teks: String, pos_dunia: Vector2, sumber: Node) -> void:
+	if not is_instance_valid(sumber):
+		return
+	var pokok := sumber.get_tree()
+	if pokok == null or pokok.current_scene == null:
+		return
+	var viewport := sumber.get_viewport()
+	if viewport == null:
+		return
+
+	var canvas = pokok.current_scene.find_child("CanvasLayer", true, false)
 	var popup := HBoxContainer.new()
 	popup.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	popup.alignment = BoxContainer.ALIGNMENT_CENTER
 	popup.add_theme_constant_override("separation", 3)
 	popup.z_index = 100
 
-	var ikon_tex: Texture2D = ikon_b if ikon_b is Texture2D else null
 	if ikon_tex:
 		var ikon := TextureRect.new()
 		ikon.texture = ikon_tex
@@ -83,7 +97,7 @@ func trigger_drop() -> void:
 		popup.add_child(ikon)
 
 	var label := Label.new()
-	label.text = "+1"
+	label.text = teks
 	label.add_theme_font_size_override("font_size", 14)
 	label.add_theme_color_override("font_color", Color(0.6, 1.0, 0.65, 1.0))
 	label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
@@ -94,16 +108,15 @@ func trigger_drop() -> void:
 	if canvas:
 		canvas.add_child(popup)
 	else:
-		get_tree().current_scene.add_child(popup)
+		pokok.current_scene.add_child(popup)
 	popup.reset_size()
 	# Anggaran lebar untuk posisi awal; susun atur sebenar dikemas kini enjin.
 	var lebar := 16.0 + 3.0 + 18.0 if ikon_tex else 18.0
 	var offset_x := -lebar * 0.5
 	var offset_y_awal := -14.0
-	var viewport := get_viewport()
 	popup.global_position = (viewport.get_canvas_transform() * pos_dunia) + Vector2(offset_x, offset_y_awal)
 
-	var tween = get_tree().create_tween().set_parallel(true)
+	var tween = pokok.create_tween().set_parallel(true)
 	var tw_pos = tween.tween_method(func(masa: float) -> void:
 		if not is_instance_valid(popup):
 			return
