@@ -118,6 +118,9 @@ var _iklan_ikon: TextureRect = null
 var _iklan_teks: Label = null
 var _iklan_masa: float = -1.0
 var _iklan_x: float = 0.0
+# Baris iklan yang menunggu giliran. Keluaran berbilang (air + oksigen)
+# dipaparkan satu-satu, bukan sekali gus.
+var _iklan_baris: Array[Dictionary] = []
 # Cincin kemajuan di atas relau (ikon item + "1/7")
 var _bulatan: Node2D = null
 var _tekstur_steel: Texture2D = null
@@ -581,20 +584,37 @@ func _selesai_unit() -> void:
 
 # Iklan terapung ikon keluaran + "+1" di atas relau, naik lalu pudar.
 # Guna semula node yang sudah ada: tiada Control baru setiap unit.
+# Setiap produk dalam resipi masuk baris giliran sendiri, jadi air + oksigen
+# muncul bergilir ("+1 Bottle of Water", kemudian "+1 Oxygen Can").
 func _apung_hasil() -> void:
 	if _iklan == null:
 		return
-	var keluaran: Array = _keluaran_resipi()
-	var ikon_utama: Texture2D = _muat_ikon(str(keluaran[0]["ikon"]))
-	if ikon_utama and _iklan_ikon.texture != ikon_utama:
-		_iklan_ikon.texture = ikon_utama
-	# Dua keluaran serentak (air + oksigen) dipaparkan sebagai "+1 +1".
-	var bahagian: PackedStringArray = []
-	for produk in keluaran:
-		bahagian.append("+%d" % int(produk.get("kuantiti", 1)))
-	var teks: String = " ".join(bahagian)
+	for produk in _keluaran_resipi():
+		_iklan_baris.append({
+			"ikon": _muat_ikon(str(produk["ikon"])),
+			"teks": "+%d %s" % [int(produk.get("kuantiti", 1)), str(produk["nama"])],
+		})
+	# Iklan yang masih naik biarkan habis dulu; baris baru menunggu giliran.
+	if _iklan_masa >= 0.0:
+		return
+	_seterusnya_iklan()
+
+# Papar baris iklan seterusnya (satu ikon + satu teks), atau sembunyikan iklan
+# bila giliran habis.
+func _seterusnya_iklan() -> void:
+	if _iklan == null:
+		return
+	if _iklan_baris.is_empty():
+		_iklan_masa = -1.0
+		_iklan.visible = false
+		return
+	var baris: Dictionary = _iklan_baris.pop_front()
+	var ikon: Texture2D = baris["ikon"]
+	_iklan_ikon.texture = ikon
+	_iklan_ikon.visible = ikon != null
 	# Label hanya diukur semula bila teksnya berubah; teks sama tidak perlu
 	# susun atur semula setiap unit.
+	var teks: String = str(baris["teks"])
 	if _iklan_teks.text != teks:
 		_iklan_teks.text = teks
 		_iklan.reset_size()
@@ -613,6 +633,10 @@ func _kemas_kini_iklan(delta: float) -> void:
 	_iklan_masa += delta
 	var t: float = _iklan_masa / MASA_IKLAN
 	if t >= 1.0:
+		# Ada baris menunggu: terus papar yang seterusnya di kedudukan asal.
+		if not _iklan_baris.is_empty():
+			_seterusnya_iklan()
+			return
 		_iklan_masa = -1.0
 		_iklan.modulate.a = 0.0
 		_iklan.visible = false
