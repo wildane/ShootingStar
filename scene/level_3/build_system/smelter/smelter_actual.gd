@@ -281,6 +281,33 @@ func _on_tambah_pressed() -> void:
 	_reset_paparan_batch()
 	_kemas_kini_ui()
 
+# ==========================================================
+# SIMPAN / MUAT STATE LEBUR
+# ==========================================================
+# Bahan sudah ditolak dari beg semasa batch bermula, jadi batch yang belum
+# siap perlu disimpan; tanpa ini steel yang masih tertunggak hilang selepas load.
+func get_data_simpanan_tambahan() -> Dictionary:
+	if not sedang_lebur or _baki_batch <= 0:
+		return {}
+	return {
+		"smelter_baki_batch": _baki_batch,
+		"smelter_jumlah_batch": _jumlah_batch,
+		"smelter_unit_selesai": _unit_selesai,
+		"smelter_masa_berlalu": masa_berlalu,
+	}
+
+func pakai_data_simpanan_tambahan(data: Dictionary) -> void:
+	var baki := int(data.get("smelter_baki_batch", 0))
+	if baki <= 0:
+		return
+	_baki_batch = baki
+	_jumlah_batch = maxi(baki, int(data.get("smelter_jumlah_batch", baki)))
+	_unit_selesai = clampi(int(data.get("smelter_unit_selesai", 0)), 0, _jumlah_batch - baki)
+	_mula_unit()
+	# Sambung dari kemajuan tersimpan (tidak melebihi satu unit penuh).
+	masa_berlalu = clampf(float(data.get("smelter_masa_berlalu", 0.0)), 0.0, MASA_LEBUR - 0.01)
+	_kemas_progres(clampf(masa_berlalu / MASA_LEBUR, 0.0, 1.0))
+
 # Pilihan kuantiti berubah: paparan kemajuan batch bermula semula.
 func _reset_paparan_batch() -> void:
 	if sedang_lebur:
