@@ -61,36 +61,26 @@ func trigger_drop() -> void:
 		inv_manager.tambah_item(data_barang)
 		print("DropComponent: Data berjaya dihantar ke InventoryManager!")
 	
-	# --- SISTEM ANIMASI TERBANG KOSMETIK (YANG TELAH DIBETULKAN) ---
-	var target_world_pos: Vector2 = global_position
-	var inventory_button: Control = null
-	var canvas = get_tree().current_scene.find_child("CanvasLayer", true, false)
-	
-	if canvas:
-		inventory_button = canvas.find_child("InventoryButton", true, false) as Control
-	
-	if inventory_button and inventory_button.is_visible_in_tree():
-		# 🔥 DIPERBAIKI: Menggunakan global_position untuk mengelakkan ralat Runtime Crash Godot 4
-		var screen_pos : Vector2 = inventory_button.global_position + (inventory_button.size / 2)
-		target_world_pos = get_canvas_transform().affine_inverse() * screen_pos
-	else:
-		var player_node = get_tree().current_scene.find_child("SpaceShip", true, false)
-		if not player_node:
-			player_node = get_tree().current_scene.find_child("Player", true, false)
-		if player_node:
-			target_world_pos = player_node.global_position
+	# --- ANIMASI +1 TERAPUNG (BUKAN TERBANG KE INVENTORI) ---
+	var pos_skrin: Vector2 = get_canvas_transform() * barang_baru.global_position
+	barang_baru.queue_free()
 
-	if barang_baru.has_node("CollisionShape2D"):
-		barang_baru.get_node("CollisionShape2D").set_deferred("disabled", true)
-	elif barang_baru.has_method("set_deferred"):
-		barang_baru.set_deferred("monitoring", false)
-		barang_baru.set_deferred("monitorable", false)
-		
-	barang_baru.set_process(false)
-	barang_baru.set_physics_process(false)
+	var canvas = get_tree().current_scene.find_child("CanvasLayer", true, false)
+	var label := Label.new()
+	label.text = "+1"
+	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_color_override("font_color", Color(0.6, 1.0, 0.65, 1.0))
+	label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
+	label.add_theme_constant_override("outline_size", 4)
+	if canvas:
+		canvas.add_child(label)
+	else:
+		get_tree().current_scene.add_child(label)
+	label.z_index = 100
+	label.global_position = pos_skrin + Vector2(-10, -12)
 
 	var tween = get_tree().create_tween().set_parallel(true)
-	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	tween.tween_property(barang_baru, "global_position", target_world_pos, 0.6)
-	tween.tween_property(barang_baru, "scale", Vector2.ZERO, 0.6)
-	tween.chain().tween_callback(barang_baru.queue_free)
+	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(label, "global_position:y", label.global_position.y - 28.0, 0.7)
+	tween.tween_property(label, "modulate:a", 0.0, 0.7).set_delay(0.2)
+	tween.chain().tween_callback(label.queue_free)
