@@ -375,21 +375,28 @@ func load_game(scene_aktif: Node = null):
 		inv_manager.inventory_dikemaskini.emit()
 
 	# 2. Muat Semula Objek Dunia Terus dari Senarai Rata
+	# Entri yang scene-nya sudah tiada (contoh: robot yang dibuang dari
+	# projek) dibuang terus dari data dan fail slot supaya simpanan tidak
+	# terus membawa data basi.
+	var objek_lama = saved_data.get("placed_objects", [])
+	if not (objek_lama is Array):
+		objek_lama = []
+	var objek_bersih: Array = _tapisan_objek_hidup(objek_lama)
+	saved_data["placed_objects"] = objek_bersih
+	if objek_bersih.size() < objek_lama.size():
+		_tulis_semula_slot(slot_aktif, saved_data)
+
 	var y_sort_node = scene_utama.get_node_or_null("Y_Sort_Container") if scene_utama else null
-	if y_sort_node and saved_data.has("placed_objects"):
-		for data in saved_data["placed_objects"]:
+	if y_sort_node:
+		for data in objek_bersih:
 			var path_fail = data.get("scene_path", "")
-			
-			if path_fail != "" and ResourceLoader.exists(path_fail):
-				var obj_instance = (load(path_fail) as PackedScene).instantiate() as Node2D
-				obj_instance.name = data.get("node_name", "PlacedObject")
-				obj_instance.global_position = Vector2(data.get("pos_x", 0.0), data.get("pos_y", 0.0))
-				obj_instance.scene_file_path = path_fail
-				y_sort_node.add_child(obj_instance)
-				# Pulihkan HP/tenaga objek selepas _ready.
-				_pakai_data_objek(obj_instance, data)
-			elif path_fail != "":
-				push_warning("[Save] Objek dilangkau kerana scene tidak ditemui: %s" % path_fail)
+			var obj_instance = (load(path_fail) as PackedScene).instantiate() as Node2D
+			obj_instance.name = data.get("node_name", "PlacedObject")
+			obj_instance.global_position = Vector2(data.get("pos_x", 0.0), data.get("pos_y", 0.0))
+			obj_instance.scene_file_path = path_fail
+			y_sort_node.add_child(obj_instance)
+			# Pulihkan HP/tenaga objek selepas _ready.
+			_pakai_data_objek(obj_instance, data)
 
 	# 2b. Bina semula tile grid (lantai, dinding, pintu) dari simpanan.
 	var grid_bina := get_tree().get_first_node_in_group("BuildGrid")
@@ -458,7 +465,36 @@ func nama_state_player() -> String:
 	return str(data_player.get("state", ""))
 
 
-# Pulihkan HP/tenaga objek dunia (robot pekerja) daripada data simpanan.
+# Senarai placed_objects tanpa entri yang scene_path-nya tiada.
+func _tapisan_objek_hidup(senarai: Array) -> Array:
+	var bersih: Array = []
+	for data in senarai:
+		if data is Dictionary:
+			var path := str(data.get("scene_path", ""))
+			if path != "" and ResourceLoader.exists(path):
+				bersih.append(data)
+	if bersih.size() < senarai.size():
+		print("[Save] %d objek basi dibuang daripada simpanan (scene tiada)." % (senarai.size() - bersih.size()))
+	return bersih
+
+# Tulis semula fail slot tanpa menyentuh masa dalam katalog. Ditulis ke fail
+# sementara dahulu supaya simpanan asal tidak rosak kalau penulisan gagal.
+func _tulis_semula_slot(id: String, data: Dictionary) -> void:
+	if id == "":
+		return
+	var laluan := _laluan_slot(id)
+	var sementara := laluan + ".tmp"
+	var file := FileAccess.open(sementara, FileAccess.WRITE)
+	if file == null:
+		push_warning("[Save] Gagal tulis semula slot %s" % id)
+		return
+	file.store_string(JSON.stringify(data, "\t"))
+	file.close()
+	if DirAccess.rename_absolute(sementara, laluan) != OK:
+		push_warning("[Save] Gagal ganti fail slot %s" % id)
+		DirAccess.remove_absolute(sementara)
+
+# Pulihkan HP/tenaga objek dunia daripada data simpanan.
 func _pakai_data_objek(nod: Node, data: Dictionary) -> void:
 	if nod == null:
 		return
