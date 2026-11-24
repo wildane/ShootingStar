@@ -498,7 +498,9 @@ func _kemas_kini_ui() -> void:
 	if label_bil_keluaran:
 		label_bil_keluaran.text = str(_bilangan_dalam_beg(ID_STEEL))
 	if label_kuantiti:
-		label_kuantiti.text = str(kuantiti_pilihan)
+		# Sama asas dengan paparan bahan: semasa lebur ia bilangan unit yang
+		# tinggal, supaya kuantiti × resipi sepadan dengan nombor keperluan.
+		label_kuantiti.text = str(unit_paparan)
 	if label_maks:
 		label_maks.text = "max %d" % maks
 	if butang_kurang:
