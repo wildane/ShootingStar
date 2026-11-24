@@ -15,39 +15,9 @@ const PowerGridRef := preload("res://scene/level_3/build_system/PowerInverter/Po
 @onready var butang_tutup = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/HBoxContainer/ButtonTutup")
 @onready var butang_demolish = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/HBoxContainer/ButtonDemolish")
 @onready var label_status = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Header/LabelStatus")
-@onready var bar_progres = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri/Progress")
-@onready var label_progress = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri/LabelProgress")
-@onready var butang_lebur = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/ButangCraft")
-@onready var kad = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad")
-@onready var label_nama_resipi = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/NamaResipi")
-# Slot bahan/keluaran dipegang dalam tatasusunan: UI yang sama dipakai untuk
-# semua resipi (resipi air hanya ada satu bahan, tetapi dua keluaran).
-@onready var label_bahan = [
-	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Bahan1/BilBahan1"),
-	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Bahan2/BilBahan2"),
-]
-@onready var ikon_bahan = [
-	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Bahan1/IkonBahan1"),
-	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Bahan2/IkonBahan2"),
-]
-@onready var slot_bahan = [
-	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Bahan1"),
-	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Maklumat/Bahan/Bahan2"),
-]
-@onready var ikon_keluaran = [
-	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri/IkonBekas/Slot1/IkonKeluaran"),
-	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri/IkonBekas/Slot2/IkonKeluaran2"),
-]
-@onready var label_keluaran = [
-	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri/IkonBekas/Slot1/BilanganDimiliki"),
-	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri/IkonBekas/Slot2/BilanganDimiliki2"),
-]
-@onready var slot_keluaran = [
-	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri/IkonBekas/Slot1"),
-	get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/Kad/HBox/Kiri/IkonBekas/Slot2"),
-]
-@onready var butang_resipi_steel = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisResipi/ButangSteel")
-@onready var butang_resipi_air = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisResipi/ButangAir")
+@onready var butang_lebur = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/ButangCraft")
+# Rujukan nod bagi setiap kad resipi (KadSteel, KadAir). Kad yang diklik jadi
+# resipi aktif; kad lain hanya tunjuk bahan + kiraan keluaran.
 @onready var label_kuantiti = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti/LabelKuantiti")
 @onready var label_maks = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti/LabelMaks")
 @onready var butang_kurang = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/BarisKuantiti/ButangKurang")
@@ -107,6 +77,9 @@ var resipi_semasa: int = 0
 # Ikon dimuatkan sekali sahaja (laluan -> tekstur) dan diguna semula oleh menu,
 # iklan terapung dan cincin kemajuan.
 var _cache_ikon: Dictionary = {}
+var kad_ui: Array[Dictionary] = []
+# Kad yang bingkainya terakhir dicat semula (elak bina StyleBox setiap kemas kini).
+var _bingkai_resipi: int = -1
 
 @export_category("Sistem Kuasa")
 @export var power_required: float = 200.0
@@ -167,12 +140,11 @@ func _ready() -> void:
 	if butang_lebur: butang_lebur.pressed.connect(_on_butang_lebur_pressed)
 	if butang_kurang: butang_kurang.pressed.connect(_on_kurang_pressed)
 	if butang_tambah: butang_tambah.pressed.connect(_on_tambah_pressed)
-	if butang_resipi_steel: butang_resipi_steel.pressed.connect(_on_butang_resipi_steel_pressed)
-	if butang_resipi_air: butang_resipi_air.pressed.connect(_on_butang_resipi_air_pressed)
 
 	if sprite:
 		_skala_asal = sprite.scale
 
+	_sedia_kad()
 	_pasang_ikon()
 	_pasang_gaya_kad()
 	_bina_cahaya()
@@ -196,14 +168,8 @@ func _pasang_gaya_kad() -> void:
 			bingkai.set_content_margin_all(4.0)
 			menu_ui.add_theme_stylebox_override("panel", bingkai)
 
-	if kad:
-		var gaya := StyleBoxFlat.new()
-		gaya.bg_color = Color(0.031, 0.082, 0.13, 0.95)
-		gaya.border_color = Color(0.28, 0.55, 0.68, 0.7)
-		gaya.set_border_width_all(1)
-		gaya.set_corner_radius_all(3)
-		gaya.set_content_margin_all(3.0)
-		kad.add_theme_stylebox_override("panel", gaya)
+	_bingkai_resipi = -1
+	_kemas_bingkai_kad()
 
 	if butang_lebur:
 		var normal := StyleBoxFlat.new()
@@ -285,11 +251,75 @@ func _pilih_resipi(indeks: int) -> void:
 	_reset_paparan_batch()
 	_kemas_kini_ui()
 
-func _on_butang_resipi_steel_pressed() -> void:
-	_pilih_resipi(0)
+# Cari nod dalam setiap kad resipi sekali sahaja (kad Steel dan kad Water +
+# Oxygen dibina dalam scene, bukan dicipta semula setiap kemas kini).
+func _sedia_kad() -> void:
+	kad_ui = [
+		_rujuk_kad("KadSteel"),
+		_rujuk_kad("KadAir"),
+	]
+	for i in kad_ui.size():
+		var panel: Control = kad_ui[i]["panel"]
+		if panel:
+			panel.gui_input.connect(_on_kad_input.bind(i))
 
-func _on_butang_resipi_air_pressed() -> void:
-	_pilih_resipi(1)
+func _rujuk_kad(nama_kad: String) -> Dictionary:
+	var akar: String = "CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/%s" % nama_kad
+	return {
+		"panel": get_node_or_null(akar),
+		"nama": get_node_or_null(akar + "/HBox/Maklumat/NamaResipi"),
+		"slot_bahan": [
+			get_node_or_null(akar + "/HBox/Maklumat/Bahan/Bahan1"),
+			get_node_or_null(akar + "/HBox/Maklumat/Bahan/Bahan2"),
+		],
+		"ikon_bahan": [
+			get_node_or_null(akar + "/HBox/Maklumat/Bahan/Bahan1/IkonBahan1"),
+			get_node_or_null(akar + "/HBox/Maklumat/Bahan/Bahan2/IkonBahan2"),
+		],
+		"label_bahan": [
+			get_node_or_null(akar + "/HBox/Maklumat/Bahan/Bahan1/BilBahan1"),
+			get_node_or_null(akar + "/HBox/Maklumat/Bahan/Bahan2/BilBahan2"),
+		],
+		"slot_keluaran": [
+			get_node_or_null(akar + "/HBox/Kiri/IkonBekas/Slot1"),
+			get_node_or_null(akar + "/HBox/Kiri/IkonBekas/Slot2"),
+		],
+		"ikon_keluaran": [
+			get_node_or_null(akar + "/HBox/Kiri/IkonBekas/Slot1/IkonKeluaran"),
+			get_node_or_null(akar + "/HBox/Kiri/IkonBekas/Slot2/IkonKeluaran2"),
+		],
+		"label_keluaran": [
+			get_node_or_null(akar + "/HBox/Kiri/IkonBekas/Slot1/BilanganDimiliki"),
+			get_node_or_null(akar + "/HBox/Kiri/IkonBekas/Slot2/BilanganDimiliki2"),
+		],
+		"bar": get_node_or_null(akar + "/HBox/Kiri/Progress"),
+		"label_progress": get_node_or_null(akar + "/HBox/Kiri/LabelProgress"),
+	}
+
+func _on_kad_input(event: InputEvent, indeks: int) -> void:
+	var klik := event as InputEventMouseButton
+	if klik == null or not klik.pressed or klik.button_index != MOUSE_BUTTON_LEFT:
+		return
+	_pilih_resipi(indeks)
+
+# Gaya kad resipi: kad aktif ada bingkai cyan terang, kad lain malap.
+func _gaya_kad(dipilih: bool) -> StyleBoxFlat:
+	var gaya := StyleBoxFlat.new()
+	gaya.bg_color = Color(0.031, 0.082, 0.13, 0.95) if dipilih else Color(0.024, 0.062, 0.094, 0.9)
+	gaya.border_color = Color(0.45, 0.92, 1, 0.95) if dipilih else Color(0.2, 0.4, 0.5, 0.55)
+	gaya.set_border_width_all(1)
+	gaya.set_corner_radius_all(3)
+	gaya.set_content_margin_all(3.0)
+	return gaya
+
+func _kemas_bingkai_kad() -> void:
+	if _bingkai_resipi == resipi_semasa:
+		return
+	_bingkai_resipi = resipi_semasa
+	for i in kad_ui.size():
+		var panel: PanelContainer = kad_ui[i]["panel"]
+		if panel:
+			panel.add_theme_stylebox_override("panel", _gaya_kad(i == resipi_semasa))
 
 # Cahaya api di muncung relau (dibina dalam kod, tiada aset tambahan).
 func _bina_cahaya() -> void:
@@ -468,8 +498,7 @@ func _mula_unit() -> void:
 	_ui_tick = SELA_UI
 	if _cahaya:
 		_cahaya.visible = true
-	if bar_progres:
-		bar_progres.value = 0.0
+	_kosongkan_bar_kad()
 	_kemas_kini_ui()
 
 # Animasi relau + kemajuan peleburan.
@@ -515,8 +544,7 @@ func _selesai_unit() -> void:
 	_apung_hasil()
 	_baki_batch -= 1
 	_unit_selesai += 1
-	if bar_progres:
-		bar_progres.value = 0.0
+	_kosongkan_bar_kad()
 
 	if _baki_batch > 0:
 		# Stop diminta pemain: unit ini tetap dikira, batch tamat di sini.
@@ -546,8 +574,7 @@ func _selesai_unit() -> void:
 	_jumlah_batch = 0
 	_unit_selesai = 0
 	kuantiti_pilihan = 1
-	if bar_progres:
-		bar_progres.value = 0.0
+	_kosongkan_bar_kad()
 	_kemas_kini_ui()
 	if inv:
 		inv.kemas_kini_selepas_batch()
@@ -596,9 +623,6 @@ func _kemas_kini_iklan(delta: float) -> void:
 
 # Kemas kini menu: ikon + bilangan bahan, keluaran, status, pilihan kuantiti, butang.
 func _kemas_kini_ui() -> void:
-	var resipi: Dictionary = _resipi()
-	var bahan: Array = resipi["bahan"]
-	var keluaran: Array = _keluaran_resipi()
 	var maks: int = _maks_unit()
 	if not sedang_lebur:
 		kuantiti_pilihan = clampi(kuantiti_pilihan, 1, maxi(1, maks))
@@ -606,48 +630,13 @@ func _kemas_kini_ui() -> void:
 	# batch. Unit yang sedang dilebur sudah dibayar, jadi tolak satu unit.
 	var unit_paparan: int = maxi(0, _baki_batch - 1) if sedang_lebur else kuantiti_pilihan
 
-	# Slot bahan fleksibel: Steel guna dua bahan, resipi air guna satu.
-	for i in slot_bahan.size():
-		var wadah_bahan: Control = slot_bahan[i]
-		if wadah_bahan == null:
-			continue
-		if i >= bahan.size():
-			wadah_bahan.visible = false
-			continue
-		wadah_bahan.visible = true
-		var data_bahan: Dictionary = bahan[i]
-		var ikon: Texture2D = _muat_ikon(str(data_bahan["ikon"]))
-		if ikon and ikon_bahan[i]:
-			ikon_bahan[i].texture = ikon
-		_tulis_bilangan(label_bahan[i], _bilangan_dalam_beg(str(data_bahan["id"])), int(data_bahan["kuantiti"]) * unit_paparan)
-
-	# Slot keluaran: Steel satu item, resipi air dua (botol air + tin oksigen).
-	for i in slot_keluaran.size():
-		var wadah_keluar: Control = slot_keluaran[i]
-		if wadah_keluar == null:
-			continue
-		if i >= keluaran.size():
-			wadah_keluar.visible = false
-			continue
-		wadah_keluar.visible = true
-		var data_keluaran: Dictionary = keluaran[i]
-		var ikon_keluar: Texture2D = _muat_ikon(str(data_keluaran["ikon"]))
-		if ikon_keluar and ikon_keluaran[i]:
-			ikon_keluaran[i].texture = ikon_keluar
-		if label_keluaran[i]:
-			label_keluaran[i].text = str(_bilangan_dalam_beg(str(data_keluaran["id"])))
-
-	if label_nama_resipi:
-		label_nama_resipi.text = str(resipi["nama"])
+	# Semua kad dikemas kini; kad bukan terpilih papar keperluan satu unit.
+	for i in kad_ui.size():
+		_kemas_kini_kad(i, unit_paparan if i == resipi_semasa else 1)
+	_kemas_bingkai_kad()
 	if _bulatan:
 		# Cincin di atas relau ikut ikon keluaran resipi yang dipilih.
-		_bulatan.tekstur = _muat_ikon(str(keluaran[0]["ikon"]))
-	if butang_resipi_steel:
-		butang_resipi_steel.set_pressed_no_signal(resipi_semasa == 0)
-		butang_resipi_steel.disabled = sedang_lebur
-	if butang_resipi_air:
-		butang_resipi_air.set_pressed_no_signal(resipi_semasa == 1)
-		butang_resipi_air.disabled = sedang_lebur
+		_bulatan.tekstur = _muat_ikon(str(_keluaran_resipi()[0]["ikon"]))
 
 	if label_kuantiti:
 		# Sama asas dengan paparan bahan: semasa lebur ia bilangan unit yang
@@ -697,19 +686,82 @@ func _kemas_progres(nisbah: float = 0.0) -> void:
 		teks = "%d/%d" % [_jumlah_batch, _jumlah_batch]
 		nilai = 1.0
 
-	if label_progress:
-		label_progress.text = teks
-	if bar_progres:
-		bar_progres.value = nilai * 100.0
+	# Hanya kad aktif tunjuk kemajuan; kad lain sentiasa 0/1.
+	for i in kad_ui.size():
+		var bar: ProgressBar = kad_ui[i]["bar"]
+		var label: Label = kad_ui[i]["label_progress"]
+		if i == resipi_semasa:
+			if label:
+				label.text = teks
+			if bar:
+				bar.value = nilai * 100.0
+		else:
+			if label:
+				label.text = "0/1"
+			if bar:
+				bar.value = 0.0
 	if _bulatan:
 		_bulatan.visible = sedang_lebur
 		_bulatan.set_kemajuan(nilai, teks)
 
-func _tulis_bilangan(label: Label, ada: int, perlu: int) -> void:
+# Satu kad resipi: ikon bahan + keperluan, ikon keluaran + kiraan dimiliki.
+# Kosongkan bar kemajuan semua kad (mula/henti unit).
+func _kosongkan_bar_kad() -> void:
+	for i in kad_ui.size():
+		var bar: ProgressBar = kad_ui[i]["bar"]
+		if bar:
+			bar.value = 0.0
+
+func _kemas_kini_kad(indeks: int, unit_paparan: int) -> void:
+	if indeks < 0 or indeks >= kad_ui.size() or indeks >= senarai_resipi.size():
+		return
+	var kad: Dictionary = kad_ui[indeks]
+	var resipi: Dictionary = senarai_resipi[indeks]
+	var bahan: Array = resipi["bahan"]
+	var keluaran: Array = resipi["keluaran"]
+
+	for i in kad["slot_bahan"].size():
+		var wadah_bahan: Control = kad["slot_bahan"][i]
+		if wadah_bahan == null:
+			continue
+		if i >= bahan.size():
+			wadah_bahan.visible = false
+			continue
+		wadah_bahan.visible = true
+		var data_bahan: Dictionary = bahan[i]
+		var ikon: Texture2D = _muat_ikon(str(data_bahan["ikon"]))
+		if ikon and kad["ikon_bahan"][i]:
+			kad["ikon_bahan"][i].texture = ikon
+		_tulis_bilangan(
+			kad["label_bahan"][i],
+			_bilangan_dalam_beg(str(data_bahan["id"])),
+			int(data_bahan["kuantiti"]) * unit_paparan,
+			indeks == resipi_semasa
+		)
+
+	for i in kad["slot_keluaran"].size():
+		var wadah_keluar: Control = kad["slot_keluaran"][i]
+		if wadah_keluar == null:
+			continue
+		if i >= keluaran.size():
+			wadah_keluar.visible = false
+			continue
+		wadah_keluar.visible = true
+		var data_keluaran: Dictionary = keluaran[i]
+		var ikon_keluar: Texture2D = _muat_ikon(str(data_keluaran["ikon"]))
+		if ikon_keluar and kad["ikon_keluaran"][i]:
+			kad["ikon_keluaran"][i].texture = ikon_keluar
+		if kad["label_keluaran"][i]:
+			kad["label_keluaran"][i].text = str(_bilangan_dalam_beg(str(data_keluaran["id"])))
+
+	if kad["nama"]:
+		kad["nama"].text = str(resipi["nama"])
+
+func _tulis_bilangan(label: Label, ada: int, perlu: int, aktif: bool = true) -> void:
 	if label == null:
 		return
 	label.text = str(perlu)
-	if sedang_lebur:
+	if aktif and sedang_lebur:
 		label.add_theme_color_override("font_color", WARNA_SEDANG)
 	elif ada >= perlu:
 		label.add_theme_color_override("font_color", WARNA_CUKUP)
@@ -749,8 +801,7 @@ func _henti_batch() -> void:
 	_jumlah_batch = 0
 	_unit_selesai = 0
 	kuantiti_pilihan = 1
-	if bar_progres:
-		bar_progres.value = 0.0
+	_kosongkan_bar_kad()
 	if _bulatan:
 		_bulatan.visible = false
 		_bulatan.set_kemajuan(0.0, "0/1")
