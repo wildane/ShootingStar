@@ -61,8 +61,8 @@ func trigger_drop() -> void:
 		inv_manager.tambah_item(data_barang)
 		print("DropComponent: Data berjaya dihantar ke InventoryManager!")
 	
-	# --- ANIMASI +1 TERAPUNG (BUKAN TERBANG KE INVENTORI) ---
-	var pos_skrin: Vector2 = get_canvas_transform() * barang_baru.global_position
+	# --- ANIMASI +1 TERAPUNG, MELEKAT PADA POSISI DUNIA ---
+	var pos_dunia: Vector2 = barang_baru.global_position
 	barang_baru.queue_free()
 
 	var canvas = get_tree().current_scene.find_child("CanvasLayer", true, false)
@@ -98,10 +98,19 @@ func trigger_drop() -> void:
 	popup.reset_size()
 	# Anggaran lebar untuk posisi awal; susun atur sebenar dikemas kini enjin.
 	var lebar := 16.0 + 3.0 + 18.0 if ikon_tex else 18.0
-	popup.global_position = pos_skrin + Vector2(-lebar * 0.5, -14.0)
+	var offset_x := -lebar * 0.5
+	var offset_y_awal := -14.0
+	var viewport := get_viewport()
+	popup.global_position = (viewport.get_canvas_transform() * pos_dunia) + Vector2(offset_x, offset_y_awal)
 
 	var tween = get_tree().create_tween().set_parallel(true)
-	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(popup, "global_position:y", popup.global_position.y - 28.0, 0.7)
-	tween.tween_property(popup, "modulate:a", 0.0, 0.7).set_delay(0.2)
+	var tw_pos = tween.tween_method(func(masa: float) -> void:
+		if not is_instance_valid(popup):
+			return
+		var t_gerak := clampf(masa / 0.7, 0.0, 1.0)
+		var e := 1.0 - (1.0 - t_gerak) * (1.0 - t_gerak) # EASE_OUT_QUAD
+		popup.global_position = (viewport.get_canvas_transform() * pos_dunia) + Vector2(offset_x, offset_y_awal - 28.0 * e)
+	, 0.0, 0.9, 0.9)
+	tw_pos.set_trans(Tween.TRANS_LINEAR)
+	tween.tween_property(popup, "modulate:a", 0.0, 0.7).set_delay(0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.chain().tween_callback(popup.queue_free)
