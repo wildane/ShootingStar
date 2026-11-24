@@ -141,5 +141,5 @@ func _on_butang_demolish_pressed():
 		sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
 		
 	# Memadam keseluruhan StaticBody2D (Fabricator dan UI sekali) secara selamat dari memori
-	get_tree().call_group("PowerInverter", "tanda_kotor")
+	PowerGrid.tanda_kotor_semua("bina_atau_roboh")
 	queue_free()

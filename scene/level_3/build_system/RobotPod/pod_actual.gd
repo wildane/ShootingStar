@@ -11,9 +11,11 @@ const TEKSTUR_POD_MATI: Texture2D = preload("res://scene/level_3/build_system/Ro
 const TEKSTUR_ROBOT_BARING: Texture2D = preload("res://scene/level_3/build_system/RobotPod/robot_baring.png")
 const ADEGAN_ROBOT: String = "res://scene/robot/RobotPekerja.tscn"
 
+const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
+const PowerGridRef := preload("res://scene/level_3/build_system/PowerInverter/PowerGrid.gd")
+
 @onready var save_component = $SaveComponent
 @onready var area_penderia = get_node_or_null("Area2D")
-const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
 
 @onready var menu_ui = get_node_or_null("CanvasLayer/MenuUI")
 @onready var label_status = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/LabelStatus")
@@ -76,6 +78,8 @@ func _ready() -> void:
 	_kemas_kini_warna_visual()
 	_kemas_kini_robot()
 	_kemas_kini_menu()
+	set_process(false) # Idea 6: tidur ketika tiada robot docked
+	PowerGridRef.daftar_perabot(self)
 
 
 func _process(delta: float) -> void:
@@ -83,12 +87,15 @@ func _process(delta: float) -> void:
 		_robot_dock = null
 		_kemas_kini_robot()
 		queue_redraw()
+		set_process(false)
 		return
 	if _robot_dock != null:
 		_masa_anim += delta
 		if is_instance_valid(sprite_robot_baring) and not sprite_robot_baring.visible:
 			_kemas_kini_robot()
 		queue_redraw()
+	else:
+		set_process(false)
 
 
 ## Imej robot baring (robot + kanopi kaca) hanya dipaparkan semasa mengecas.
@@ -133,6 +140,7 @@ func masuk_pod(robot: Node2D) -> void:
 	_robot_dock = robot
 	_kemas_kini_robot()
 	queue_redraw()
+	set_process(true)
 
 
 # Dipanggil RobotPekerja bila cas penuh / robot keluar.
@@ -140,6 +148,7 @@ func keluar_pod() -> void:
 	_robot_dock = null
 	_kemas_kini_robot()
 	queue_redraw()
+	set_process(false)
 
 
 func posisi_parkir() -> Vector2:
@@ -381,7 +390,7 @@ func _on_butang_demolish_pressed() -> void:
 	_robot_dock = null
 	player_dekat = false
 	modulate = Color(1.0, 1.0, 1.0, 1.0)
-	get_tree().call_group("PowerInverter", "tanda_kotor")
+	PowerGridRef.nyahdaftar_perabot(self)
 	queue_free()
 
 
@@ -389,6 +398,7 @@ func _exit_tree() -> void:
 	if is_instance_valid(_robot_dock) and _robot_dock.has_method("keluar_dari_pod"):
 		_robot_dock.call("keluar_dari_pod")
 	_robot_dock = null
+	PowerGridRef.nyahdaftar_perabot(self)
 
 
 # ==========================================================
@@ -407,4 +417,6 @@ func get_save_data() -> Dictionary:
 func load_save_data(data: Dictionary) -> void:
 	if data.has("global_position"):
 		global_position = data["global_position"]
+	PowerGridRef.kemas_kini_pos_nod(self, "perabot")
+	PowerGridRef.tanda_kotor_dari_pos(global_position, 400.0, "load_perabot")
 

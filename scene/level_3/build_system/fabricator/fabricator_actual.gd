@@ -7,6 +7,7 @@ extends StaticBody2D
 @onready var sprite = get_node_or_null("Sprite2D")
 @onready var area_penderia = get_node_or_null("Area2D")
 const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
+const PowerGridRef := preload("res://scene/level_3/build_system/PowerInverter/PowerGrid.gd")
 
 @onready var menu_ui = get_node_or_null("CanvasLayer/MenuUI") 
 @onready var butang_tutup = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonTutup")
@@ -104,6 +105,7 @@ func _ready():
 
 	if boleh_craft_drone:
 		_bina_ui_craft.call_deferred()
+	PowerGridRef.daftar_perabot(self)
 
 # 🔴 DIKEMASKINI: Hanya kumpul fail laluan objek dan kedudukan koordinat dunia sahaja (Bersih Tanpa Logik Kuasa)
 func get_save_data() -> Dictionary:
@@ -664,5 +666,8 @@ func _on_butang_demolish_pressed():
 	print("Sistem Khas: Objek perabot telah dimusnahkan!")
 	player_dekat = false
 	if sprite: sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
-	get_tree().call_group("PowerInverter", "tanda_kotor")
+	PowerGridRef.nyahdaftar_perabot(self)
 	queue_free()
+
+func _exit_tree() -> void:
+	PowerGridRef.nyahdaftar_perabot(self)

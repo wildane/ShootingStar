@@ -4,10 +4,12 @@ extends StaticBody2D
 ## Perlu kuasa dari Power Inverter (sama macam perabot lain) dan pemain
 ## mesti berada dalam radius stesen untuk menerima cas.
 
+const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
+const PowerGridRef := preload("res://scene/level_3/build_system/PowerInverter/PowerGrid.gd")
+
 @onready var save_component = $SaveComponent
 @onready var sprite = get_node_or_null("Sprite2D")
 @onready var area_penderia = get_node_or_null("Area2D")
-const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
 
 @onready var menu_ui = get_node_or_null("CanvasLayer/MenuUI")
 @onready var label_status = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/LabelStatus")
@@ -54,6 +56,7 @@ func _ready() -> void:
 	_bina_ikon_cas()
 	_kemas_kini_warna_visual()
 	_kemas_kini_label_status()
+	PowerGridRef.daftar_perabot(self)
 
 # Ikon kilat kuning berkelip di atas stesen semasa ia mengecas player.
 func _bina_ikon_cas() -> void:
@@ -214,7 +217,7 @@ func _on_butang_demolish_pressed():
 	_lepas_pemain()
 	player_dekat = false
 	if sprite: sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
-	get_tree().call_group("PowerInverter", "tanda_kotor")
+	PowerGridRef.nyahdaftar_perabot(self)
 	queue_free()
 
 func get_save_data() -> Dictionary:
@@ -229,6 +232,9 @@ func get_save_data() -> Dictionary:
 func load_save_data(data: Dictionary) -> void:
 	if data.has("global_position"):
 		global_position = data["global_position"]
+	PowerGridRef.kemas_kini_pos_nod(self, "perabot")
+	PowerGridRef.tanda_kotor_dari_pos(global_position, 400.0, "load_perabot")
 
 func _exit_tree() -> void:
 	_lepas_pemain()
+	PowerGridRef.nyahdaftar_perabot(self)

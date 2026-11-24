@@ -590,5 +590,5 @@ func _on_butang_demolish_pressed() -> void:
 	if sprite:
 		sprite.modulate = Color.WHITE
 		sprite.scale = _skala_asal
-	get_tree().call_group("PowerInverter", "tanda_kotor")
+	PowerGrid.tanda_kotor_semua("bina_atau_roboh")
 	queue_free()

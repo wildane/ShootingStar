@@ -1,9 +1,11 @@
 extends StaticBody2D
 
+const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
+const PowerGridRef := preload("res://scene/level_3/build_system/PowerInverter/PowerGrid.gd")
+
 @onready var save_component = $SaveComponent 
 @onready var sprite = get_node_or_null("Sprite2D")
 @onready var area_penderia = get_node_or_null("Area2D")
-const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
 
 @onready var menu_ui = get_node_or_null("CanvasLayer/MenuUI") 
 @onready var butang_tutup = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonTutup")
@@ -30,6 +32,7 @@ func _ready():
 		TemaPerabot.pasang(menu_ui)
 	if butang_tutup: butang_tutup.pressed.connect(_on_butang_tutup_pressed)
 	if butang_demolish: butang_demolish.pressed.connect(_on_butang_demolish_pressed)
+	PowerGridRef.daftar_solar(self)
 
 func set_owner_inverter(inverter: Node2D) -> void:
 	inverter_pembeli = inverter
@@ -109,8 +112,11 @@ func _on_butang_demolish_pressed():
 	inverter_pembeli = null
 	player_dekat = false
 	if sprite: sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
-	get_tree().call_group("PowerInverter", "tanda_kotor")
+	PowerGridRef.nyahdaftar_solar(self)
 	queue_free()
+
+func _exit_tree() -> void:
+	PowerGridRef.nyahdaftar_solar(self)
 
 func get_save_data() -> Dictionary:
 	var data_solar: Dictionary = {}
@@ -124,3 +130,5 @@ func get_save_data() -> Dictionary:
 func load_save_data(data: Dictionary) -> void:
 	if data.has("global_position"):
 		global_position = data["global_position"]
+	PowerGridRef.kemas_kini_pos_nod(self, "solar")
+	PowerGridRef.tanda_kotor_semua("load_solar")

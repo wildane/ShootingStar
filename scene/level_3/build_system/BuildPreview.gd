@@ -308,7 +308,7 @@ func _on_butang_confirm_pressed() -> void:
 			var bangunan_baru = bangunan_scene.instantiate()
 			get_parent().add_child(bangunan_baru)
 			bangunan_baru.global_position = global_position
-			get_tree().call_group("PowerInverter", "tanda_kotor")
+			PowerGrid.tanda_kotor_semua("bina_atau_roboh")
 		
 		queue_free()
 		_beritahu_build_manager()
