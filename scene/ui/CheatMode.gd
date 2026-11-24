@@ -172,13 +172,25 @@ func _tayang_item(adegan: PackedScene, data: Dictionary, pusat_drop: Vector2, po
 
 	var sudut := _rng.randf_range(0.0, TAU)
 	var jarak := _rng.randf_range(8.0, JEJARI_TABURAN)
-	visual.global_position = pusat_drop + Vector2.from_angle(sudut) * jarak
+	var posisi_mula := pusat_drop + Vector2.from_angle(sudut) * jarak
+	visual.global_position = posisi_mula
 
+	# Sasaran dikira semula setiap frame ikut kedudukan butang inventori di
+	# skrin, jadi item tetap terbang tepat ke butang walaupun kamera bergerak.
+	var butang := _butang_inventori()
 	_baki_inventori += 1
 	var tween := get_tree().create_tween().set_parallel(true)
-	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	tween.tween_property(visual, "global_position", posisi_sasaran, MASA_PENERBANGAN)
-	tween.tween_property(visual, "scale", Vector2.ZERO, MASA_PENERBANGAN)
+	tween.tween_method(func(masa: float) -> void:
+		if not is_instance_valid(visual):
+			return
+		var t := clampf(masa / MASA_PENERBANGAN, 0.0, 1.0)
+		var e := t * t # EASE_IN_QUAD
+		var sasaran := posisi_sasaran
+		if is_instance_valid(butang) and butang.is_visible_in_tree():
+			sasaran = visual.get_canvas_transform().affine_inverse() * (butang.global_position + butang.size / 2.0)
+		visual.global_position = posisi_mula.lerp(sasaran, e)
+	, 0.0, MASA_PENERBANGAN, MASA_PENERBANGAN)
+	tween.tween_property(visual, "scale", Vector2.ZERO, MASA_PENERBANGAN).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tween.chain().tween_callback(func() -> void:
 		if is_instance_valid(inventori):
 			# senyap: UI/simpanan dikemas kini sekali sahaja bila semua habis.
@@ -192,14 +204,22 @@ func _tayang_item(adegan: PackedScene, data: Dictionary, pusat_drop: Vector2, po
 				inventori.kemas_kini_selepas_batch()
 	)
 
+func _butang_inventori() -> Control:
+	var adegan_semasa := get_tree().current_scene
+	if adegan_semasa == null:
+		return null
+	var kanvas := adegan_semasa.find_child("CanvasLayer", true, false)
+	if kanvas == null:
+		return null
+	return kanvas.find_child("InventoryButton", true, false) as Control
+
 func _posisi_inventori(item_drop: Node) -> Vector2:
 	var sasaran := (item_drop as Node2D).global_position
 	var adegan_semasa := get_tree().current_scene
 	if adegan_semasa == null:
 		return sasaran
 
-	var kanvas := adegan_semasa.find_child("CanvasLayer", true, false)
-	var butang := kanvas.find_child("InventoryButton", true, false) as Control if kanvas else null
+	var butang := _butang_inventori()
 	if butang and butang.is_visible_in_tree():
 		return (item_drop as Node2D).get_canvas_transform().affine_inverse() * (butang.global_position + butang.size / 2.0)
 
