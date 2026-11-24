@@ -351,41 +351,46 @@ func load_game(scene_aktif: Node = null):
 
 	# Data pemain dipakai semasa spawn (lihat posisi_awal_player / pakai_data_player).
 	data_player = saved_data.get("player_data", {})
-		
+
+	# Buang entri yang scene-nya sudah tiada (contoh: robot yang dibuang dari
+	# projek) daripada inventori dan objek dunia, supaya inventori tidak
+	# menunjukkan "Item Tanpa Nama" dan fail slot tidak terus membawa data basi.
+	var inventori_lama = saved_data.get("inventory_items", [])
+	if not (inventori_lama is Array):
+		inventori_lama = []
+	var inventori_bersih: Array = _tapisan_scene_wujud(inventori_lama)
+	saved_data["inventory_items"] = inventori_bersih
+
+	var objek_lama = saved_data.get("placed_objects", [])
+	if not (objek_lama is Array):
+		objek_lama = []
+	var objek_bersih: Array = _tapisan_scene_wujud(objek_lama)
+	saved_data["placed_objects"] = objek_bersih
+
+	if inventori_bersih.size() < inventori_lama.size() or objek_bersih.size() < objek_lama.size():
+		_tulis_semula_slot(slot_aktif, saved_data)
+
 	var scene_utama = scene_aktif if scene_aktif != null else Engine.get_main_loop().current_scene
 	
 	# 1. Muat Semula Data Inventori
 	var inv_manager = get_node_or_null("/root/InventoryManager")
-	if inv_manager and saved_data.has("inventory_items"):
+	if inv_manager:
 		inv_manager.senarai_barang.clear()
-		for item in saved_data["inventory_items"]:
+		for item in inventori_bersih:
 			var path = item.get("scene_path", "")
+			var hantu = (load(path) as PackedScene).instantiate()
 			var id_d = path.get_file().get_basename()
 			var nama_d = "Item Tanpa Nama"
 			var ikon_d = null
-			
-			if path != "" and ResourceLoader.exists(path):
-				var hantu = (load(path) as PackedScene).instantiate()
-				if "id_barang" in hantu: id_d = hantu.id_barang
-				if "nama_barang" in hantu: nama_d = hantu.nama_barang
-				if "ikon_barang" in hantu: ikon_d = hantu.ikon_barang
-				hantu.queue_free()
-				
+			if "id_barang" in hantu: id_d = hantu.id_barang
+			if "nama_barang" in hantu: nama_d = hantu.nama_barang
+			if "ikon_barang" in hantu: ikon_d = hantu.ikon_barang
+			hantu.queue_free()
+
 			inv_manager.senarai_barang.append({"id": id_d, "nama": nama_d, "ikon": ikon_d, "scene_path": path, "kuantiti": item.get("kuantiti", 1)})
 		inv_manager.inventory_dikemaskini.emit()
 
 	# 2. Muat Semula Objek Dunia Terus dari Senarai Rata
-	# Entri yang scene-nya sudah tiada (contoh: robot yang dibuang dari
-	# projek) dibuang terus dari data dan fail slot supaya simpanan tidak
-	# terus membawa data basi.
-	var objek_lama = saved_data.get("placed_objects", [])
-	if not (objek_lama is Array):
-		objek_lama = []
-	var objek_bersih: Array = _tapisan_objek_hidup(objek_lama)
-	saved_data["placed_objects"] = objek_bersih
-	if objek_bersih.size() < objek_lama.size():
-		_tulis_semula_slot(slot_aktif, saved_data)
-
 	var y_sort_node = scene_utama.get_node_or_null("Y_Sort_Container") if scene_utama else null
 	if y_sort_node:
 		for data in objek_bersih:
@@ -465,8 +470,9 @@ func nama_state_player() -> String:
 	return str(data_player.get("state", ""))
 
 
-# Senarai placed_objects tanpa entri yang scene_path-nya tiada.
-func _tapisan_objek_hidup(senarai: Array) -> Array:
+# Senarai entri simpanan (inventori/objek dunia) tanpa entri yang
+# scene_path-nya tiada.
+func _tapisan_scene_wujud(senarai: Array) -> Array:
 	var bersih: Array = []
 	for data in senarai:
 		if data is Dictionary:
@@ -474,7 +480,7 @@ func _tapisan_objek_hidup(senarai: Array) -> Array:
 			if path != "" and ResourceLoader.exists(path):
 				bersih.append(data)
 	if bersih.size() < senarai.size():
-		print("[Save] %d objek basi dibuang daripada simpanan (scene tiada)." % (senarai.size() - bersih.size()))
+		print("[Save] %d entri basi dibuang daripada simpanan (scene tiada)." % (senarai.size() - bersih.size()))
 	return bersih
 
 # Tulis semula fail slot tanpa menyentuh masa dalam katalog. Ditulis ke fail
