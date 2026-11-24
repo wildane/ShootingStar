@@ -65,9 +65,12 @@ func _on_node_added(nod: Node) -> void:
 	# Jadual drop didaftar walaupun cheat belum dihidupkan.
 	if "drop_scenes" in nod:
 		_daftar_jadual(nod)
-	if not aktif or not (nod is Area2D) or not ("id_barang" in nod):
+	if not aktif or not (nod is Area2D) or not (nod is Node2D) or not ("id_barang" in nod):
 		return
-	call_deferred("_ganjar_semua_drop", nod)
+	# DropComponent queue_free() item itu serta-merta selepas spawn, jadi nod
+	# tidak sah lagi bila deferred call berjalan. Ambil data yang perlu sekarang
+	# dan hantar nilai ringkas sahaja.
+	call_deferred("_ganjar_semua_drop", str(nod.get("id_barang")), (nod as Node2D).global_position)
 
 # Imbas adegan semasa untuk DropComponent yang sudah wujud sebelum cheat
 # menyambung isyarat node_added.
@@ -98,13 +101,12 @@ func _daftar_jadual(komponen: Node) -> void:
 			continue
 		_jadual_drop[id] = jadual
 
-func _ganjar_semua_drop(item_drop: Node) -> void:
-	if not aktif or not is_instance_valid(item_drop) or not item_drop.is_inside_tree():
+func _ganjar_semua_drop(id_drop: String, pusat_drop: Vector2) -> void:
+	if not aktif:
 		return
-	var id_drop := str(item_drop.get("id_barang"))
 	var jadual: Array = _jadual_drop.get(id_drop, [])
 	if jadual.is_empty():
-		var komponen := _cari_sumber_drop(item_drop, id_drop)
+		var komponen := _cari_sumber_drop(pusat_drop, id_drop)
 		if komponen == null:
 			return
 		jadual = komponen.get("drop_scenes")
@@ -117,7 +119,6 @@ func _ganjar_semua_drop(item_drop: Node) -> void:
 	if adegan_semasa == null:
 		return
 
-	var pusat_drop := (item_drop as Node2D).global_position
 	# Item dikredit terus ke inventori, animasi guna popup "+N" yang sama
 	# seperti drop biasa (bukan terbang ke butang inventori).
 	# Susun menegak supaya popup tidak bertindih bila banyak jenis item keluar.
@@ -139,7 +140,7 @@ func _ganjar_semua_drop(item_drop: Node) -> void:
 		var ikon = data.get("ikon")
 		var ikon_tekstur: Texture2D = ikon if ikon is Texture2D else null
 		var ofset_popup := Vector2(0.0, -indeks_popup * JARAK_POPUP_Y)
-		DropComponent.tunjuk_popup_terapung(ikon_tekstur, "+" + str(bilangan), pusat_drop + ofset_popup, item_drop)
+		DropComponent.tunjuk_popup_terapung(ikon_tekstur, "+" + str(bilangan), pusat_drop + ofset_popup, self)
 		indeks_popup += 1
 
 	if ada_item and is_instance_valid(inventori) and inventori.has_method("kemas_kini_selepas_batch"):
@@ -147,12 +148,12 @@ func _ganjar_semua_drop(item_drop: Node) -> void:
 
 # Fallback lama: cari DropComponent pada musuh yang masih ada di kedudukan
 # item. Hanya digunakan kalau jadual id tersebut belum pernah didaftar.
-func _cari_sumber_drop(item_drop: Node, id_drop: String) -> Node:
+func _cari_sumber_drop(pusat_drop: Vector2, id_drop: String) -> Node:
 	for nama_kumpulan in ["enemy", "enemies"]:
 		for musuh in get_tree().get_nodes_in_group(nama_kumpulan):
 			if not is_instance_valid(musuh) or not (musuh is Node2D):
 				continue
-			if musuh.global_position.distance_to((item_drop as Node2D).global_position) > 2.0:
+			if musuh.global_position.distance_to(pusat_drop) > 2.0:
 				continue
 			var komponen := musuh.find_child("DropComponent", true, false)
 			if komponen == null or not ("drop_scenes" in komponen):
