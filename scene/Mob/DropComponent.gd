@@ -66,21 +66,42 @@ func trigger_drop() -> void:
 	barang_baru.queue_free()
 
 	var canvas = get_tree().current_scene.find_child("CanvasLayer", true, false)
+	var popup := HBoxContainer.new()
+	popup.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	popup.alignment = BoxContainer.ALIGNMENT_CENTER
+	popup.add_theme_constant_override("separation", 3)
+	popup.z_index = 100
+
+	var ikon_tex: Texture2D = ikon_b if ikon_b is Texture2D else null
+	if ikon_tex:
+		var ikon := TextureRect.new()
+		ikon.texture = ikon_tex
+		ikon.custom_minimum_size = Vector2(16, 16)
+		ikon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ikon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ikon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		popup.add_child(ikon)
+
 	var label := Label.new()
 	label.text = "+1"
 	label.add_theme_font_size_override("font_size", 14)
 	label.add_theme_color_override("font_color", Color(0.6, 1.0, 0.65, 1.0))
 	label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
 	label.add_theme_constant_override("outline_size", 4)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	popup.add_child(label)
+
 	if canvas:
-		canvas.add_child(label)
+		canvas.add_child(popup)
 	else:
-		get_tree().current_scene.add_child(label)
-	label.z_index = 100
-	label.global_position = pos_skrin + Vector2(-10, -12)
+		get_tree().current_scene.add_child(popup)
+	popup.reset_size()
+	# Anggaran lebar untuk posisi awal; susun atur sebenar dikemas kini enjin.
+	var lebar := 16.0 + 3.0 + 18.0 if ikon_tex else 18.0
+	popup.global_position = pos_skrin + Vector2(-lebar * 0.5, -14.0)
 
 	var tween = get_tree().create_tween().set_parallel(true)
 	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(label, "global_position:y", label.global_position.y - 28.0, 0.7)
-	tween.tween_property(label, "modulate:a", 0.0, 0.7).set_delay(0.2)
-	tween.chain().tween_callback(label.queue_free)
+	tween.tween_property(popup, "global_position:y", popup.global_position.y - 28.0, 0.7)
+	tween.tween_property(popup, "modulate:a", 0.0, 0.7).set_delay(0.2)
+	tween.chain().tween_callback(popup.queue_free)
