@@ -318,6 +318,8 @@ func _reset_paparan_batch() -> void:
 
 func _on_butang_lebur_pressed() -> void:
 	if sedang_lebur:
+		# Butang bertukar jadi Stop semasa batch berjalan.
+		_henti_batch("Smelting stopped")
 		return
 	if not has_power:
 		_tulis_info("No power - connect to Power Inverter")
@@ -381,8 +383,6 @@ func _process(delta: float) -> void:
 	if _ui_tick >= SELA_UI:
 		_ui_tick = 0.0
 		_kemas_progres(nisbah)
-		if butang_lebur:
-			butang_lebur.text = "%0.1fs" % max(0.0, MASA_LEBUR - masa_berlalu)
 
 	var denyut: float = (sin(masa_hiasan * 7.5) + 1.0) * 0.5
 	if sprite:
@@ -522,9 +522,13 @@ func _kemas_kini_ui() -> void:
 			label_status.text = "Need materials"
 			label_status.add_theme_color_override("font_color", WARNA_KURANG)
 
-	if butang_lebur and not sedang_lebur:
-		butang_lebur.text = "Craft"
-		butang_lebur.disabled = (not has_power) or (not _bahan_cukup())
+	if butang_lebur:
+		if sedang_lebur:
+			butang_lebur.text = "Stop"
+			butang_lebur.disabled = false
+		else:
+			butang_lebur.text = "Craft"
+			butang_lebur.disabled = (not has_power) or (not _bahan_cukup())
 
 	_kemas_progres()
 
@@ -592,6 +596,12 @@ func set_power_status(status_elektrik: bool, pembekal: Node2D = null) -> void:
 	_kemas_kini_ui()
 
 func _henti_lebur_kerana_tiada_kuasa() -> void:
+	_henti_batch("Smelting stopped: no power")
+
+# Hentikan batch semasa (kuasa terputus atau pemain tekan Stop). Bahan untuk
+# unit yang sedang dilebur sudah dibayar dan tidak dikembalikan, sama seperti
+# kehilangan kuasa.
+func _henti_batch(teks_info: String) -> void:
 	sedang_lebur = false
 	masa_berlalu = 0.0
 	_baki_batch = 0
@@ -607,7 +617,9 @@ func _henti_lebur_kerana_tiada_kuasa() -> void:
 		sprite.scale = _skala_asal
 	if _cahaya:
 		_cahaya.visible = false
-	_tulis_info("Smelting stopped: no power")
+	_tulis_info(teks_info)
+	_kemas_kini_warna_visual()
+	_kemas_kini_ui()
 
 func _kemas_kini_warna_visual() -> void:
 	if not sprite:
