@@ -12,6 +12,10 @@ const LALUAN_LAMA = "user://savegame.json"
 # Slot autosave berputar; ditulis bila game di-minimize (app pause/focus out).
 const SLOT_AUTOSAVE = ["autosave1", "autosave2", "autosave3"]
 
+# Versi format fail simpanan. Naikkan bila kandungan game dibuang/ditukar
+# dan save lama perlu dibersihkan dalam _migrasi_data_simpanan().
+const VERSI_SIMPANAN: int = 1
+
 # Slot yang sedang dimainkan ("" = permainan baharu, belum ada slot).
 var slot_aktif: String = ""
 
@@ -212,6 +216,7 @@ func _kumpul_data_state() -> Dictionary:
 
 	# Struktur JSON menggabungkan data perabot, inventori, dan SEMUA jenis spawner
 	var data_keseluruhan = {
+		"versi_simpanan": VERSI_SIMPANAN,
 		"inventory_items": [], 
 		"placed_objects": [],
 		"spawner_data": {}
@@ -404,23 +409,12 @@ func load_game(scene_aktif: Node = null):
 	# Data pemain dipakai semasa spawn (lihat posisi_awal_player / pakai_data_player).
 	data_player = saved_data.get("player_data", {})
 
-	# Buang entri yang scene-nya sudah tiada (contoh: robot yang dibuang dari
-	# projek) daripada inventori dan objek dunia, supaya inventori tidak
-	# menunjukkan "Item Tanpa Nama" dan fail slot tidak terus membawa data basi.
-	var inventori_lama = saved_data.get("inventory_items", [])
-	if not (inventori_lama is Array):
-		inventori_lama = []
-	var inventori_bersih: Array = _tapisan_scene_wujud(inventori_lama)
-	saved_data["inventory_items"] = inventori_bersih
-
-	var objek_lama = saved_data.get("placed_objects", [])
-	if not (objek_lama is Array):
-		objek_lama = []
-	var objek_bersih: Array = _tapisan_scene_wujud(objek_lama)
-	saved_data["placed_objects"] = objek_bersih
-
-	if inventori_bersih.size() < inventori_lama.size() or objek_bersih.size() < objek_lama.size():
+	# Migrasi format lama (versi_simpanan): data yang scene-nya sudah tiada
+	# dibuang secara eksplisit, dan fail slot ditulis semula sekali sahaja.
+	if _migrasi_data_simpanan(saved_data):
 		_tulis_fail_slot(slot_aktif, saved_data)
+	var inventori_bersih: Array = saved_data.get("inventory_items", [])
+	var objek_bersih: Array = saved_data.get("placed_objects", [])
 
 	var scene_utama = scene_aktif if scene_aktif != null else Engine.get_main_loop().current_scene
 	
@@ -521,6 +515,35 @@ func pakai_data_player(pemain: Node2D) -> void:
 func nama_state_player() -> String:
 	return str(data_player.get("state", ""))
 
+
+# Migrasi data simpanan lama ke format semasa. Setiap langkah bersifat
+# eksplisit supaya data lama dibersihkan bila kandungan game dibuang.
+# Pulangkan true kalau data berubah dan fail slot perlu ditulis semula.
+func _migrasi_data_simpanan(data: Dictionary) -> bool:
+	var versi := int(data.get("versi_simpanan", 0))
+	var berubah := false
+	if versi < 1:
+		# v1: buang entri robot/pod yang dibuang dari projek.
+		berubah = true
+	# Tapisan scene sentiasa dijalankan (murah, idempotent) sebagai jaring
+	# keselamatan kalau kandungan dibuang tanpa naikkan VERSI_SIMPANAN.
+	berubah = _bersihkan_senarai_scene(data, "inventory_items") or berubah
+	berubah = _bersihkan_senarai_scene(data, "placed_objects") or berubah
+	if versi < VERSI_SIMPANAN:
+		data["versi_simpanan"] = VERSI_SIMPANAN
+		berubah = true
+	return berubah
+
+# Tapis satu senarai entri di dalam data simpanan. Pulangkan true kalau ada
+# entri dibuang atau nilainya bukan senarai.
+func _bersihkan_senarai_scene(data: Dictionary, kunci: String) -> bool:
+	var senarai = data.get(kunci, [])
+	if not (senarai is Array):
+		data[kunci] = []
+		return true
+	var bersih := _tapisan_scene_wujud(senarai)
+	data[kunci] = bersih
+	return bersih.size() < senarai.size()
 
 # Senarai entri simpanan (inventori/objek dunia) tanpa entri yang
 # scene_path-nya tiada.
