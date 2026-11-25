@@ -282,7 +282,7 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 	# di bawah walaupun teks panjang.
 	var skrol_info := ScrollContainer.new()
 	skrol_info.name = "SkrolInfo"
-	skrol_info.custom_minimum_size = Vector2(0, 44)
+	skrol_info.custom_minimum_size = Vector2(0, 56)
 	skrol_info.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	skrol_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	skrol_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
