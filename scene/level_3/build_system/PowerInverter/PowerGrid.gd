@@ -200,38 +200,6 @@ static func _komponen_nod(nod: Node2D, grid: Node, komponen: Dictionary) -> int:
 	var sel := _sel_grid(grid, nod.global_position)
 	return int(komponen.get(sel, -1))
 
-# --- Wayar visual ---
-# Susun solar milik `inv` jadi satu rantaian: mula dari solar terdekat dengan
-# inverter, kemudian nearest-neighbour antara solar. Titik dikembalikan dalam
-# ruang setempat inverter supaya boleh terus dipakai oleh Line2D.
-static func titik_kabel(inv: Node2D, senarai: Array) -> PackedVector2Array:
-	var titik := PackedVector2Array()
-	if not _nod_sah(inv):
-		return titik
-	var baki: Array = []
-	for s in senarai:
-		if _nod_sah(s) and s is Node2D:
-			baki.append(s)
-	if baki.is_empty():
-		return titik
-	titik.append(Vector2.ZERO)
-	var semasa := Vector2.ZERO
-	while not baki.is_empty():
-		var terbaik := 0
-		var jarak_terbaik := INF
-		for i in baki.size():
-			var p: Vector2 = inv.to_local((baki[i] as Node2D).global_position)
-			var d := semasa.distance_squared_to(p)
-			if d < jarak_terbaik:
-				jarak_terbaik = d
-				terbaik = i
-		var nod: Node2D = baki[terbaik]
-		baki.remove_at(terbaik)
-		var titik_solar: Vector2 = inv.to_local(nod.global_position)
-		titik.append(titik_solar)
-		semasa = titik_solar
-	return titik
-
 # --- Proses utama ---
 
 static func perlu_kira() -> bool:
@@ -274,10 +242,8 @@ static func proses(tree: SceneTree, paksa: bool = false) -> void:
 
 	# 1) Solar wireless -> inverter terdekat (satu solar satu inverter).
 	var kuasa_inverter: Dictionary = {} # instance_id -> float
-	var solar_inverter: Dictionary = {} # instance_id inverter -> Array[Node2D]
 	for inv: Node2D in inverters:
 		kuasa_inverter[inv.get_instance_id()] = 0.0
-		solar_inverter[inv.get_instance_id()] = []
 
 	for solar: Node2D in semua_solar:
 		var terbaik: Node2D = null
@@ -307,9 +273,6 @@ static func proses(tree: SceneTree, paksa: bool = false) -> void:
 				watt = float(solar.power_production)
 			var id_terbaik_inv := terbaik.get_instance_id()
 			kuasa_inverter[id_terbaik_inv] = float(kuasa_inverter.get(id_terbaik_inv, 0.0)) + watt
-			var senarai_solar: Array = solar_inverter.get(id_terbaik_inv, [])
-			senarai_solar.append(solar)
-			solar_inverter[id_terbaik_inv] = senarai_solar
 		else:
 			var pemilik = solar.inverter_pembeli if "inverter_pembeli" in solar else null
 			if pemilik != null:
@@ -317,13 +280,6 @@ static func proses(tree: SceneTree, paksa: bool = false) -> void:
 					solar.release_owner_inverter(pemilik)
 				else:
 					solar.inverter_pembeli = null
-
-	# Kemas kini wayar visual: solar bersambung sesama sendiri dulu, kemudian
-	# satu wayar ke inverter.
-	for inv: Node2D in inverters:
-		if not _nod_sah(inv) or not inv.has_method("set_senarai_kabel"):
-			continue
-		inv.set_senarai_kabel(solar_inverter.get(inv.get_instance_id(), []))
 
 	# 2) Kumpul inverter ikut rangkaian struktur.
 	var bekalan_rangkaian: Dictionary = {} # komp_id -> float
