@@ -905,6 +905,13 @@ func _on_butang_tutup_pressed() -> void:
 	if menu_ui:
 		menu_ui.hide()
 
+# Kos bina ikut Smelter_Preview.tscn: 6 Basic Iron Ore + 2 Raw Silica.
+func kos_bina() -> Array:
+	return [
+		{"id": "item_0001", "nama": "Basic Iron Ore", "ikon": load("res://scene/Item/0001BasicIronOre/Image_959.png"), "scene_path": "res://scene/Item/0001BasicIronOre/0001BasicIronOre.tscn", "diperlukan": 6},
+		{"id": "item_0003", "nama": "Raw Silica", "ikon": load("res://scene/Item/0003RawSilica/Image_495.png"), "scene_path": "res://scene/Item/0003RawSilica/0003RawSilica.tscn", "diperlukan": 2},
+	]
+
 func _on_butang_demolish_pressed() -> void:
 	# Pulangkan bahan bina (popup "+N <nama>") sebelum relau dibuang.
 	BahanBinaan.pulangkan(self)

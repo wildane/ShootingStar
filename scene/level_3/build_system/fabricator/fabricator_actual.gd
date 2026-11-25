@@ -645,6 +645,12 @@ func _tutup_menu() -> void:
 func _on_butang_tutup_pressed(): 
 	_tutup_menu()
 
+# Kos bina ikut Fabricator_Preview.tscn: 5 Basic Iron Ore.
+func kos_bina() -> Array:
+	return [
+		{"id": "item_0001", "nama": "Basic Iron Ore", "ikon": load("res://scene/Item/0001BasicIronOre/Image_959.png"), "scene_path": "res://scene/Item/0001BasicIronOre/0001BasicIronOre.tscn", "diperlukan": 5},
+	]
+
 func _on_butang_demolish_pressed():
 	print("Sistem Khas: Objek perabot telah dimusnahkan!")
 	# Pulangkan bahan bina (popup "+N <nama>") sebelum perabot dibuang.

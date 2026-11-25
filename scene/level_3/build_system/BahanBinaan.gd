@@ -15,10 +15,16 @@ static var _peta_item: Dictionary = {} # laluan item -> data (id/nama/ikon/scene
 static var _sedia: bool = false
 
 
-# Senarai bahan bina untuk satu bangunan (kosong jika previewnya tiada).
+# Senarai bahan bina untuk satu bangunan. Utamakan kos_bina() pada skrip
+# bangunan sebenar (data ikut preview, tiada scan/save). Fallback ke peta
+# preview untuk bangunan lama yang belum ada kos_bina().
 static func bahan_binaan(bangunan: Node) -> Array:
 	if not is_instance_valid(bangunan):
 		return []
+	if bangunan.has_method("kos_bina"):
+		var kos = bangunan.kos_bina()
+		if kos is Array:
+			return kos
 	var laluan := str(bangunan.scene_file_path)
 	if laluan.is_empty():
 		return []

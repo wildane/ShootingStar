@@ -190,6 +190,13 @@ func _on_butang_tutup_pressed():
 	var menu_ui = get_node_or_null("CanvasLayer/MenuUI")
 	if menu_ui: menu_ui.hide()
 
+# Kos bina ikut PowerInverter_Preview.tscn: 2 Meteorite Ice + 3 Basic Iron Ore.
+func kos_bina() -> Array:
+	return [
+		{"id": "item_0002", "nama": "Meteorite Ice", "ikon": load("res://scene/Item/0002MeteoriteIce/Image_393.png"), "scene_path": "res://scene/Item/0002MeteoriteIce/MeteoriteIce.tscn", "diperlukan": 2},
+		{"id": "item_0001", "nama": "Basic Iron Ore", "ikon": load("res://scene/Item/0001BasicIronOre/Image_959.png"), "scene_path": "res://scene/Item/0001BasicIronOre/0001BasicIronOre.tscn", "diperlukan": 3},
+	]
+
 func _on_butang_demolish_pressed():
 	# Pulangkan bahan bina (popup "+N <nama>") sebelum inverter dibuang.
 	BahanBinaan.pulangkan(self)

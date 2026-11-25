@@ -107,6 +107,13 @@ func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int):
 func _on_butang_tutup_pressed():
 	if menu_ui: menu_ui.hide()
 
+# Kos bina ikut SolarModule_Preview.tscn: 1 Raw Silica + 2 Basic Iron Ore.
+func kos_bina() -> Array:
+	return [
+		{"id": "item_0003", "nama": "Raw Silica", "ikon": load("res://scene/Item/0003RawSilica/Image_495.png"), "scene_path": "res://scene/Item/0003RawSilica/0003RawSilica.tscn", "diperlukan": 1},
+		{"id": "item_0001", "nama": "Basic Iron Ore", "ikon": load("res://scene/Item/0001BasicIronOre/Image_959.png"), "scene_path": "res://scene/Item/0001BasicIronOre/0001BasicIronOre.tscn", "diperlukan": 2},
+	]
+
 func _on_butang_demolish_pressed():
 	# Pulangkan bahan bina (popup "+N <nama>") sebelum modul dibuang.
 	BahanBinaan.pulangkan(self)

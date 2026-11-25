@@ -136,6 +136,12 @@ func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int):
 func _on_butang_tutup_pressed(): 
 	if menu_ui: menu_ui.hide()
 
+# Kos bina ikut ResearchTable_Preview.tscn: 3 Basic Iron Ore.
+func kos_bina() -> Array:
+	return [
+		{"id": "item_0001", "nama": "Basic Iron Ore", "ikon": load("res://scene/Item/0001BasicIronOre/Image_959.png"), "scene_path": "res://scene/Item/0001BasicIronOre/0001BasicIronOre.tscn", "diperlukan": 3},
+	]
+
 func _on_butang_demolish_pressed():
 	print("Sistem Khas: Objek perabot telah dimusnahkan!")
 	# Pulangkan bahan bina (popup "+N <nama>") sebelum perabot dibuang.

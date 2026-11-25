@@ -132,6 +132,13 @@ func _on_butang_tutup_pressed():
 		menu_ui.hide()
 
 # FUNGSI MEMADAM: Memadam objek Fabricator dari peta apabila butang demolish ditekan
+# Kos bina ikut KitchenTable_Preview.tscn: 1 Meteorite Ice + 3 Basic Iron Ore.
+func kos_bina() -> Array:
+	return [
+		{"id": "item_0002", "nama": "Meteorite Ice", "ikon": load("res://scene/Item/0002MeteoriteIce/Image_393.png"), "scene_path": "res://scene/Item/0002MeteoriteIce/MeteoriteIce.tscn", "diperlukan": 1},
+		{"id": "item_0001", "nama": "Basic Iron Ore", "ikon": load("res://scene/Item/0001BasicIronOre/Image_959.png"), "scene_path": "res://scene/Item/0001BasicIronOre/0001BasicIronOre.tscn", "diperlukan": 3},
+	]
+
 func _on_butang_demolish_pressed():
 	print("Sistem Khas: Fabricator telah dimusnahkan!") # 🔴 LOG DIKEMAS KINI
 	# Pulangkan bahan bina (popup "+N <nama>") sebelum perabot dibuang.

@@ -211,6 +211,13 @@ func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int):
 func _on_butang_tutup_pressed():
 	if menu_ui: menu_ui.hide()
 
+# Kos bina ikut ChargingStation_Preview.tscn: 3 Raw Silica + 6 Basic Iron Ore.
+func kos_bina() -> Array:
+	return [
+		{"id": "item_0003", "nama": "Raw Silica", "ikon": load("res://scene/Item/0003RawSilica/Image_495.png"), "scene_path": "res://scene/Item/0003RawSilica/0003RawSilica.tscn", "diperlukan": 3},
+		{"id": "item_0001", "nama": "Basic Iron Ore", "ikon": load("res://scene/Item/0001BasicIronOre/Image_959.png"), "scene_path": "res://scene/Item/0001BasicIronOre/0001BasicIronOre.tscn", "diperlukan": 6},
+	]
+
 func _on_butang_demolish_pressed():
 	# Pulangkan bahan bina (popup "+N <nama>") sebelum stesen dibuang.
 	BahanBinaan.pulangkan(self)
