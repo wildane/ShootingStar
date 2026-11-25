@@ -466,6 +466,7 @@ func kosongkan() -> void:
 	_bina_kemajuan.clear()
 	_padam_tanda.clear()
 	_padam_kemajuan.clear()
+	PowerGrid.tanda_kotor_semua("grid_kosongkan")
 	queue_redraw()
 
 # Buang satu tile siap sahaja (tanpa sentuh teks status).
@@ -542,6 +543,7 @@ func muat_data_save(data: Dictionary) -> void:
 			_rancang[g] = jenis
 			if item.has("kemajuan"):
 				_bina_kemajuan[g] = clampf(float(item.get("kemajuan", 0.0)), 0.0, 0.99)
+	PowerGrid.tanda_kotor_semua("grid_muat")
 	queue_redraw()
 
 # Dipakai preview bangunan luar (contoh: Solar Module) supaya struktur yang
@@ -793,6 +795,7 @@ func _kemas_kini_pembinaan(delta: float, pos_pemain: Vector2) -> void:
 	_bina_kolider(sasaran, jenis)
 	_label_status.text = NAMA_JENIS[jenis] + " built"
 	_apung_besi(-KOS_BESI)
+	PowerGrid.tanda_kotor_semua("grid_bina")
 	queue_redraw()
 
 func _kemas_kini_nyahbina(delta: float, pos_pemain: Vector2) -> void:
@@ -843,6 +846,7 @@ func _kemas_kini_nyahbina(delta: float, pos_pemain: Vector2) -> void:
 	_pulangkan_besi()
 	_label_status.text = NAMA_JENIS[jenis] + " deconstructed (+1 Iron)"
 	_apung_besi(KOS_BESI)
+	PowerGrid.tanda_kotor_semua("grid_roboh")
 	queue_redraw()
 
 # Pintu terbuka (kolider dimatikan) bila pemain berada dekat. Tile dirancang

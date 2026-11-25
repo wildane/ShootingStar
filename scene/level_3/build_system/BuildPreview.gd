@@ -307,8 +307,9 @@ func _on_butang_confirm_pressed() -> void:
 		var bangunan_scene = load(fail_bangunan_sebenar_tscn)
 		if bangunan_scene:
 			var bangunan_baru = bangunan_scene.instantiate()
+			var gp_bangunan := global_position
 			get_parent().add_child(bangunan_baru)
-			bangunan_baru.global_position = global_position
+			bangunan_baru.global_position = gp_bangunan
 			# Popup "-N <nama>" semasa bahan ditolak; Demolish nanti ambil
 			# semula senarai bahan yang sama dari scene preview ini.
 			BahanBinaan.papar_iklan(data_mats_terekstrak, bangunan_baru.global_position + Vector2(0.0, -10.0), bangunan_baru, -1)

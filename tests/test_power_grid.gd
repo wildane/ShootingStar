@@ -1,12 +1,31 @@
 extends SceneTree
 
-## Ujian regresi headless untuk PowerGrid (Idea 8).
+## Ujian regresi headless untuk PowerGrid hibrid.
 ## Jalankan: Godot --headless --path . -s res://tests/test_power_grid.gd
 
 const PowerGridRef = preload("res://scene/level_3/build_system/PowerInverter/PowerGrid.gd")
 
 var _lulus := 0
 var _gagal := 0
+
+class MockBuildGrid extends Node2D:
+	const SAIZ_SEL: int = 16
+	var _tile: Dictionary = {} # Vector2i -> jenis
+
+	func _ready() -> void:
+		add_to_group("BuildGrid")
+
+	func tambah_lantai(sel: Vector2i) -> void:
+		_tile[sel] = 0 # JENIS_LANTAI
+
+	func tambah_dinding(sel: Vector2i) -> void:
+		_tile[sel] = 1 # JENIS_DINDING
+
+	func tambah_pintu(sel: Vector2i) -> void:
+		_tile[sel] = 2 # JENIS_PINTU
+
+	func buang_sel(sel: Vector2i) -> void:
+		_tile.erase(sel)
 
 class MockInverter extends Node2D:
 	var radius_inverter_to_solar: float = 300.0
@@ -18,12 +37,6 @@ class MockInverter extends Node2D:
 	func _ready():
 		add_to_group("PowerInverter")
 	func _kemas_kini_paparan_skrin() -> void:
-		pass
-	func _set_kuasa_kosong() -> void:
-		total_power_supply = 0.0
-		total_power_requirement = 0.0
-		baki_tenaga = 0.0
-	func _kemas_kini_status_perabot_tiada_kuasa() -> void:
 		pass
 
 class MockSolar extends Node2D:
@@ -57,12 +70,15 @@ func _init() -> void:
 
 func _jalankan() -> void:
 	PowerGridRef.reset()
-	await _uji_asas()
+	await _uji_asas_rangkaian()
+	await _uji_tiada_rangkaian()
+	await _uji_dinding_jambatan()
+	await _uji_solar_terdekat()
+	await _uji_solar_luar_radius()
+	await _uji_rangkaian_terpisah()
 	await _uji_tiada_inverter_bersihkan()
-	await _uji_rujukan_inverter_tidak_sah()
-	await _uji_multi_inverter()
-	await _uji_incremental_perabot()
 	await _uji_nyahdaftar_solar()
+	await _uji_bina_roboh_kotor()
 	await _uji_tekanan_berulang()
 	print("UJIAN POWERGRID: %d lulus, %d gagal" % [_lulus, _gagal])
 	if _gagal > 0:
@@ -77,6 +93,19 @@ func _assert(nama: String, keadaan: bool) -> void:
 	else:
 		_gagal += 1
 		print("  [GAGAL] ", nama)
+
+func _buat_grid() -> MockBuildGrid:
+	var g := MockBuildGrid.new()
+	root.add_child(g)
+	return g
+
+func _sel(pos: Vector2) -> Vector2i:
+	return Vector2i(floori(pos.x / 16.0), floori(pos.y / 16.0))
+
+func _isi_lantai(grid: MockBuildGrid, dari: Vector2i, ke: Vector2i) -> void:
+	for x in range(mini(dari.x, ke.x), maxi(dari.x, ke.x) + 1):
+		for y in range(mini(dari.y, ke.y), maxi(dari.y, ke.y) + 1):
+			grid.tambah_lantai(Vector2i(x, y))
 
 func _buat_inverter(pos: Vector2) -> MockInverter:
 	var n := MockInverter.new()
@@ -108,26 +137,124 @@ func _bersih(nod: Node) -> void:
 	if is_instance_valid(nod):
 		nod.queue_free()
 
-func _uji_asas() -> void:
-	print("Ujian asas bekalan/keperluan")
+func _uji_asas_rangkaian() -> void:
+	print("Ujian asas rangkaian struktur")
 	PowerGridRef.reset()
-	var inv := _buat_inverter(Vector2(0, 0))
-	var s := _buat_solar(Vector2(100, 0), 100.0)
-	var p := _buat_perabot(Vector2(50, 0), 20.0)
+	var grid := _buat_grid()
+	_isi_lantai(grid, Vector2i(0, 0), Vector2i(10, 2))
+	var inv := _buat_inverter(Vector2(16, 16))
+	var s := _buat_solar(Vector2(100, 16), 100.0) # wireless dalam radius
+	var p := _buat_perabot(Vector2(64, 16), 20.0)
 	_proses()
-	_assert("perabot dapat kuasa", p.has_power and p.inverter_pembekal == inv)
-	_assert("inverter kira bekalan", inv.total_power_supply == 100.0)
-	_assert("inverter kira keperluan", inv.total_power_requirement == 20.0)
+	_assert("perabot atas rangkaian dapat kuasa", p.has_power and p.inverter_pembekal == inv)
+	_assert("inverter kira bekalan rangkaian", inv.total_power_supply == 100.0)
+	_assert("inverter kira keperluan rangkaian", inv.total_power_requirement == 20.0)
 	_assert("baki betul", inv.baki_tenaga == 80.0)
-	_bersih(p); _bersih(s); _bersih(inv)
+	_assert("solar assign ke inverter", s.inverter_pembeli == inv)
+	_bersih(p); _bersih(s); _bersih(inv); _bersih(grid)
+	await create_timer(0.05).timeout
+
+func _uji_tiada_rangkaian() -> void:
+	print("Ujian tiada rangkaian struktur")
+	PowerGridRef.reset()
+	var grid := _buat_grid() # tiada tile
+	var inv := _buat_inverter(Vector2(16, 16))
+	var s := _buat_solar(Vector2(100, 16), 100.0)
+	var p := _buat_perabot(Vector2(64, 16), 20.0)
+	_proses()
+	_assert("perabot tiada kuasa tanpa rangkaian", not p.has_power)
+	_assert("solar masih assign ke inverter terdekat", s.inverter_pembeli == inv)
+	_bersih(p); _bersih(s); _bersih(inv); _bersih(grid)
+	await create_timer(0.05).timeout
+
+func _uji_dinding_jambatan() -> void:
+	print("Ujian lantai dipisah dinding/pintu bersambung")
+	PowerGridRef.reset()
+	var grid := _buat_grid()
+	# Dua kawasan lantai dipisah ruang kosong, disambung oleh dinding.
+	_isi_lantai(grid, Vector2i(0, 0), Vector2i(1, 0))
+	_isi_lantai(grid, Vector2i(3, 0), Vector2i(4, 0))
+	grid.tambah_dinding(Vector2i(2, 0))
+	var inv := _buat_inverter(Vector2(8, 8))   # atas sel (0,0)
+	var s := _buat_solar(Vector2(40, 8), 100.0)
+	var p := _buat_perabot(Vector2(56, 8), 20.0) # atas sel (3,0), seberang dinding
+	_proses()
+	_assert("perabot seberang dinding dapat kuasa", p.has_power)
+	# Ganti dinding dengan pintu pun patut bersambung.
+	grid.buang_sel(Vector2i(2, 0))
+	grid.tambah_pintu(Vector2i(2, 0))
+	PowerGridRef.tanda_kotor_semua("uji_pintu")
+	_proses()
+	_assert("perabot seberang pintu dapat kuasa", p.has_power)
+	_bersih(p); _bersih(s); _bersih(inv); _bersih(grid)
+	await create_timer(0.05).timeout
+
+func _uji_solar_terdekat() -> void:
+	print("Ujian satu solar assign ke inverter terdekat")
+	PowerGridRef.reset()
+	var grid := _buat_grid()
+	_isi_lantai(grid, Vector2i(0, 0), Vector2i(20, 2))
+	var inv_dekat := _buat_inverter(Vector2(80, 16))   # jarak 20 dari solar
+	var inv_jauh := _buat_inverter(Vector2(160, 16))   # jarak 60 dari solar
+	var s := _buat_solar(Vector2(100, 16), 100.0)
+	var p := _buat_perabot(Vector2(16, 16), 20.0)
+	_proses()
+	_assert("solar assign ke inverter terdekat", s.inverter_pembeli == inv_dekat)
+	_assert("inverter terdekat dapat bekalan", inv_dekat.total_power_supply == 100.0)
+	_assert("inverter jauh tidak jadi pemilik solar", s.inverter_pembeli != inv_jauh)
+	_assert("perabot pada rangkaian sama dapat kuasa", p.has_power)
+	_bersih(p); _bersih(s); _bersih(inv_jauh); _bersih(inv_dekat); _bersih(grid)
+	await create_timer(0.05).timeout
+
+func _uji_solar_luar_radius() -> void:
+	print("Ujian solar luar radius tidak assign")
+	PowerGridRef.reset()
+	var grid := _buat_grid()
+	_isi_lantai(grid, Vector2i(0, 0), Vector2i(5, 1))
+	var inv := _buat_inverter(Vector2(16, 16))
+	inv.radius_inverter_to_solar = 50.0
+	var s := _buat_solar(Vector2(200, 16), 100.0)
+	s.jarak_cantuman = 50.0
+	var p := _buat_perabot(Vector2(32, 16), 20.0)
+	_proses()
+	_assert("solar luar radius tidak assign", s.inverter_pembeli == null)
+	_assert("perabot tiada kuasa", not p.has_power)
+	_bersih(p); _bersih(s); _bersih(inv); _bersih(grid)
+	await create_timer(0.05).timeout
+
+func _uji_rangkaian_terpisah() -> void:
+	print("Ujian dua rangkaian terpisah")
+	PowerGridRef.reset()
+	var grid := _buat_grid()
+	_isi_lantai(grid, Vector2i(0, 0), Vector2i(2, 0))   # rangkaian A
+	_isi_lantai(grid, Vector2i(10, 0), Vector2i(12, 0)) # rangkaian B, terpisah
+	var inv_a := _buat_inverter(Vector2(8, 8))
+	var inv_b := _buat_inverter(Vector2(168, 8))
+	var s_a := _buat_solar(Vector2(24, 8), 100.0)
+	var s_b := _buat_solar(Vector2(184, 8), 100.0)
+	var p_a := _buat_perabot(Vector2(40, 8), 20.0)  # atas rangkaian A
+	var p_b := _buat_perabot(Vector2(200, 8), 20.0) # atas rangkaian B
+	_proses()
+	_assert("perabot A dapat kuasa rangkaian A", p_a.has_power)
+	_assert("perabot B dapat kuasa rangkaian B", p_b.has_power)
+	# Buang solar A: perabot A mati, perabot B kekal.
+	PowerGridRef.nyahdaftar_solar(s_a)
+	s_a.queue_free()
+	await create_timer(0.05).timeout
+	_proses()
+	_assert("perabot A mati selepas solar A buang", not p_a.has_power)
+	_assert("perabot B kekal hidup", p_b.has_power)
+	_bersih(p_a); _bersih(p_b); _bersih(s_b); _bersih(inv_a); _bersih(inv_b); _bersih(grid)
 	await create_timer(0.05).timeout
 
 func _uji_tiada_inverter_bersihkan() -> void:
 	print("Ujian tiada inverter bersihkan kuasa")
 	PowerGridRef.reset()
-	var inv := _buat_inverter(Vector2(0, 0))
-	var s := _buat_solar(Vector2(100, 0), 100.0)
-	var p := _buat_perabot(Vector2(50, 0), 20.0)
+	var grid := _buat_grid()
+	_isi_lantai(grid, Vector2i(0, 0), Vector2i(10, 1))
+	var inv := _buat_inverter(Vector2(16, 16))
+	var s := _buat_solar(Vector2(80, 16), 100.0)
+	var p := _buat_perabot(Vector2(48, 16), 20.0)
 	_proses()
 	_assert("sebelum buang ada kuasa", p.has_power)
 	PowerGridRef.nyahdaftar_inverter(inv)
@@ -136,61 +263,17 @@ func _uji_tiada_inverter_bersihkan() -> void:
 	_proses()
 	_assert("selepas buang tiada kuasa", not p.has_power and p.inverter_pembekal == null)
 	_assert("solar dibebaskan", s.inverter_pembeli == null)
-	_bersih(p); _bersih(s)
-
-func _uji_rujukan_inverter_tidak_sah() -> void:
-	print("Ujian rujukan inverter tidak sah")
-	PowerGridRef.reset()
-	var inv := _buat_inverter(Vector2(0, 0))
-	var p := _buat_perabot(Vector2(50, 0), 20.0)
-	p.has_power = true
-	p.inverter_pembekal = inv
-	PowerGridRef.nyahdaftar_inverter(inv)
-	inv.queue_free()
+	_bersih(p); _bersih(s); _bersih(grid)
 	await create_timer(0.05).timeout
-	_proses()
-	_assert("perabot tidak tersekat pada inverter freed", not p.has_power and p.inverter_pembekal == null)
-	_bersih(p)
-
-func _uji_multi_inverter() -> void:
-	print("Ujian multi-inverter tidak rampas milik")
-	PowerGridRef.reset()
-	var inv1 := _buat_inverter(Vector2(0, 0))
-	var inv2 := _buat_inverter(Vector2(800, 0))
-	var s1 := _buat_solar(Vector2(100, 0), 100.0)
-	var s2 := _buat_solar(Vector2(700, 0), 100.0)
-	var p1 := _buat_perabot(Vector2(50, 0), 20.0)
-	var p2 := _buat_perabot(Vector2(750, 0), 20.0)
-	_proses()
-	_assert("p1 kuasa inv1", p1.has_power and p1.inverter_pembekal == inv1)
-	_assert("p2 kuasa inv2", p2.has_power and p2.inverter_pembekal == inv2)
-	_assert("s1 milik inv1", s1.inverter_pembeli == inv1)
-	_assert("s2 milik inv2", s2.inverter_pembeli == inv2)
-	_bersih(p1); _bersih(p2); _bersih(s1); _bersih(s2); _bersih(inv1); _bersih(inv2)
-	await create_timer(0.05).timeout
-
-func _uji_incremental_perabot() -> void:
-	print("Ujian dirty incremental perabot")
-	PowerGridRef.reset()
-	var inv := _buat_inverter(Vector2(0, 0))
-	var s := _buat_solar(Vector2(100, 0), 100.0)
-	_proses()
-	var p := _buat_perabot(Vector2(50, 0), 20.0)
-	_proses()
-	_assert("perabot baharu dapat kuasa selepas daftar", p.has_power)
-	PowerGridRef.nyahdaftar_perabot(p)
-	p.queue_free()
-	await create_timer(0.05).timeout
-	_proses()
-	_assert("keperluan turun selepas perabot buang", inv.total_power_requirement == 0.0)
-	_bersih(s); _bersih(inv)
 
 func _uji_nyahdaftar_solar() -> void:
 	print("Ujian nyahdaftar solar")
 	PowerGridRef.reset()
-	var inv := _buat_inverter(Vector2(0, 0))
-	var s := _buat_solar(Vector2(100, 0), 100.0)
-	var p := _buat_perabot(Vector2(50, 0), 20.0)
+	var grid := _buat_grid()
+	_isi_lantai(grid, Vector2i(0, 0), Vector2i(10, 1))
+	var inv := _buat_inverter(Vector2(16, 16))
+	var s := _buat_solar(Vector2(80, 16), 100.0)
+	var p := _buat_perabot(Vector2(48, 16), 20.0)
 	_proses()
 	_assert("kuasa ada sebelum solar buang", p.has_power)
 	PowerGridRef.nyahdaftar_solar(s)
@@ -198,12 +281,39 @@ func _uji_nyahdaftar_solar() -> void:
 	await create_timer(0.05).timeout
 	_proses()
 	_assert("kuasa tiada selepas solar buang", not p.has_power)
-	_bersih(p); _bersih(inv)
+	_bersih(p); _bersih(inv); _bersih(grid)
+	await create_timer(0.05).timeout
 
+func _uji_bina_roboh_kotor() -> void:
+	print("Ujian grid bina/roboh mencetus kira semula")
+	PowerGridRef.reset()
+	var grid := _buat_grid()
+	_isi_lantai(grid, Vector2i(0, 0), Vector2i(1, 0))
+	_isi_lantai(grid, Vector2i(3, 0), Vector2i(4, 0)) # terpisah
+	var inv := _buat_inverter(Vector2(8, 8))      # sel (0,0)
+	var s := _buat_solar(Vector2(24, 8), 100.0)
+	var p := _buat_perabot(Vector2(56, 8), 20.0)  # sel (3,0)
+	_proses()
+	_assert("terpisah tiada kuasa", not p.has_power)
+	# Sambung dengan lantai di tengah.
+	grid.tambah_lantai(Vector2i(2, 0))
+	PowerGridRef.tanda_kotor_semua("uji_bina")
+	_proses()
+	_assert("bersambung dapat kuasa", p.has_power)
+	# Roboh jambatan.
+	grid.buang_sel(Vector2i(2, 0))
+	PowerGridRef.tanda_kotor_semua("uji_roboh")
+	_proses()
+	_assert("diputus tiada kuasa", not p.has_power)
+	_bersih(p); _bersih(s); _bersih(inv); _bersih(grid)
+	await create_timer(0.05).timeout
 
 func _uji_tekanan_berulang() -> void:
-	print("Ujian senario tekanan berulang (Idea 1)")
+	print("Ujian tekanan berulang")
 	PowerGridRef.reset()
+	var grid := _buat_grid()
+	# Bina lantai besar untuk semua nod.
+	_isi_lantai(grid, Vector2i(-5, -5), Vector2i(200, 50))
 	var invs: Array = []
 	var solars: Array = []
 	var perabots: Array = []
@@ -218,9 +328,8 @@ func _uji_tekanan_berulang() -> void:
 	var us := Time.get_ticks_usec() - t0
 	var stats: Dictionary = PowerGridRef.get_stats()
 	_assert("tekanan selesai", stats.get("kiraan", 0) >= 1)
-	_assert("semua perabot diproses", int(stats.get("nod_diproses", 0)) >= 200)
+	_assert("semua nod diproses", int(stats.get("nod_diproses", 0)) >= 320)
 	print("  [INFO] masa_ms=%.2f nod=%d inv=%d" % [us / 1000.0, int(stats.get("nod_diproses", 0)), int(stats.get("inverter_diproses", 0))])
-	# Perubahan kecil: buang satu perabot, pastikan incremental/kemas kini berlaku
 	var buang: Node = perabots.pop_back()
 	PowerGridRef.nyahdaftar_perabot(buang)
 	buang.queue_free()
@@ -236,4 +345,5 @@ func _uji_tekanan_berulang() -> void:
 		_bersih(n)
 	for n in invs:
 		_bersih(n)
+	_bersih(grid)
 	await create_timer(0.05).timeout
