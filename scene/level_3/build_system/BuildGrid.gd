@@ -649,17 +649,20 @@ func _bina_iklan_besi() -> void:
 	for i in BIL_IKLAN_BESI:
 		var baris := HBoxContainer.new()
 		baris.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		baris.add_theme_constant_override("separation", 2)
+		# Saiz ikon/fon sama dengan popup "+1 <nama>" smelter dan popup drop,
+		# supaya semua iklan "+/-N nama" nampak seragam.
+		baris.add_theme_constant_override("separation", 1)
 		if ikon_tex != null:
 			var ikon := TextureRect.new()
 			ikon.texture = ikon_tex
-			ikon.custom_minimum_size = Vector2(9, 9)
+			ikon.custom_minimum_size = Vector2(7, 7)
 			ikon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			ikon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			ikon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 			baris.add_child(ikon)
 		var teks := Label.new()
-		teks.text = "-1" if i == 0 else "+1"
-		teks.add_theme_font_size_override("font_size", 8)
+		teks.text = ("-%d %s" if i == 0 else "+%d %s") % [KOS_BESI, NAMA_BESI]
+		teks.add_theme_font_size_override("font_size", 7)
 		teks.add_theme_color_override("font_color", WARNA_BESI_KELUAR if i == 0 else WARNA_BESI_MASUK)
 		teks.add_theme_color_override("font_outline_color", Color(0.02, 0.06, 0.09, 0.95))
 		teks.add_theme_constant_override("outline_size", 3)
@@ -682,7 +685,7 @@ func _apung_besi(banyak: int) -> void:
 		return
 
 	var i: int = 0 if banyak < 0 else 1
-	var teks: String = ("+%d" if banyak > 0 else "-%d") % absi(banyak)
+	var teks: String = ("+%d %s" if banyak > 0 else "-%d %s") % [absi(banyak), NAMA_BESI]
 	# Teks sama tidak diukur semula; hanya berubah bila jumlah kos berubah.
 	if _iklan_besi_label[i].text != teks:
 		_iklan_besi_label[i].text = teks

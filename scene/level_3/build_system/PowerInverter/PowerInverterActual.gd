@@ -191,6 +191,8 @@ func _on_butang_tutup_pressed():
 	if menu_ui: menu_ui.hide()
 
 func _on_butang_demolish_pressed():
+	# Pulangkan bahan bina (popup "+N <nama>") sebelum inverter dibuang.
+	BahanBinaan.pulangkan(self)
 	_kemas_kini_status_perabot_tiada_kuasa()
 	_bebaskan_semua_solar_milik_saya()
 	player_dekat = false

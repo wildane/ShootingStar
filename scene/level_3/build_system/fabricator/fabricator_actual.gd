@@ -647,6 +647,8 @@ func _on_butang_tutup_pressed():
 
 func _on_butang_demolish_pressed():
 	print("Sistem Khas: Objek perabot telah dimusnahkan!")
+	# Pulangkan bahan bina (popup "+N <nama>") sebelum perabot dibuang.
+	BahanBinaan.pulangkan(self)
 	player_dekat = false
 	if sprite: sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
 	PowerGridRef.nyahdaftar_perabot(self)

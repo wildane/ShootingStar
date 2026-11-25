@@ -67,10 +67,14 @@ func trigger_drop() -> void:
 	barang_baru.queue_free()
 	tunjuk_popup_terapung(ikon_tex, "+1 %s" % str(nama_b), pos_dunia, self)
 
-# Animasi "+N" (ikon + teks) terapung yang melekat pada posisi dunia, jadi ia
-# ikut kamera bergerak. Statik supaya skrip drop lain (contoh: cheat mode)
-# boleh guna rupa animasi yang sama.
-static func tunjuk_popup_terapung(ikon_tex: Texture2D, teks: String, pos_dunia: Vector2, sumber: Node) -> void:
+# Warna popup: hijau untuk item masuk, merah untuk item ditolak.
+const WARNA_POPUP_TAMBAH := Color(0.45, 1.0, 0.55, 1.0)
+const WARNA_POPUP_TOLAK := Color(1.0, 0.42, 0.36, 1.0)
+
+# Animasi "+N"/"-N" (ikon + teks) terapung yang melekat pada posisi dunia, jadi
+# ia ikut kamera bergerak. Statik supaya skrip drop lain (contoh: cheat mode,
+# kos bina dan pulangan demolish) boleh guna rupa animasi yang sama.
+static func tunjuk_popup_terapung(ikon_tex: Texture2D, teks: String, pos_dunia: Vector2, sumber: Node, warna: Color = WARNA_POPUP_TAMBAH) -> void:
 	if not is_instance_valid(sumber):
 		return
 	var pokok := sumber.get_tree()
@@ -102,7 +106,7 @@ static func tunjuk_popup_terapung(ikon_tex: Texture2D, teks: String, pos_dunia: 
 	var label := Label.new()
 	label.text = teks
 	label.add_theme_font_size_override("font_size", 7)
-	label.add_theme_color_override("font_color", Color(0.45, 1.0, 0.55, 1.0))
+	label.add_theme_color_override("font_color", warna)
 	label.add_theme_color_override("font_outline_color", Color(0.02, 0.06, 0.09, 0.95))
 	label.add_theme_constant_override("outline_size", 3)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -129,3 +133,12 @@ static func tunjuk_popup_terapung(ikon_tex: Texture2D, teks: String, pos_dunia: 
 	tw_pos.set_trans(Tween.TRANS_LINEAR)
 	tween.tween_property(popup, "modulate:a", 0.0, 0.7).set_delay(0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.chain().tween_callback(popup.queue_free)
+
+# Popup bahan binaan: "+6 Basic Iron Ore" bila dipulangkan, "-6 Basic Iron Ore"
+# bila dibayar. Rupa dan saiz sama dengan popup drop smelter.
+static func tunjuk_popup_bahan(ikon_tex: Texture2D, banyak: int, nama: String, pos_dunia: Vector2, sumber: Node) -> void:
+	if banyak == 0:
+		return
+	var teks: String = ("+%d %s" if banyak > 0 else "-%d %s") % [absi(banyak), nama]
+	var warna: Color = WARNA_POPUP_TAMBAH if banyak > 0 else WARNA_POPUP_TOLAK
+	tunjuk_popup_terapung(ikon_tex, teks, pos_dunia, sumber, warna)

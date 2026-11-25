@@ -212,6 +212,8 @@ func _on_butang_tutup_pressed():
 	if menu_ui: menu_ui.hide()
 
 func _on_butang_demolish_pressed():
+	# Pulangkan bahan bina (popup "+N <nama>") sebelum stesen dibuang.
+	BahanBinaan.pulangkan(self)
 	_lepas_pemain()
 	player_dekat = false
 	if sprite: sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)

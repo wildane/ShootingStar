@@ -134,6 +134,8 @@ func _on_butang_tutup_pressed():
 # FUNGSI MEMADAM: Memadam objek Fabricator dari peta apabila butang demolish ditekan
 func _on_butang_demolish_pressed():
 	print("Sistem Khas: Fabricator telah dimusnahkan!") # 🔴 LOG DIKEMAS KINI
+	# Pulangkan bahan bina (popup "+N <nama>") sebelum perabot dibuang.
+	BahanBinaan.pulangkan(self)
 	
 	# Set semula status logik sebelum objek dipadamkan dari memori
 	player_dekat = false

@@ -133,6 +133,7 @@ func ekstrak_info_bahan_manual() -> void:
 			"id": id_mat,
 			"nama": nama_mat,
 			"ikon": ikon_mat,
+			"scene_path": path,
 			"diperlukan": slot["kuantiti"]
 		})
 
@@ -308,6 +309,10 @@ func _on_butang_confirm_pressed() -> void:
 			var bangunan_baru = bangunan_scene.instantiate()
 			get_parent().add_child(bangunan_baru)
 			bangunan_baru.global_position = global_position
+			# Kos disimpan pada bangunan supaya Demolish boleh pulangkan bahan
+			# yang sama, dan popup "-N <nama>" dipapar semasa bahan ditolak.
+			BahanBinaan.simpan(bangunan_baru, data_mats_terekstrak)
+			BahanBinaan.papar_iklan(data_mats_terekstrak, bangunan_baru.global_position + Vector2(0.0, -10.0), bangunan_baru, -1)
 			PowerGrid.tanda_kotor_semua("bina_atau_roboh")
 		
 		queue_free()

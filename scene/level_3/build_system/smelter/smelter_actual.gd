@@ -906,6 +906,8 @@ func _on_butang_tutup_pressed() -> void:
 		menu_ui.hide()
 
 func _on_butang_demolish_pressed() -> void:
+	# Pulangkan bahan bina (popup "+N <nama>") sebelum relau dibuang.
+	BahanBinaan.pulangkan(self)
 	sedang_lebur = false
 	player_dekat = false
 	if sprite:
