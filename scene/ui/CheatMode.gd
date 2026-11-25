@@ -15,11 +15,11 @@ var _status: Label
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	# Diletakkan di atas butang MENU yang berada di hujung bawah kanan.
+	# Diletakkan di atas butang MENU/PETA yang berada di hujung bawah kanan.
 	offset_left = -88.0
-	offset_top = -114.0
+	offset_top = -154.0
 	offset_right = -8.0
-	offset_bottom = -56.0
+	offset_bottom = -96.0
 	mouse_filter = Control.MOUSE_FILTER_PASS
 
 	var susunan := VBoxContainer.new()

@@ -5,6 +5,7 @@ var local_player: CharacterBody2D
 @onready var ysort = $Y_Sort_Container
 
 const IKON_MENU: Texture2D = preload("res://scene/ui/menu_icon.png")
+const IKON_PETA: Texture2D = preload("res://scene/ui/map_icon.svg")
 
 # Node overlay untuk mengawal skrin gelap/terang milik level_3
 var overlay_gelap: ColorRect
@@ -17,6 +18,7 @@ func _ready() -> void:
 	bina_overlay_mula()
 	_bina_hud_hp_pemain()
 	_bina_butang_menu()
+	_bina_butang_peta()
 	
 	# 2. Hubungkan isyarat daripada JSON
 	if not SaveManager.semua_data_siap_di_load.is_connected(proses_selesai_load_json):
@@ -122,7 +124,7 @@ func save_world() -> void:
 	SaveManager.save_game()
 	print("[World] Dunia hibrid berjaya disimpan ke storan!")
 
-# Satu butang MENU di bawah kanan HUD, di bawah butang cheat.
+# Butang MENU dan PETA di bawah kanan HUD, di bawah butang cheat.
 # Panel menu mengandungi SAVE, LOAD dan NEW GAME.
 func _bina_butang_menu() -> void:
 	var canvas = get_node_or_null("CanvasLayer")
@@ -138,11 +140,42 @@ func _bina_butang_menu() -> void:
 	butang.custom_minimum_size = Vector2(40, 40)
 	butang.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	butang.offset_left = -50
+	butang.offset_top = -90
+	butang.offset_right = -10
+	butang.offset_bottom = -50
+	butang.pressed.connect(_buka_menu_game)
+	canvas.add_child(butang)
+
+
+# Butang peta: togol zoom keluar/masuk untuk paparan peta.
+func _bina_butang_peta() -> void:
+	var canvas = get_node_or_null("CanvasLayer")
+	if canvas == null or canvas.has_node("ButangPeta"):
+		return
+
+	var butang := Button.new()
+	butang.name = "ButangPeta"
+	butang.icon = IKON_PETA
+	butang.expand_icon = true
+	butang.flat = true
+	butang.focus_mode = Control.FOCUS_NONE
+	butang.custom_minimum_size = Vector2(40, 40)
+	butang.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	butang.offset_left = -50
 	butang.offset_top = -50
 	butang.offset_right = -10
 	butang.offset_bottom = -10
-	butang.pressed.connect(_buka_menu_game)
+	butang.pressed.connect(_togol_peta)
 	canvas.add_child(butang)
+
+
+func _togol_peta() -> void:
+	var pemain := get_tree().get_first_node_in_group("Player")
+	if pemain == null:
+		return
+	var kamera := pemain.get_node_or_null("Camera2D")
+	if kamera != null and kamera.has_method("togol_mod_peta"):
+		kamera.togol_mod_peta()
 
 # ==========================================
 # MENU SAVE / LOAD / NEW GAME DALAM GAME (game pause)
