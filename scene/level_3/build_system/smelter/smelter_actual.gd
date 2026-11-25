@@ -270,7 +270,7 @@ func _rujuk_kad(nama_kad: String) -> Dictionary:
 	var akar: String = "CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/%s" % nama_kad
 	return {
 		"panel": get_node_or_null(akar),
-		"nama": get_node_or_null(akar + "/HBox/Maklumat/NamaResipi"),
+		"nama": get_node_or_null(akar + "/HBox/Kiri/IkonBekas/Slot1/NamaResipi"),
 		"slot_bahan": [
 			get_node_or_null(akar + "/HBox/Maklumat/Bahan/Bahan1"),
 			get_node_or_null(akar + "/HBox/Maklumat/Bahan/Bahan2"),
