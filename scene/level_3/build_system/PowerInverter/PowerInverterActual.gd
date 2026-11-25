@@ -37,6 +37,13 @@ const SELA_MASA_SEMAKAN: float = 0.15
 # Bendera serasi lama; sumber kebenaran kini PowerGrid.
 var _grid_kotor: bool = true
 
+# Wayar visual: solar bersambung sesama sendiri dahulu, kemudian satu garis
+# ke inverter ini. Titik disusun oleh PowerGrid.titik_kabel().
+const WARNA_KABEL: Color = Color(0.62, 0.88, 1.0, 0.9)
+const LEBAR_KABEL: float = 1.5
+var _kabel: Line2D = null
+var _kabel_solar: Array = []
+
 static func tanda_grid_kotor(tree: SceneTree) -> void:
 	if tree:
 		PowerGridRef.tanda_kotor_semua("tanda_grid_kotor")
@@ -48,6 +55,7 @@ func tanda_kotor() -> void:
 func _ready():
 	add_to_group("PowerInverter")
 	_pastikan_debug_overlay()
+	_bina_kabel()
 	bacaan_kuasa = Label.new()
 	add_child(bacaan_kuasa)
 	bacaan_kuasa.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -76,6 +84,29 @@ func _ready():
 	_grid_kotor = true
 	_kemas_kini_paparan_skrin()
 	PowerGridRef.daftar_inverter(self)
+
+# Wayar kuasa: satu Line2D di belakang sprite, diguna semula setiap kemas kini.
+func _bina_kabel() -> void:
+	_kabel = Line2D.new()
+	_kabel.name = "KabelSolar"
+	_kabel.width = LEBAR_KABEL
+	_kabel.default_color = WARNA_KABEL
+	_kabel.joint_mode = Line2D.LINE_JOINT_ROUND
+	_kabel.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	_kabel.end_cap_mode = Line2D.LINE_CAP_ROUND
+	_kabel.antialiased = true
+	_kabel.z_index = -1
+	add_child(_kabel)
+	move_child(_kabel, 0)
+
+# Dipanggil PowerGrid setiap kali pemilikan solar berubah.
+func set_senarai_kabel(senarai: Array) -> void:
+	_kabel_solar = senarai
+	if _kabel == null:
+		return
+	var titik: PackedVector2Array = PowerGridRef.titik_kabel(self, _kabel_solar)
+	if _kabel.points != titik:
+		_kabel.points = titik
 
 func _physics_process(_delta: float) -> void:
 	if not PowerGridRef.perlu_kira() and not _grid_kotor:

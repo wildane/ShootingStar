@@ -34,10 +34,13 @@ class MockInverter extends Node2D:
 	var total_power_requirement: float = 0.0
 	var baki_tenaga: float = 0.0
 	var _grid_kotor: bool = true
+	var kabel_solar: Array = []
 	func _ready():
 		add_to_group("PowerInverter")
 	func _kemas_kini_paparan_skrin() -> void:
 		pass
+	func set_senarai_kabel(senarai: Array) -> void:
+		kabel_solar = senarai
 
 class MockSolar extends Node2D:
 	var power_production: float = 100.0
@@ -79,6 +82,7 @@ func _jalankan() -> void:
 	await _uji_tiada_inverter_bersihkan()
 	await _uji_nyahdaftar_solar()
 	await _uji_bina_roboh_kotor()
+	await _uji_kabel_rantaian()
 	await _uji_tekanan_berulang()
 	print("UJIAN POWERGRID: %d lulus, %d gagal" % [_lulus, _gagal])
 	if _gagal > 0:
@@ -306,6 +310,37 @@ func _uji_bina_roboh_kotor() -> void:
 	_proses()
 	_assert("diputus tiada kuasa", not p.has_power)
 	_bersih(p); _bersih(s); _bersih(inv); _bersih(grid)
+	await create_timer(0.05).timeout
+
+func _uji_kabel_rantaian() -> void:
+	print("Ujian wayar solar bersambung ke inverter")
+	PowerGridRef.reset()
+	var grid := _buat_grid()
+	_isi_lantai(grid, Vector2i(0, 0), Vector2i(12, 2))
+	var inv := _buat_inverter(Vector2(0, 0))
+	# Tiga solar, jarak berbeza: 150, 50, 100 dari inverter.
+	var s_jauh := _buat_solar(Vector2(150, 0), 100.0)
+	var s_dekat := _buat_solar(Vector2(50, 0), 100.0)
+	var s_tengah := _buat_solar(Vector2(100, 0), 100.0)
+	_proses()
+	_assert("inverter simpan 3 solar untuk wayar", inv.kabel_solar.size() == 3)
+	var titik: PackedVector2Array = PowerGridRef.titik_kabel(inv, inv.kabel_solar)
+	_assert("wayar mula dari inverter", titik.size() == 4 and titik[0] == Vector2.ZERO)
+	_assert("solar terdekat disambung dahulu", titik.size() == 4 and titik[1] == Vector2(50, 0))
+	_assert("kemudian solar tengah", titik.size() == 4 and titik[2] == Vector2(100, 0))
+	_assert("kemudian solar jauh", titik.size() == 4 and titik[3] == Vector2(150, 0))
+	# Buang satu solar: wayar patut susut ikut pemilikan baharu.
+	PowerGridRef.nyahdaftar_solar(s_tengah)
+	s_tengah.queue_free()
+	await create_timer(0.05).timeout
+	_proses()
+	_assert("wayar dikemas kini selepas solar dibuang", inv.kabel_solar.size() == 2)
+	# Solar di luar radius tidak masuk wayar.
+	var s_luar := _buat_solar(Vector2(900, 0), 100.0)
+	s_luar.jarak_cantuman = 300.0
+	_proses()
+	_assert("solar luar radius tiada dalam wayar", inv.kabel_solar.size() == 2)
+	_bersih(s_luar); _bersih(s_jauh); _bersih(s_dekat); _bersih(inv); _bersih(grid)
 	await create_timer(0.05).timeout
 
 func _uji_tekanan_berulang() -> void:
