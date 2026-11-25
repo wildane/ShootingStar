@@ -69,9 +69,11 @@ var resipi_dron: Array[Dictionary] = [
 		"item": "res://scene/Item/0014MagneticShield/MagneticShield.tscn",
 		"ikon_slot": "res://scene/Item/0014MagneticShield/Image_shield.png",
 		"warna": Color(0.55, 0.95, 0.95),
-		"keterangan": "Deflector plate built from cosmic scale, steel and husk slime. While carried, its magnetic field absorbs one hit completely, then recharges for 20 seconds.",
-		"statistik_teks": "Magnetic Shield\nBlocks 1 hit / 20s",
-		"nota_siap": "Magnetic Shield crafted!",
+		"keterangan": "Deflector plate built from cosmic scale, steel and husk slime. One craft yields 10 plates. Each plate absorbs one hit completely and is used up, so a full batch blocks 10 hits.",
+		"statistik_teks": "Magnetic Shield  x10 per craft\n1 plate = 1 blocked hit",
+		"nota_siap": "10 Magnetic Shields crafted!",
+		"hasil": 10,
+		"boleh_ulang": true,
 		"bahan": [
 			{"id": "item_0007", "nama": "Cosmic Scale", "kuantiti": 10, "ikon": "res://scene/Item/0007CosmicScale/Image_176.png"},
 			{"id": "item_0009", "nama": "Steel", "kuantiti": 10, "ikon": "res://scene/Item/0009Steel/Image_steel.png"},
@@ -513,6 +515,12 @@ func _sudah_punya(id_item: String) -> bool:
 	return _bilangan_dalam_beg(id_item) > 0
 
 
+# Resipi boleh diulang walaupun barangnya sudah ada (contoh: Magnetic Shield
+# yang ditolak dari beg setiap kali menyerap serangan).
+func _boleh_ulang(resipi: Dictionary) -> bool:
+	return bool(resipi.get("boleh_ulang", false))
+
+
 # Ikon slot dron guna fail imej resipi masing-masing.
 func _ikon_resipi(resipi: Dictionary) -> Texture2D:
 	return _muat_ikon(str(resipi.get("ikon_slot", IKON_DRON)))
@@ -549,7 +557,7 @@ func _kemas_kini_craft() -> void:
 			continue
 		var kad: Dictionary = _kad_dron[i]
 		var resipi: Dictionary = senarai[i]
-		var sudah := _sudah_punya(str(resipi["id"]))
+		var sudah := _sudah_punya(str(resipi["id"])) and not _boleh_ulang(resipi)
 
 		var panel: PanelContainer = kad["panel"]
 		if panel:
@@ -582,7 +590,7 @@ func _kemas_kini_craft() -> void:
 	if _pilihan_craft < 0 or _pilihan_craft >= senarai.size():
 		return
 	var resipi: Dictionary = senarai[_pilihan_craft]
-	var sudah := _sudah_punya(str(resipi["id"]))
+	var sudah := _sudah_punya(str(resipi["id"])) and not _boleh_ulang(resipi)
 
 	if _label_statistik:
 		var teks_khas: String = str(resipi.get("statistik_teks", ""))
@@ -617,7 +625,7 @@ func _on_butang_craft_pressed() -> void:
 		return
 	var resipi: Dictionary = senarai[_pilihan_craft]
 
-	if _sudah_punya(resipi["id"]):
+	if not _boleh_ulang(resipi) and _sudah_punya(resipi["id"]):
 		_tulis_info(str(resipi["nama"]) + " is already crafted")
 		return
 
@@ -639,13 +647,19 @@ func _on_butang_craft_pressed() -> void:
 	for bahan in resipi["bahan"]:
 		inv.tolak_item(bahan["id"], int(bahan["kuantiti"]))
 
-	# 2. Masukkan item ke dalam beg (dron membuka pilihan dron di HUD)
-	inv.tambah_item({
-		"id": resipi["id"],
-		"nama": resipi["nama"],
-		"ikon": _ikon_resipi(resipi),
-		"scene_path": resipi["item"],
-	})
+	# 2. Masukkan hasil ke dalam beg (dron membuka pilihan dron di HUD).
+	# Resipi boleh tetapkan "hasil" untuk keluarkan lebih dari satu unit;
+	# tambah_item hanya menambah 1 setiap panggilan, jadi ulang ikut jumlah.
+	var jumlah_hasil: int = maxi(int(resipi.get("hasil", 1)), 1)
+	var ikon_hasil: Texture2D = _ikon_resipi(resipi)
+	for n in jumlah_hasil:
+		inv.tambah_item({
+			"id": resipi["id"],
+			"nama": resipi["nama"],
+			"ikon": ikon_hasil,
+			"scene_path": resipi["item"],
+		}, true)
+	inv.kemas_kini_selepas_batch()
 
 	_kemas_kini_craft()
 	_tulis_info(str(resipi.get("nota_siap", str(resipi["nama"]) + " crafted! Select it from the drone button.")))

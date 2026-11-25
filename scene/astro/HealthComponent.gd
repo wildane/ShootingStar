@@ -29,16 +29,14 @@ const COOLDOWN_PULIH: float = 5.0
 var _baki_cooldown_pulih: float = 0.0
 
 # ==========================================
-# PERISAI MAGNETIK: SERAP SATU SERANGAN
+# PERISAI MAGNETIK: SATU ITEM = SATU SERAPAN
 # ==========================================
-# Satu Magnetic Shield dalam inventori menyerap satu serangan sepenuhnya,
-# kemudian medan magnet perlu bercas semula selama 20 saat. Item tidak dimakan
-# (ia peralatan, bukan barangan guna habis).
+# Setiap Magnetic Shield dalam inventori menyerap satu serangan sepenuhnya,
+# kemudian item itu ditolak dari beg. Resipi Fabricator mengeluarkan 10, jadi
+# 10 serangan boleh ditahan selagi stok masih ada (tiada cooldown).
 const ID_MAGNETIC_SHIELD: String = "item_0014"
 const IKON_MAGNETIC_SHIELD: Texture2D = preload("res://scene/Item/0014MagneticShield/Image_shield.png")
-const COOLDOWN_PERISAI: float = 20.0
 const WARNA_PERISAI := Color(0.6, 1.0, 1.0, 1.0)
-var _baki_cooldown_perisai: float = 0.0
 
 func _ready() -> void:
 	hp = max_hp
@@ -46,10 +44,6 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if _baki_cooldown_pulih > 0.0:
 		_baki_cooldown_pulih = maxf(_baki_cooldown_pulih - delta, 0.0)
-	if _baki_cooldown_perisai > 0.0:
-		_baki_cooldown_perisai = maxf(_baki_cooldown_perisai - delta, 0.0)
-		if _baki_cooldown_perisai == 0.0:
-			_popup_perisai("Shield ready")
 	_cuba_pulih_hp()
 
 func _cuba_pulih_hp() -> void:
@@ -101,22 +95,25 @@ func _cuba_minum_protein() -> void:
 	)
 	print("Protein Drink: dimimum automatik. HP sekarang ", hp, "/", max_hp)
 
-# Perisai sedia digunakan: bukan mob, tidak mati, cas semula habis, dan ada
-# sekurang-kurangnya satu Magnetic Shield dalam inventori.
+# Perisai sedia digunakan: bukan mob, tidak mati, dan ada sekurang-kurangnya
+# satu Magnetic Shield dalam inventori.
 func perisai_sedia() -> bool:
-	if is_dead or _baki_cooldown_perisai > 0.0:
+	if is_dead:
 		return false
 	if not is_instance_valid(player) or not player.is_in_group("Player"):
 		return false
 	return InventoryManager.bilangan_item(ID_MAGNETIC_SHIELD) > 0
 
+# Serap satu serangan penuh, kemudian tolak satu Magnetic Shield dari beg.
 func _cuba_serap_dengan_perisai() -> bool:
 	if not perisai_sedia():
 		return false
-	_baki_cooldown_perisai = COOLDOWN_PERISAI
+	if not InventoryManager.tolak_item(ID_MAGNETIC_SHIELD, 1):
+		return false
+	var baki_perisai: int = InventoryManager.bilangan_item(ID_MAGNETIC_SHIELD)
 	_papar_kesan_perisai()
-	_popup_perisai("Shield blocked")
-	print("Magnetic Shield: serangan diserap. Bercas semula dalam ", COOLDOWN_PERISAI, " saat.")
+	_popup_perisai("Shield blocked  x" + str(baki_perisai))
+	print("Magnetic Shield: serangan diserap. Baki perisai: ", baki_perisai)
 	return true
 
 func _popup_perisai(teks: String) -> void:
