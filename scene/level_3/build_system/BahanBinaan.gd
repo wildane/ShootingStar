@@ -2,15 +2,16 @@ class_name BahanBinaan
 extends RefCounted
 
 ## Kos bina perabot TIDAK disimpan (bukan pada bangunan, bukan dalam save).
-## Semasa Demolish, bahan diambil semula terus daripada preview bangunan itu
-## (fail_mats_1..5 / kuantiti_1..5 pada scene preview yang menunjuk ke scene
-## bangunan ini), jadi demolish selepas load save tetap pulangkan bahan sama.
+## Semasa Demolish, bahan diambil semula terus daripada scene preview bangunan
+## (fail_mats_1..5 / kuantiti_1..5). Peta dibina dengan membaca SceneState
+## (tanpa instantiate node), jadi tiada lonjakan FPS bila demolish.
 
 const FOLDER_BINA := "res://scene/level_3/build_system"
 const BIL_SLOT: int = 5
 
 # Cache dibina sekali sahaja: laluan scene bangunan -> senarai bahan bina.
 static var _peta_bahan: Dictionary = {}
+static var _peta_item: Dictionary = {} # laluan item -> data (id/nama/ikon/scene_path)
 static var _sedia: bool = false
 
 
@@ -65,9 +66,8 @@ static func pulangkan(bangunan: Node) -> void:
 	papar_iklan(bahan, bangunan.global_position + Vector2(0.0, -10.0), bangunan, 1)
 
 
-# Imbas semua scene preview di folder bina dan petakan scene bangunan sebenar
-# kepada senarai bahan binanya. Instantiate tanpa masuk tree: _ready tidak
-# dijalankan, jadi tiada UI/side effect.
+# Imbas scene preview di folder bina. Baca SceneState, jangan instantiate node,
+# supaya tiada lonjakan FPS (instantiate preview + item boleh mahal).
 static func _imbas_preview() -> void:
 	_sedia = true
 	for laluan in _semua_tscn(FOLDER_BINA):
@@ -76,45 +76,75 @@ static func _imbas_preview() -> void:
 		var scene := load(laluan) as PackedScene
 		if scene == null:
 			continue
-		var contoh := scene.instantiate()
-		if contoh == null:
+		var prop := _baca_prop_root(scene)
+		var bangunan: String = str(prop.get("fail_bangunan_sebenar_tscn", ""))
+		if bangunan.is_empty():
 			continue
-		if "fail_bangunan_sebenar_tscn" in contoh:
-			var bangunan: String = str(contoh.get("fail_bangunan_sebenar_tscn"))
-			if not bangunan.is_empty():
-				_peta_bahan[bangunan] = _bahan_preview(contoh)
-		contoh.free()
+		_peta_bahan[bangunan] = _bahan_dari_prop(prop)
 
 
-static func _bahan_preview(contoh: Node) -> Array:
+static func _bahan_dari_prop(prop: Dictionary) -> Array:
 	var senarai: Array = []
 	for i in range(1, BIL_SLOT + 1):
-		var laluan: String = str(contoh.get("fail_mats_%d" % i))
+		var laluan: String = str(prop.get("fail_mats_%d" % i, ""))
 		if laluan.is_empty():
 			continue
-		var banyak: int = int(contoh.get("kuantiti_%d" % i))
+		# Kuantiti lalai ialah 1 (sama seperti export default pada preview).
+		# SceneState hanya simpan nilai yang ditulis dalam .tscn, jadi jika
+		# kuantiti tidak ditetapkan, guna 1.
+		var banyak: int = 1
+		if prop.has("kuantiti_%d" % i):
+			banyak = int(prop.get("kuantiti_%d" % i))
+		elif not prop.has("fail_mats_%d" % i):
+			banyak = 0
 		if banyak <= 0:
 			continue
-		var data := {
-			"id": "",
-			"nama": laluan.get_file().get_basename().capitalize(),
-			"ikon": null,
+		var item := _data_item(laluan)
+		senarai.append({
+			"id": str(item.get("id", "")),
+			"nama": str(item.get("nama", laluan.get_file().get_basename().capitalize())),
+			"ikon": item.get("ikon", null),
 			"scene_path": laluan,
 			"diperlukan": banyak,
-		}
-		var scene_item := load(laluan) as PackedScene
-		if scene_item:
-			var item := scene_item.instantiate()
-			if item:
-				if "id_barang" in item:
-					data["id"] = str(item.id_barang)
-				if "nama_barang" in item:
-					data["nama"] = str(item.nama_barang)
-				if "ikon_barang" in item:
-					data["ikon"] = item.ikon_barang
-				item.free()
-		senarai.append(data)
+		})
 	return senarai
+
+
+static func _data_item(laluan: String) -> Dictionary:
+	if _peta_item.has(laluan):
+		return _peta_item[laluan]
+	var data := {
+		"id": "",
+		"nama": laluan.get_file().get_basename().capitalize(),
+		"ikon": null,
+	}
+	var scene := load(laluan) as PackedScene
+	if scene:
+		# id_barang / nama_barang biasanya default skrip (tiada dalam SceneState),
+		# jadi instantiate sekali sahaja per jenis item, cache, kemudian free.
+		var item := scene.instantiate()
+		if item:
+			if "id_barang" in item:
+				data["id"] = str(item.get("id_barang"))
+			if "nama_barang" in item:
+				data["nama"] = str(item.get("nama_barang"))
+			if "ikon_barang" in item:
+				data["ikon"] = item.get("ikon_barang")
+			item.free()
+	_peta_item[laluan] = data
+	return data
+
+
+# Baca semua property yang ditetapkan pada nod root scene (index 0) tanpa
+# instantiate. Cukup untuk export var preview dan property item.
+static func _baca_prop_root(scene: PackedScene) -> Dictionary:
+	var hasil: Dictionary = {}
+	var state := scene.get_state()
+	if state == null or state.get_node_count() <= 0:
+		return hasil
+	for i in state.get_node_property_count(0):
+		hasil[state.get_node_property_name(0, i)] = state.get_node_property_value(0, i)
+	return hasil
 
 
 static func _semua_tscn(folder: String) -> Array:
