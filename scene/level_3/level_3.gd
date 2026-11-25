@@ -13,10 +13,16 @@ var overlay_gelap: ColorRect
 # Panel SAVE/LOAD yang sedang dibuka (null kalau tiada).
 var _menu_simpan: SaveMenu = null
 
+# Kamera khas untuk paparan peta penuh skrin.
+var kamera_peta: Camera2D
+# Overlay peta (CanvasLayer) yang membekukan permainan.
+var peta: MapOverlay
+
 func _ready() -> void:
 	# 1. Bina lapisan hitam pekat bersiap sedia di bawah lapisan menu (Alpha = 1.0)
 	bina_overlay_mula()
 	_bina_hud_hp_pemain()
+	_bina_peta()
 	_bina_butang_menu()
 	_bina_butang_peta()
 	
@@ -147,7 +153,7 @@ func _bina_butang_menu() -> void:
 	canvas.add_child(butang)
 
 
-# Butang peta: togol zoom keluar/masuk untuk paparan peta.
+# Butang peta: buka paparan peta penuh skrin.
 func _bina_butang_peta() -> void:
 	var canvas = get_node_or_null("CanvasLayer")
 	if canvas == null or canvas.has_node("ButangPeta"):
@@ -169,13 +175,38 @@ func _bina_butang_peta() -> void:
 	canvas.add_child(butang)
 
 
-func _togol_peta() -> void:
-	var pemain := get_tree().get_first_node_in_group("Player")
-	if pemain == null:
+# Sediakan kamera peta dan overlay peta sekali sahaja.
+func _bina_peta() -> void:
+	if is_instance_valid(peta):
 		return
-	var kamera := pemain.get_node_or_null("Camera2D")
-	if kamera != null and kamera.has_method("togol_mod_peta"):
-		kamera.togol_mod_peta()
+
+	kamera_peta = Camera2D.new()
+	kamera_peta.name = "KameraPeta"
+	kamera_peta.enabled = false
+	kamera_peta.position_smoothing_enabled = false
+	# Kekal dikemas kini walaupun SceneTree dipause semasa peta dibuka.
+	kamera_peta.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(kamera_peta)
+
+	peta = MapOverlay.new()
+	add_child(peta)
+
+
+# Buka peta penuh skrin (permainan dipause oleh MapOverlay).
+func _togol_peta() -> void:
+	if not is_instance_valid(peta) or not is_instance_valid(kamera_peta):
+		return
+	if peta.terbuka():
+		peta.tutup()
+		return
+	var pemain := get_tree().get_first_node_in_group("Player")
+	if pemain == null or not (pemain is Node2D):
+		return
+	var kamera_pemain := pemain.get_node_or_null("Camera2D") as Camera2D
+	if kamera_pemain == null:
+		return
+	var hud := get_node_or_null("CanvasLayer") as CanvasLayer
+	peta.buka(kamera_peta, kamera_pemain, hud, (pemain as Node2D).global_position)
 
 # ==========================================
 # MENU SAVE / LOAD / NEW GAME DALAM GAME (game pause)

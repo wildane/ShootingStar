@@ -17,8 +17,6 @@ class_name AstroCamera
 @export_group("Tetapan Permulaan")
 @export var zoom_awal: float = 1.0           # Tahap zoom asal kamera apabila game bermula
 
-@export_group("Mod Peta")
-@export var zoom_peta: float = 0.25          # Tahap zoom keluar semasa mod peta
 
 # ==========================================================
 # VARIABLES INTERNAL
@@ -27,8 +25,6 @@ var touches: Dictionary = {}
 var pinch_mode: bool = false
 var last_pinch_distance: float = 0.0
 var parent_astro: CharacterBody2D
-var mod_peta_aktif: bool = false
-var zoom_sebelum_peta: float = 1.0
 
 func _ready() -> void:
 	parent_astro = get_parent() as CharacterBody2D
@@ -70,8 +66,6 @@ func _input(event: InputEvent) -> void:
 			_handle_scroll_zoom(-1.0)
 
 func _handle_scroll_zoom(arah: float) -> void:
-	if mod_peta_aktif:
-		tetapkan_mod_peta(false)
 	var new_zoom: float = zoom.x * (1.0 + arah * zoom_scroll_step)
 	new_zoom = clamp(new_zoom, min_zoom, max_zoom)
 	zoom = Vector2(new_zoom, new_zoom)
@@ -99,28 +93,9 @@ func _handle_pinch() -> void:
 	# Hitung perbezaan jarak cubitan
 	var diff: float = dist - last_pinch_distance
 
-	if mod_peta_aktif:
-		tetapkan_mod_peta(false)
-
 	# Laksanakan perubahan nilai zoom pada kamera
 	var new_zoom: float = zoom.x + diff * zoom_sensitivity
 	new_zoom = clamp(new_zoom, min_zoom, max_zoom)
 
 	zoom = Vector2(new_zoom, new_zoom)
 	last_pinch_distance = dist
-
-
-func togol_mod_peta() -> void:
-	tetapkan_mod_peta(not mod_peta_aktif)
-
-
-func tetapkan_mod_peta(aktif: bool) -> void:
-	if aktif == mod_peta_aktif:
-		return
-	mod_peta_aktif = aktif
-	if mod_peta_aktif:
-		zoom_sebelum_peta = zoom.x
-		zoom = Vector2(zoom_peta, zoom_peta)
-	else:
-		var sasaran: float = clamp(zoom_sebelum_peta, min_zoom, max_zoom)
-		zoom = Vector2(sasaran, sasaran)
