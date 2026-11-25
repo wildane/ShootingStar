@@ -28,12 +28,28 @@ const PEMULIHAN_PIL: int = 3
 const COOLDOWN_PULIH: float = 5.0
 var _baki_cooldown_pulih: float = 0.0
 
+# ==========================================
+# PERISAI MAGNETIK: SERAP SATU SERANGAN
+# ==========================================
+# Satu Magnetic Shield dalam inventori menyerap satu serangan sepenuhnya,
+# kemudian medan magnet perlu bercas semula selama 20 saat. Item tidak dimakan
+# (ia peralatan, bukan barangan guna habis).
+const ID_MAGNETIC_SHIELD: String = "item_0014"
+const IKON_MAGNETIC_SHIELD: Texture2D = preload("res://scene/Item/0014MagneticShield/Image_shield.png")
+const COOLDOWN_PERISAI: float = 20.0
+const WARNA_PERISAI := Color(0.6, 1.0, 1.0, 1.0)
+var _baki_cooldown_perisai: float = 0.0
+
 func _ready() -> void:
 	hp = max_hp
 
 func _process(delta: float) -> void:
 	if _baki_cooldown_pulih > 0.0:
 		_baki_cooldown_pulih = maxf(_baki_cooldown_pulih - delta, 0.0)
+	if _baki_cooldown_perisai > 0.0:
+		_baki_cooldown_perisai = maxf(_baki_cooldown_perisai - delta, 0.0)
+		if _baki_cooldown_perisai == 0.0:
+			_popup_perisai("Shield ready")
 	_cuba_pulih_hp()
 
 func _cuba_pulih_hp() -> void:
@@ -85,8 +101,60 @@ func _cuba_minum_protein() -> void:
 	)
 	print("Protein Drink: dimimum automatik. HP sekarang ", hp, "/", max_hp)
 
+# Perisai sedia digunakan: bukan mob, tidak mati, cas semula habis, dan ada
+# sekurang-kurangnya satu Magnetic Shield dalam inventori.
+func perisai_sedia() -> bool:
+	if is_dead or _baki_cooldown_perisai > 0.0:
+		return false
+	if not is_instance_valid(player) or not player.is_in_group("Player"):
+		return false
+	return InventoryManager.bilangan_item(ID_MAGNETIC_SHIELD) > 0
+
+func _cuba_serap_dengan_perisai() -> bool:
+	if not perisai_sedia():
+		return false
+	_baki_cooldown_perisai = COOLDOWN_PERISAI
+	_papar_kesan_perisai()
+	_popup_perisai("Shield blocked")
+	print("Magnetic Shield: serangan diserap. Bercas semula dalam ", COOLDOWN_PERISAI, " saat.")
+	return true
+
+func _popup_perisai(teks: String) -> void:
+	if not is_instance_valid(player):
+		return
+	DropComponent.tunjuk_popup_terapung(
+		IKON_MAGNETIC_SHIELD, teks, player.global_position, self, WARNA_PERISAI
+	)
+
+# Kilauan perisai sekejap pada kedudukan pemain sebagai tanda serangan diserap.
+func _papar_kesan_perisai() -> void:
+	if not is_instance_valid(player):
+		return
+	var induk: Node = player.get_parent()
+	if induk == null:
+		induk = get_tree().current_scene
+	if induk == null:
+		return
+	var kilau := Sprite2D.new()
+	kilau.texture = IKON_MAGNETIC_SHIELD
+	kilau.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	kilau.z_index = 90
+	kilau.modulate = WARNA_PERISAI
+	kilau.scale = Vector2(0.03, 0.03)
+	induk.add_child(kilau)
+	kilau.global_position = player.global_position
+	var tw := kilau.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(kilau, "scale", Vector2(0.075, 0.075), 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(kilau, "modulate:a", 0.0, 0.35).set_delay(0.1)
+	tw.chain().tween_callback(kilau.queue_free)
+
 func take_damage(amount: float) -> void:
 	if is_dead: return
+
+	# Perisai magnetik menyerap serangan penuh sebelum HP dikurangkan.
+	if _cuba_serap_dengan_perisai():
+		return
 	
 	hp -= int(amount)
 	print("PLAYER HP -> Hits left: ", hp, " / ", max_hp)

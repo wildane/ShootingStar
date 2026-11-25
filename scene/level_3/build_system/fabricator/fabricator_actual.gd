@@ -69,8 +69,8 @@ var resipi_dron: Array[Dictionary] = [
 		"item": "res://scene/Item/0014MagneticShield/MagneticShield.tscn",
 		"ikon_slot": "res://scene/Item/0014MagneticShield/Image_shield.png",
 		"warna": Color(0.55, 0.95, 0.95),
-		"keterangan": "Deflector plate built from cosmic scale, steel and husk slime. Its magnetic field buzzes softly against impacts.",
-		"statistik_teks": "Magnetic Shield\nDeflector gear",
+		"keterangan": "Deflector plate built from cosmic scale, steel and husk slime. While carried, its magnetic field absorbs one hit completely, then recharges for 20 seconds.",
+		"statistik_teks": "Magnetic Shield\nBlocks 1 hit / 20s",
 		"nota_siap": "Magnetic Shield crafted!",
 		"bahan": [
 			{"id": "item_0007", "nama": "Cosmic Scale", "kuantiti": 10, "ikon": "res://scene/Item/0007CosmicScale/Image_176.png"},
