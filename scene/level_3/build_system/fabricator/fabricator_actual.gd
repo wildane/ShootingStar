@@ -66,9 +66,6 @@ var resipi_dron: Array[Dictionary] = [
 ]
 
 # UI craft dron (semua di dalam menu Fabricator, tiada panel bertindih)
-var _butang_dron: Button = null
-var _grid_kraf: GridContainer = null
-var _penolak: Control = null
 var _tajuk_menu: Control = null
 var _baris_menu: Control = null
 var _kotak_craft: VBoxContainer = null
@@ -199,7 +196,7 @@ func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int):
 			if menu_ui.visible:
 				_tutup_menu()
 			else:
-				_tutup_craft() # sentiasa mula dari menu utama
+				# Tiada menu depan - menu terus buka dengan 3 kad resipi dron.
 				menu_ui.visible = true
 				_kemas_kini_craft()
 		get_viewport().set_input_as_handled()
@@ -207,11 +204,10 @@ func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int):
 # ==========================================================
 # 🛠️ SISTEM CRAFT DRON
 # ==========================================================
-# Menu utama: tajuk + satu ikon dron + butang Close/Demolish.
-# Tekan ikon dron = kandungan menu bertukar jadi grid 3 dron (kiri)
-# dan kotak keterangan + butang craft (kanan). Tak ada panel bertindih.
+# Menu terus tunjuk 3 kad resipi dron, kotak statistik + butang Craft,
+# dan butang Close/Demolish di bawah sekali (tiada menu depan).
 func _bina_ui_craft() -> void:
-	if menu_ui == null or _butang_dron != null:
+	if menu_ui == null or _kotak_craft != null:
 		return
 	var vbox = menu_ui.get_node_or_null("VBoxContainer")
 	if vbox == null:
@@ -225,41 +221,11 @@ func _bina_ui_craft() -> void:
 	if _tajuk_menu:
 		_tajuk_menu.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 
-	# Grid kraft di atas kiri menu: setiap item yang boleh dibuat dapat satu
-	# slot kotak. Sekarang hanya dron; nanti senang tambah slot lain sebelahnya.
-	_grid_kraf = GridContainer.new()
-	_grid_kraf.name = "GridKraf"
-	_grid_kraf.columns = 4
-	_grid_kraf.add_theme_constant_override("h_separation", 2)
-	_grid_kraf.add_theme_constant_override("v_separation", 2)
-	vbox.add_child(_grid_kraf)
-	vbox.move_child(_grid_kraf, 1) # bawah tajuk Fabricator
-
-	var slot_dron := PanelContainer.new()
-	slot_dron.name = "SlotDron"
-	slot_dron.custom_minimum_size = Vector2(26, 26)
-	slot_dron.add_theme_stylebox_override("panel", _gaya_slot(false, false))
-	_grid_kraf.add_child(slot_dron)
-
-	_butang_dron = Button.new()
-	_butang_dron.name = "ButangDron"
-	_butang_dron.flat = true
-	_butang_dron.expand_icon = true
-	_butang_dron.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_butang_dron.icon = load(IKON_DRON)
-	_butang_dron.self_modulate = Color(0.62, 0.66, 0.72, 0.95)
-	_butang_dron.tooltip_text = "Craft drones"
-	_butang_dron.pressed.connect(_buka_craft)
-	slot_dron.add_child(_butang_dron)
-
-	# Penolak: pastikan butang Close/Demolish kekal di bawah menu
-	_penolak = Control.new()
-	_penolak.name = "Penolak"
-	_penolak.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	vbox.add_child(_penolak)
-	vbox.move_child(_penolak, 2)
-
 	_bina_kandungan_craft(vbox)
+
+	# Butang Close/Demolish sentiasa di bawah kad + butang Craft.
+	if _baris_menu:
+		vbox.move_child(_baris_menu, vbox.get_child_count() - 1)
 
 	var inv = get_node_or_null("/root/InventoryManager")
 	if inv and inv.has_signal("inventory_dikemaskini"):
@@ -269,42 +235,14 @@ func _bina_ui_craft() -> void:
 	print("Fabricator: Butang craft sedia (", _semua_resipi().size(), " resipi)")
 
 
-# Kandungan craft: header (back + tajuk + tutup), grid slot dron, kotak info
+# Kandungan craft: senarai kad resipi dron, kotak info, butang Craft
 func _bina_kandungan_craft(vbox: Node) -> void:
 	_kotak_craft = VBoxContainer.new()
 	_kotak_craft.name = "KandunganCraftDron"
-	_kotak_craft.visible = false
 	_kotak_craft.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_kotak_craft.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_kotak_craft.add_theme_constant_override("separation", 2)
 	vbox.add_child(_kotak_craft)
-
-	# --- HEADER ---
-	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", 4)
-	_kotak_craft.add_child(header)
-
-	var butang_back := Button.new()
-	butang_back.text = "<"
-	butang_back.add_theme_font_size_override("font_size", 8)
-	butang_back.custom_minimum_size = Vector2(16, 14)
-	butang_back.pressed.connect(_tutup_craft)
-	header.add_child(butang_back)
-
-	var tajuk := Label.new()
-	tajuk.text = "Craft"
-	tajuk.add_theme_font_size_override("font_size", 9)
-	tajuk.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tajuk.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tajuk.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	header.add_child(tajuk)
-
-	var butang_tutup_menu := Button.new()
-	butang_tutup_menu.text = "X"
-	butang_tutup_menu.add_theme_font_size_override("font_size", 8)
-	butang_tutup_menu.custom_minimum_size = Vector2(16, 14)
-	butang_tutup_menu.pressed.connect(_on_butang_tutup_pressed)
-	header.add_child(butang_tutup_menu)
 
 	# --- BADAN: senarai kad resipi dron (gaya kad dapur) ---
 	# Setiap dron satu kad: ikon dron + nama + ikon bahan dengan kiraan
@@ -534,28 +472,6 @@ func _gaya_slot(terpilih: bool, sudah: bool) -> StyleBoxFlat:
 	return gaya
 
 
-func _buka_craft() -> void:
-	if _kotak_craft == null:
-		return
-	if _tajuk_menu: _tajuk_menu.visible = false
-	if _baris_menu: _baris_menu.visible = false
-	if _grid_kraf: _grid_kraf.visible = false
-	if _penolak: _penolak.visible = false
-	_kotak_craft.visible = true
-	# Saiz menu kekal macam asal - semua kandungan mesti muat dalam kotak sedia ada
-	_kemas_kini_craft()
-
-
-func _tutup_craft() -> void:
-	if _kotak_craft == null:
-		return
-	_kotak_craft.visible = false
-	if _tajuk_menu: _tajuk_menu.visible = true
-	if _baris_menu: _baris_menu.visible = true
-	if _grid_kraf: _grid_kraf.visible = true
-	if _penolak: _penolak.visible = true
-
-
 # Pilih satu dron dalam grid -> kotak info di kanan bertukar
 func _pilih_craft(i: int) -> void:
 	if i < 0 or i >= _semua_resipi().size():
@@ -736,7 +652,6 @@ func _tulis_info(teks: String) -> void:
 
 # 🔴 Pengurusan Butang UI
 func _tutup_menu() -> void:
-	_tutup_craft()
 	if menu_ui: menu_ui.hide()
 
 func _on_butang_tutup_pressed(): 
