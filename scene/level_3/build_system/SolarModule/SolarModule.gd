@@ -315,9 +315,8 @@ func _on_butang_confirm_pressed() -> void:
 			var bangunan_baru = bangunan_scene.instantiate()
 			get_parent().add_child(bangunan_baru)
 			bangunan_baru.global_position = global_position
-			# Kos disimpan pada bangunan supaya Demolish boleh pulangkan bahan
-			# yang sama, dan popup "-N <nama>" dipapar semasa bahan ditolak.
-			BahanBinaan.simpan(bangunan_baru, data_mats_terekstrak)
+			# Popup "-N <nama>" semasa bahan ditolak; Demolish nanti ambil
+			# semula senarai bahan yang sama dari scene preview ini.
 			BahanBinaan.papar_iklan(data_mats_terekstrak, bangunan_baru.global_position + Vector2(0.0, -10.0), bangunan_baru, -1)
 		
 		queue_free()
