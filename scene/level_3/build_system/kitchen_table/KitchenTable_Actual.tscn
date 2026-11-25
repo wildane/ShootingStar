@@ -7,6 +7,9 @@
 [ext_resource type="Texture2D" path="res://scene/Item/0010BottleOfWater/Image_water_bottle.png" id="5_air"]
 [ext_resource type="Texture2D" path="res://scene/Item/0005SpaceFishFillet/Image_596.png" id="6_fillet"]
 [ext_resource type="Script" path="res://scene/level_3/build_system/smelter/cincin_kemajuan.gd" id="7_cincin"]
+[ext_resource type="Texture2D" path="res://scene/Item/0013HPPill/Image_hp_pill.png" id="8_pil"]
+[ext_resource type="Texture2D" path="res://scene/Item/0008HuskSlime/Image_husk_slime.png" id="9_slime"]
+[ext_resource type="Texture2D" path="res://scene/Item/0007CosmicScale/Image_176.png" id="10_scale"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
 size = Vector2(20, 12.5)
@@ -264,6 +267,196 @@ text = "2/0"
 horizontal_alignment = 1
 
 [node name="Kemajuan" type="Control" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadProtein/HBox"]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 2
+mouse_filter = 2
+size_flags_vertical = 4
+script = ExtResource("7_cincin")
+
+[node name="KadPil" type="PanelContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi"]
+custom_minimum_size = Vector2(160, 34)
+layout_mode = 2
+
+[node name="HBox" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadPil"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="Kiri" type="VBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadPil/HBox"]
+custom_minimum_size = Vector2(44, 0)
+layout_mode = 2
+mouse_filter = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 1
+alignment = 1
+
+[node name="IkonBekas" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadPil/HBox/Kiri"]
+custom_minimum_size = Vector2(44, 17)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 1
+alignment = 1
+
+[node name="Slot1" type="Control" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadPil/HBox/Kiri/IkonBekas"]
+custom_minimum_size = Vector2(21, 17)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IkonKeluaran" type="TextureRect" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadPil/HBox/Kiri/IkonBekas/Slot1"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 1.0
+offset_top = 1.0
+offset_right = -1.0
+offset_bottom = -1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("8_pil")
+expand_mode = 1
+stretch_mode = 5
+texture_filter = 1
+
+[node name="BilanganDimiliki" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadPil/HBox/Kiri/IkonBekas/Slot1"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -14.0
+offset_top = -10.0
+offset_right = -1.0
+offset_bottom = 1.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 6
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.02, 0.04, 0.07, 1)
+theme_override_constants/outline_size = 2
+text = "0"
+horizontal_alignment = 2
+vertical_alignment = 2
+
+[node name="Slot2" type="Control" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadPil/HBox/Kiri/IkonBekas"]
+visible = false
+custom_minimum_size = Vector2(21, 17)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IkonKeluaran2" type="TextureRect" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadPil/HBox/Kiri/IkonBekas/Slot2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 1.0
+offset_top = 1.0
+offset_right = -1.0
+offset_bottom = -1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+texture_filter = 1
+
+[node name="BilanganDimiliki2" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadPil/HBox/Kiri/IkonBekas/Slot2"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -14.0
+offset_top = -10.0
+offset_right = -1.0
+offset_bottom = 1.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 6
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.02, 0.04, 0.07, 1)
+theme_override_constants/outline_size = 2
+text = "0"
+horizontal_alignment = 2
+vertical_alignment = 2
+
+[node name="Maklumat" type="VBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadPil/HBox"]
+layout_mode = 2
+mouse_filter = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_constants/separation = 1
+alignment = 1
+
+[node name="NamaResipi" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadPil/HBox/Maklumat"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 7
+text = "HP Pill"
+
+[node name="Bahan" type="HBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadPil/HBox/Maklumat"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Bahan1" type="VBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadPil/HBox/Maklumat/Bahan"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="IkonBahan1" type="TextureRect" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadPil/HBox/Maklumat/Bahan/Bahan1"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+mouse_filter = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture = ExtResource("9_slime")
+expand_mode = 1
+stretch_mode = 5
+texture_filter = 1
+
+[node name="BilBahan1" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadPil/HBox/Maklumat/Bahan/Bahan1"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 5
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.02, 0.04, 0.07, 1)
+theme_override_constants/outline_size = 2
+text = "1/0"
+horizontal_alignment = 1
+
+[node name="Bahan2" type="VBoxContainer" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadPil/HBox/Maklumat/Bahan"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="IkonBahan2" type="TextureRect" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadPil/HBox/Maklumat/Bahan/Bahan2"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+mouse_filter = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture = ExtResource("10_scale")
+expand_mode = 1
+stretch_mode = 5
+texture_filter = 1
+
+[node name="BilBahan2" type="Label" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadPil/HBox/Maklumat/Bahan/Bahan2"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 5
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.02, 0.04, 0.07, 1)
+theme_override_constants/outline_size = 2
+text = "1/0"
+horizontal_alignment = 1
+
+[node name="Kemajuan" type="Control" parent="CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/KadPil/HBox"]
 custom_minimum_size = Vector2(20, 20)
 layout_mode = 2
 mouse_filter = 2

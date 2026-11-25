@@ -10,41 +10,76 @@ var active_hit_tween: Tween = null
 @onready var player = get_parent()
 
 # ==========================================
-# AUTO-MINUM PROTEIN DRINK
+# AUTO-PULIH HP: HP PILL (3 HP) / PROTEIN DRINK (1 HP)
 # ==========================================
 # Disimpan di komponen HP sendiri (bukan autoload) supaya ia tetap berjalan
-# walau di mana projek dibuka. Minum sebaik HP turun dari HP penuh selagi ada
-# stok dalam inventori, dengan cooldown 5 saat.
+# walau di mana projek dibuka. Pil dimakan untuk luka >= 3 HP, protein drink
+# untuk luka kecil; kedua-duanya berkongsi cooldown 5 saat.
 const ID_PROTEIN_DRINK: String = "item_0012"
 const NAMA_PROTEIN_DRINK: String = "Protein Drink"
 const IKON_PROTEIN_DRINK: Texture2D = preload("res://scene/Item/0012ProteinDrink/Image_protein_drink.png")
 const PEMULIHAN_PROTEIN: int = 1
-const COOLDOWN_PROTEIN: float = 5.0
 
-var _baki_cooldown_protein: float = 0.0
+const ID_HP_PILL: String = "item_0013"
+const NAMA_HP_PILL: String = "HP Pill"
+const IKON_HP_PILL: Texture2D = preload("res://scene/Item/0013HPPill/Image_hp_pill.png")
+const PEMULIHAN_PIL: int = 3
+
+const COOLDOWN_PULIH: float = 5.0
+var _baki_cooldown_pulih: float = 0.0
 
 func _ready() -> void:
 	hp = max_hp
 
 func _process(delta: float) -> void:
-	if _baki_cooldown_protein > 0.0:
-		_baki_cooldown_protein = maxf(_baki_cooldown_protein - delta, 0.0)
+	if _baki_cooldown_pulih > 0.0:
+		_baki_cooldown_pulih = maxf(_baki_cooldown_pulih - delta, 0.0)
+	_cuba_pulih_hp()
+
+func _cuba_pulih_hp() -> void:
+	# Pil diutamakan untuk luka besar supaya 3 HP tidak membazir.
+	if _cuba_makan_pil():
+		return
 	_cuba_minum_protein()
+
+func _boleh_pulih() -> bool:
+	if not is_inside_tree() or is_dead or hp <= 0 or hp >= max_hp:
+		return false
+	if _baki_cooldown_pulih > 0.0:
+		return false
+	# Hanya pemain (bukan mob) yang makan/minum.
+	if not is_instance_valid(player) or not player.is_in_group("Player"):
+		return false
+	return true
+
+# Makan satu HP Pill kalau luka sekurang-kurangnya 3 HP dan stok ada.
+func _cuba_makan_pil() -> bool:
+	if not _boleh_pulih():
+		return false
+	if max_hp - hp < PEMULIHAN_PIL:
+		return false
+	if InventoryManager.bilangan_item(ID_HP_PILL) <= 0:
+		return false
+	if not InventoryManager.tolak_item(ID_HP_PILL, 1):
+		return false
+
+	hp = mini(hp + PEMULIHAN_PIL, max_hp)
+	_baki_cooldown_pulih = COOLDOWN_PULIH
+	DropComponent.tunjuk_popup_bahan(
+		IKON_HP_PILL, -1, NAMA_HP_PILL, player.global_position, player
+	)
+	print("HP Pill: dimakan automatik. HP sekarang ", hp, "/", max_hp)
+	return true
 
 # Minum satu Protein Drink kalau HP di bawah maksimum dan stok ada.
 func _cuba_minum_protein() -> void:
-	if not is_inside_tree() or is_dead or hp <= 0 or hp >= max_hp:
-		return
-	if _baki_cooldown_protein > 0.0:
-		return
-	# Hanya pemain (bukan mob) yang minum.
-	if not is_instance_valid(player) or not player.is_in_group("Player"):
+	if not _boleh_pulih():
 		return
 	if not InventoryManager.tolak_item(ID_PROTEIN_DRINK, 1):
 		return
 
 	hp = mini(hp + PEMULIHAN_PROTEIN, max_hp)
-	_baki_cooldown_protein = COOLDOWN_PROTEIN
+	_baki_cooldown_pulih = COOLDOWN_PULIH
 	DropComponent.tunjuk_popup_bahan(
 		IKON_PROTEIN_DRINK, -1, NAMA_PROTEIN_DRINK, player.global_position, player
 	)
@@ -63,7 +98,7 @@ func take_damage(amount: float) -> void:
 	if hp <= 0:
 		play_player_death_sequence()
 	else:
-		_cuba_minum_protein()
+		_cuba_pulih_hp()
 		var target_sprite = _find_player_sprite()
 		if is_instance_valid(target_sprite):
 			_trigger_hit_flash_effect(target_sprite)

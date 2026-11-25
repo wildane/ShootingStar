@@ -35,6 +35,12 @@ const IKON_PROTEIN := "res://scene/Item/0012ProteinDrink/Image_protein_drink.png
 const LALUAN_AIR := "res://scene/Item/0010BottleOfWater/Image_water_bottle.png"
 const LALUAN_FILLET := "res://scene/Item/0005SpaceFishFillet/Image_596.png"
 
+const ID_PIL := "item_0013"
+const LALUAN_PIL := "res://scene/Item/0013HPPill/HPPill.tscn"
+const IKON_PIL := "res://scene/Item/0013HPPill/Image_hp_pill.png"
+const LALUAN_SLIME := "res://scene/Item/0008HuskSlime/Image_husk_slime.png"
+const LALUAN_SCALE := "res://scene/Item/0007CosmicScale/Image_176.png"
+
 const WARNA_CUKUP := Color(0.5, 0.95, 0.62, 1.0)
 const WARNA_KURANG := Color(1.0, 0.44, 0.44, 1.0)
 const WARNA_SEDANG := Color(0.72, 0.86, 0.95, 1.0)
@@ -50,6 +56,16 @@ var senarai_resipi: Array[Dictionary] = [
 		],
 		"keluaran": [
 			{"id": ID_PROTEIN, "nama": "Protein Drink", "kuantiti": 1, "ikon": IKON_PROTEIN, "scene_path": LALUAN_PROTEIN},
+		],
+	},
+	{
+		"nama": "HP Pill",
+		"bahan": [
+			{"id": "item_0008", "nama": "Husk Slime", "kuantiti": 1, "ikon": LALUAN_SLIME},
+			{"id": "item_0007", "nama": "Cosmic Scale", "kuantiti": 1, "ikon": LALUAN_SCALE},
+		],
+		"keluaran": [
+			{"id": ID_PIL, "nama": "HP Pill", "kuantiti": 1, "ikon": IKON_PIL, "scene_path": LALUAN_PIL},
 		],
 	},
 ]
@@ -201,7 +217,27 @@ func _nama_keluaran() -> String:
 
 # Rujuk kad resipi sekali sahaja (kad dibina dalam scene, bukan setiap kemas kini).
 func _sedia_kad() -> void:
-	kad_ui = [_rujuk_kad("KadProtein")]
+	kad_ui = [_rujuk_kad("KadProtein"), _rujuk_kad("KadPil")]
+	for i in kad_ui.size():
+		var panel: PanelContainer = kad_ui[i]["panel"]
+		if panel and not panel.gui_input.is_connected(_on_kad_diklik):
+			panel.gui_input.connect(_on_kad_diklik.bind(i))
+
+# Klik kad untuk tukar resipi yang hendak dimasak.
+func _on_kad_diklik(event: InputEvent, indeks: int) -> void:
+	var sentuhan: bool = event is InputEventScreenTouch and event.pressed
+	var klik: bool = event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed
+	if not (sentuhan or klik):
+		return
+	_pilih_resipi(indeks)
+
+func _pilih_resipi(indeks: int) -> void:
+	if sedang_masak or indeks < 0 or indeks >= senarai_resipi.size() or indeks == resipi_semasa:
+		return
+	resipi_semasa = indeks
+	kuantiti_pilihan = 1
+	_reset_paparan_batch()
+	_kemas_kini_ui()
 
 func _rujuk_kad(nama_kad: String) -> Dictionary:
 	var akar: String = "CanvasLayer/Pusat/MenuUI/VBoxContainer/SenaraiResipi/%s" % nama_kad
@@ -508,7 +544,7 @@ func _kemas_kini_ui() -> void:
 		_kemas_kini_kad(i, unit_paparan)
 		var panel: PanelContainer = kad_ui[i]["panel"]
 		if panel:
-			panel.add_theme_stylebox_override("panel", _gaya_kad(true))
+			panel.add_theme_stylebox_override("panel", _gaya_kad(i == resipi_semasa))
 	if _bulatan:
 		_bulatan.tekstur = _muat_ikon(str(_keluaran_resipi()[0]["ikon"]))
 
@@ -556,7 +592,10 @@ func _kemas_progres(nisbah: float = 0.0) -> void:
 	for i in kad_ui.size():
 		var cincin = kad_ui[i]["kemajuan"]
 		if cincin:
-			cincin.set_kemajuan(nilai, teks)
+			if i != resipi_semasa:
+				cincin.set_kemajuan(0.0, "")
+			else:
+				cincin.set_kemajuan(nilai, teks)
 	if _bulatan:
 		_bulatan.visible = sedang_masak
 		var teks_bulatan: String = teks if sedang_masak else "0/%d" % kuantiti_pilihan
