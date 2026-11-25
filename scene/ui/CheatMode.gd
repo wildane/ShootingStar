@@ -140,7 +140,9 @@ func _ganjar_semua_drop(id_drop: String, pusat_drop: Vector2) -> void:
 		var ikon = data.get("ikon")
 		var ikon_tekstur: Texture2D = ikon if ikon is Texture2D else null
 		var ofset_popup := Vector2(0.0, -indeks_popup * JARAK_POPUP_Y)
-		DropComponent.tunjuk_popup_terapung(ikon_tekstur, "+" + str(bilangan), pusat_drop + ofset_popup, self)
+		var nama_item := str(data.get("nama", ""))
+		var teks_popup: String = "+%d %s" % [bilangan, nama_item] if not nama_item.is_empty() else "+%d" % bilangan
+		DropComponent.tunjuk_popup_terapung(ikon_tekstur, teks_popup, pusat_drop + ofset_popup, self)
 		indeks_popup += 1
 
 	if ada_item and is_instance_valid(inventori) and inventori.has_method("kemas_kini_selepas_batch"):

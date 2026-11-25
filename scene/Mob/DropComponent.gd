@@ -65,7 +65,7 @@ func trigger_drop() -> void:
 	var pos_dunia: Vector2 = barang_baru.global_position
 	var ikon_tex: Texture2D = ikon_b if ikon_b is Texture2D else null
 	barang_baru.queue_free()
-	tunjuk_popup_terapung(ikon_tex, "+1", pos_dunia, self)
+	tunjuk_popup_terapung(ikon_tex, "+1 %s" % str(nama_b), pos_dunia, self)
 
 # Animasi "+N" (ikon + teks) terapung yang melekat pada posisi dunia, jadi ia
 # ikut kamera bergerak. Statik supaya skrip drop lain (contoh: cheat mode)
@@ -81,27 +81,30 @@ static func tunjuk_popup_terapung(ikon_tex: Texture2D, teks: String, pos_dunia: 
 		return
 
 	var canvas = pokok.current_scene.find_child("CanvasLayer", true, false)
+	# Saiz popup disamakan dengan iklan "+1 <nama>" di relau smelter:
+	# ikon 7px, fon 7, jarak 1px, supaya semua popup "+" seragam.
 	var popup := HBoxContainer.new()
 	popup.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	popup.alignment = BoxContainer.ALIGNMENT_CENTER
-	popup.add_theme_constant_override("separation", 3)
+	popup.add_theme_constant_override("separation", 1)
 	popup.z_index = 100
 
 	if ikon_tex:
 		var ikon := TextureRect.new()
 		ikon.texture = ikon_tex
-		ikon.custom_minimum_size = Vector2(16, 16)
+		ikon.custom_minimum_size = Vector2(7, 7)
 		ikon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		ikon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ikon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		ikon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		popup.add_child(ikon)
 
 	var label := Label.new()
 	label.text = teks
-	label.add_theme_font_size_override("font_size", 14)
-	label.add_theme_color_override("font_color", Color(0.6, 1.0, 0.65, 1.0))
-	label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
-	label.add_theme_constant_override("outline_size", 4)
+	label.add_theme_font_size_override("font_size", 7)
+	label.add_theme_color_override("font_color", Color(0.45, 1.0, 0.55, 1.0))
+	label.add_theme_color_override("font_outline_color", Color(0.02, 0.06, 0.09, 0.95))
+	label.add_theme_constant_override("outline_size", 3)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	popup.add_child(label)
 
@@ -110,9 +113,8 @@ static func tunjuk_popup_terapung(ikon_tex: Texture2D, teks: String, pos_dunia: 
 	else:
 		pokok.current_scene.add_child(popup)
 	popup.reset_size()
-	# Anggaran lebar untuk posisi awal; susun atur sebenar dikemas kini enjin.
-	var lebar := 16.0 + 3.0 + 18.0 if ikon_tex else 18.0
-	var offset_x := -lebar * 0.5
+	# Tengahkan popup tepat pada kedudukan item guna lebar sebenar teks.
+	var offset_x := -popup.size.x * 0.5
 	var offset_y_awal := -14.0
 	popup.global_position = (viewport.get_canvas_transform() * pos_dunia) + Vector2(offset_x, offset_y_awal)
 
