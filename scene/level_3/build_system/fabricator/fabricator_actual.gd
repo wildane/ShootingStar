@@ -72,14 +72,13 @@ var _penolak: Control = null
 var _tajuk_menu: Control = null
 var _baris_menu: Control = null
 var _kotak_craft: VBoxContainer = null
-var _grid_dron: GridContainer = null
-var _slot_dron: Array[PanelContainer] = []
-var _label_nama: Label = null
+var _senarai_kad: VBoxContainer = null
+var _kad_dron: Array[Dictionary] = []
 var _label_statistik: Label = null
-var _bekas_harga: VBoxContainer = null
 var _label_keterangan: RichTextLabel = null
 var _butang_craft: Button = null
 var _pilihan_craft: int = 0
+var _cache_ikon: Dictionary = {}
 func _ready():
 	# 1. Masuk group perabot
 	add_to_group("Furniture") 
@@ -307,56 +306,32 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 	butang_tutup_menu.pressed.connect(_on_butang_tutup_pressed)
 	header.add_child(butang_tutup_menu)
 
-	# --- BADAN: grid kiri, kotak info kanan ---
-	# Kotak info sentiasa penuh ruang menu (saiz tak berubah ikut dron),
-	# hanya teks keterangan di dalamnya yang boleh scroll.
-	var badan := HBoxContainer.new()
-	badan.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	badan.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	badan.add_theme_constant_override("separation", 6)
-	_kotak_craft.add_child(badan)
+	# --- BADAN: senarai kad resipi dron (gaya kad dapur) ---
+	# Setiap dron satu kad: ikon dron + nama + ikon bahan dengan kiraan
+	# "perlu/ada". Klik kad untuk pilih dron yang hendak dibuat.
+	_senarai_kad = VBoxContainer.new()
+	_senarai_kad.name = "SenaraiKad"
+	_senarai_kad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_senarai_kad.add_theme_constant_override("separation", 2)
+	_kotak_craft.add_child(_senarai_kad)
 
-	_grid_dron = GridContainer.new()
-	_grid_dron.name = "GridDron"
-	_grid_dron.columns = 2
-	_grid_dron.add_theme_constant_override("h_separation", 2)
-	_grid_dron.add_theme_constant_override("v_separation", 2)
-	_grid_dron.size_flags_vertical = Control.SIZE_SHRINK_BEGIN # mula dari atas kiri
-	badan.add_child(_grid_dron)
-
-	# Slot kotak kecil (macam ikon inventory): PanelContainer + butang ikon
 	var senarai := _semua_resipi()
 	for i in senarai.size():
-		var slot := PanelContainer.new()
-		slot.custom_minimum_size = Vector2(26, 26)
-		slot.add_theme_stylebox_override("panel", _gaya_slot(false, false))
-		_grid_dron.add_child(slot)
+		_senarai_kad.add_child(_bina_kad(i, senarai[i]))
 
-		var b := Button.new()
-		b.flat = true
-		b.icon = _ikon_resipi(senarai[i])
-		b.expand_icon = true
-		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		b.self_modulate = senarai[i]["warna"]
-		b.tooltip_text = str(senarai[i]["nama"])
-		b.pressed.connect(_pilih_craft.bind(i))
-		slot.add_child(b)
-
-		_slot_dron.append(slot)
-
-	# Kotak info kanan: nama, harga, keterangan, butang craft
+	# Kotak maklumat dron terpilih: stats + keterangan (boleh scroll).
 	var kotak_info := PanelContainer.new()
 	kotak_info.name = "KotakInfo"
 	kotak_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	kotak_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	kotak_info.add_theme_stylebox_override("panel", _gaya_slot(false, false))
-	badan.add_child(kotak_info)
+	_kotak_craft.add_child(kotak_info)
 
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 3)
-	margin.add_theme_constant_override("margin_top", 3)
+	margin.add_theme_constant_override("margin_top", 2)
 	margin.add_theme_constant_override("margin_right", 3)
-	margin.add_theme_constant_override("margin_bottom", 3)
+	margin.add_theme_constant_override("margin_bottom", 2)
 	kotak_info.add_child(margin)
 
 	var info := VBoxContainer.new()
@@ -365,10 +340,11 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 	info.add_theme_constant_override("separation", 2)
 	margin.add_child(info)
 
-	# Scroll untuk nama, harga dan keterangan sahaja. Scroll mendatar dimatikan
-	# supaya teks ditulis melintang ikut lebar kotak, bukan menegak satu huruf.
+	# Scroll untuk stats dan keterangan sahaja, supaya butang craft kekal
+	# di bawah walaupun teks panjang.
 	var skrol_info := ScrollContainer.new()
 	skrol_info.name = "SkrolInfo"
+	skrol_info.custom_minimum_size = Vector2(0, 44)
 	skrol_info.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	skrol_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	skrol_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -376,29 +352,15 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 
 	var isi_info := VBoxContainer.new()
 	isi_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	isi_info.add_theme_constant_override("separation", 2)
+	isi_info.add_theme_constant_override("separation", 1)
 	skrol_info.add_child(isi_info)
 
-	_label_nama = Label.new()
-	_label_nama.add_theme_font_size_override("font_size", 8)
-	_label_nama.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_label_nama.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	isi_info.add_child(_label_nama)
-
-	# Range / DMG / tenaga setiap dron
 	_label_statistik = Label.new()
 	_label_statistik.add_theme_font_size_override("font_size", 7)
 	_label_statistik.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_label_statistik.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_label_statistik.modulate = Color(0.75, 0.85, 1.0)
 	isi_info.add_child(_label_statistik)
-
-	# Senarai harga bahan (baris ikon + nama + kiraan), dibina semula setiap kali
-	_bekas_harga = VBoxContainer.new()
-	_bekas_harga.name = "HargaBahan"
-	_bekas_harga.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_bekas_harga.add_theme_constant_override("separation", 1)
-	isi_info.add_child(_bekas_harga)
 
 	_label_keterangan = RichTextLabel.new()
 	_label_keterangan.name = "KeteranganDron"
@@ -417,9 +379,144 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 	_butang_craft.size_flags_vertical = Control.SIZE_SHRINK_END # sentiasa di bawah kotak
 	_butang_craft.add_theme_font_size_override("font_size", 8)
 	_butang_craft.pressed.connect(_on_butang_craft_pressed)
-	info.add_child(_butang_craft)
+	_kotak_craft.add_child(_butang_craft)
 
 	_pilih_craft(0)
+
+
+# Satu kad resipi dron, susun atur ikut kad dapur: ikon hasil di kiri,
+# nama di atas dan baris ikon bahan (perlu/ada) di bawah nama.
+func _bina_kad(indeks: int, resipi: Dictionary) -> PanelContainer:
+	var kad := PanelContainer.new()
+	kad.name = "KadDron%d" % indeks
+	kad.custom_minimum_size = Vector2(0, 30)
+	kad.add_theme_stylebox_override("panel", _gaya_kad(indeks == _pilihan_craft))
+	kad.gui_input.connect(_on_kad_diklik.bind(indeks))
+
+	var baris := HBoxContainer.new()
+	baris.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	baris.add_theme_constant_override("separation", 3)
+	kad.add_child(baris)
+
+	# Ikon dron + kiraan yang sudah ada dalam beg (macam kad dapur).
+	var wadah_ikon := Control.new()
+	wadah_ikon.custom_minimum_size = Vector2(24, 20)
+	wadah_ikon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	baris.add_child(wadah_ikon)
+
+	var ikon_keluar := TextureRect.new()
+	ikon_keluar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ikon_keluar.offset_left = 1.0
+	ikon_keluar.offset_top = 1.0
+	ikon_keluar.offset_right = -1.0
+	ikon_keluar.offset_bottom = -1.0
+	ikon_keluar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ikon_keluar.texture = _ikon_resipi(resipi)
+	ikon_keluar.self_modulate = resipi["warna"]
+	ikon_keluar.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ikon_keluar.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ikon_keluar.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	wadah_ikon.add_child(ikon_keluar)
+
+	var kiraan := Label.new()
+	kiraan.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	kiraan.offset_left = -14.0
+	kiraan.offset_top = -10.0
+	kiraan.offset_right = -1.0
+	kiraan.offset_bottom = 1.0
+	kiraan.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	kiraan.add_theme_font_size_override("font_size", 6)
+	kiraan.add_theme_color_override("font_outline_color", Color(0.02, 0.04, 0.07, 1))
+	kiraan.add_theme_constant_override("outline_size", 2)
+	kiraan.text = "0"
+	kiraan.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	wadah_ikon.add_child(kiraan)
+
+	var maklumat := VBoxContainer.new()
+	maklumat.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	maklumat.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	maklumat.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	maklumat.add_theme_constant_override("separation", 1)
+	baris.add_child(maklumat)
+
+	var nama := Label.new()
+	nama.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	nama.add_theme_font_size_override("font_size", 7)
+	nama.text = str(resipi["nama"])
+	maklumat.add_child(nama)
+
+	var baris_bahan := HBoxContainer.new()
+	baris_bahan.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	baris_bahan.add_theme_constant_override("separation", 5)
+	maklumat.add_child(baris_bahan)
+
+	var slot_bahan: Array[Control] = []
+	var ikon_bahan: Array[TextureRect] = []
+	var label_bahan: Array[Label] = []
+	var bahan: Array = resipi["bahan"]
+	for j in 3:
+		var wadah := VBoxContainer.new()
+		wadah.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		wadah.add_theme_constant_override("separation", 0)
+		wadah.visible = j < bahan.size()
+		baris_bahan.add_child(wadah)
+
+		var ikon := TextureRect.new()
+		ikon.custom_minimum_size = Vector2(10, 10)
+		ikon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ikon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		ikon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ikon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ikon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		wadah.add_child(ikon)
+
+		var lbl := Label.new()
+		lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lbl.add_theme_font_size_override("font_size", 5)
+		lbl.add_theme_color_override("font_outline_color", Color(0.02, 0.04, 0.07, 1))
+		lbl.add_theme_constant_override("outline_size", 2)
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		wadah.add_child(lbl)
+
+		slot_bahan.append(wadah)
+		ikon_bahan.append(ikon)
+		label_bahan.append(lbl)
+
+	_kad_dron.append({
+		"panel": kad,
+		"nama": nama,
+		"ikon_keluar": ikon_keluar,
+		"label_keluar": kiraan,
+		"slot_bahan": slot_bahan,
+		"ikon_bahan": ikon_bahan,
+		"label_bahan": label_bahan,
+	})
+	return kad
+
+
+# Klik kad untuk tukar dron yang hendak dibuat.
+func _on_kad_diklik(event: InputEvent, indeks: int) -> void:
+	var sentuhan: bool = event is InputEventScreenTouch and event.pressed
+	var klik: bool = event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed
+	if not (sentuhan or klik):
+		return
+	_pilih_craft(indeks)
+
+
+# Gaya kad resipi: latar gelap, bingkai cyan bila dipilih, hijau bila siap.
+func _gaya_kad(dipilih: bool, sudah: bool = false) -> StyleBoxFlat:
+	var gaya := StyleBoxFlat.new()
+	gaya.bg_color = Color(0.031, 0.082, 0.13, 0.95) if dipilih else Color(0.024, 0.062, 0.094, 0.9)
+	if sudah:
+		gaya.border_color = Color(0.45, 1.0, 0.55, 0.95)
+	elif dipilih:
+		gaya.border_color = Color(0.45, 0.92, 1, 0.95)
+	else:
+		gaya.border_color = Color(0.2, 0.4, 0.5, 0.55)
+	gaya.set_border_width_all(1)
+	gaya.set_corner_radius_all(3)
+	gaya.set_content_margin_all(3.0)
+	return gaya
 
 
 # Kotak slot: bingkai nipis macam slot inventory
@@ -487,10 +584,20 @@ func _sudah_punya(id_item: String) -> bool:
 
 # Ikon slot dron guna fail imej resipi masing-masing.
 func _ikon_resipi(resipi: Dictionary) -> Texture2D:
-	var laluan: String = str(resipi.get("ikon_slot", IKON_DRON))
-	if laluan != "" and ResourceLoader.exists(laluan):
-		return load(laluan)
-	return null
+	return _muat_ikon(str(resipi.get("ikon_slot", IKON_DRON)))
+
+
+# Simpan tekstur dalam cache supaya kad tak muat semula fail setiap kemas kini.
+func _muat_ikon(laluan: String) -> Texture2D:
+	if laluan == "":
+		return null
+	if _cache_ikon.has(laluan):
+		return _cache_ikon[laluan]
+	if not ResourceLoader.exists(laluan):
+		return null
+	var tekstur: Texture2D = load(laluan)
+	_cache_ikon[laluan] = tekstur
+	return tekstur
 
 
 func _bahan_cukup(resipi: Dictionary) -> bool:
@@ -500,87 +607,77 @@ func _bahan_cukup(resipi: Dictionary) -> bool:
 	return true
 
 
-# Kemas kini bingkai grid, kotak info dan butang craft
+# Kemas kini kad resipi, kotak stats dan butang craft
 func _kemas_kini_craft() -> void:
-	if _kotak_craft == null:
+	if _kotak_craft == null or _kad_dron.is_empty():
 		return
 
 	var senarai := _semua_resipi()
-	for i in _slot_dron.size():
-		var slot: PanelContainer = _slot_dron[i]
-		if not is_instance_valid(slot) or i >= senarai.size():
+	for i in _kad_dron.size():
+		if i >= senarai.size():
 			continue
-		var sudah := _sudah_punya(senarai[i]["id"])
-		slot.add_theme_stylebox_override("panel", _gaya_slot(i == _pilihan_craft, sudah))
-		var isi := slot.get_child(0) as Button
-		if isi:
-			isi.self_modulate = Color(0.35, 1.0, 0.45) if sudah else senarai[i]["warna"]
-			isi.modulate = Color.WHITE if i == _pilihan_craft else Color(0.6, 0.6, 0.6, 0.9)
+		var kad: Dictionary = _kad_dron[i]
+		var resipi: Dictionary = senarai[i]
+		var sudah := _sudah_punya(str(resipi["id"]))
+
+		var panel: PanelContainer = kad["panel"]
+		if panel:
+			panel.add_theme_stylebox_override("panel", _gaya_kad(i == _pilihan_craft, sudah))
+		var ikon_keluar: TextureRect = kad["ikon_keluar"]
+		if ikon_keluar:
+			ikon_keluar.self_modulate = Color(0.35, 1.0, 0.45) if sudah else resipi["warna"]
+		var kiraan: Label = kad["label_keluar"]
+		if kiraan:
+			kiraan.text = str(_bilangan_dalam_beg(str(resipi["id"])))
+
+		var bahan: Array = resipi["bahan"]
+		for j in kad["slot_bahan"].size():
+			var wadah: Control = kad["slot_bahan"][j]
+			if j >= bahan.size():
+				wadah.visible = false
+				continue
+			wadah.visible = true
+			var data_bahan: Dictionary = bahan[j]
+			var ikon: TextureRect = kad["ikon_bahan"][j]
+			if ikon:
+				ikon.texture = _muat_ikon(str(data_bahan.get("ikon", "")))
+			var lbl: Label = kad["label_bahan"][j]
+			if lbl:
+				var ada := _bilangan_dalam_beg(str(data_bahan["id"]))
+				var perlu := int(data_bahan["kuantiti"])
+				lbl.text = "%d/%d" % [perlu, ada]
+				lbl.add_theme_color_override("font_color", Color(0.5, 1.0, 0.55, 1.0) if ada >= perlu else Color(1.0, 0.45, 0.45, 1.0))
 
 	if _pilihan_craft < 0 or _pilihan_craft >= senarai.size():
 		return
 	var resipi: Dictionary = senarai[_pilihan_craft]
-	var sudah := _sudah_punya(resipi["id"])
+	var sudah := _sudah_punya(str(resipi["id"]))
 
-	_label_nama.text = str(resipi["nama"])
+	if _label_statistik:
+		var teks_khas: String = str(resipi.get("statistik_teks", ""))
+		if teks_khas != "":
+			_label_statistik.text = teks_khas
+		else:
+			var stat: Dictionary = resipi.get("statistik", {})
+			var dmg: String = str(int(stat.get("dmg", 0))) if int(stat.get("dmg", 0)) > 0 else "-"
+			_label_statistik.text = "Range " + str(int(stat.get("range", 0))) + "  ·  DMG " + dmg + "  ·  Energy " + str(stat.get("tenaga", 0)) + "\nCooldown " + str(stat.get("cooldown", 0)) + "s"
 
-	var teks_khas: String = str(resipi.get("statistik_teks", ""))
-	if teks_khas != "":
-		_label_statistik.text = teks_khas
-	else:
-		var stat: Dictionary = resipi.get("statistik", {})
-		var dmg: String = str(int(stat.get("dmg", 0))) if int(stat.get("dmg", 0)) > 0 else "-"
-		_label_statistik.text = "Range " + str(int(stat.get("range", 0))) + "\nDMG " + dmg + "  ·  Energy " + str(stat.get("tenaga", 0)) + "\nCooldown " + str(stat.get("cooldown", 0)) + "s"
+	if _label_keterangan:
+		_label_keterangan.text = str(resipi["keterangan"])
 
-	_kemas_kini_harga(resipi)
-
-	_label_keterangan.text = str(resipi["keterangan"])
-
-	if sudah:
-		_butang_craft.text = "Already crafted"
-		_butang_craft.disabled = true
-	elif not has_power:
-		_butang_craft.text = "No power"
-		_butang_craft.disabled = true
-	elif _bahan_cukup(resipi):
-		_butang_craft.text = "Craft"
-		_butang_craft.disabled = false
-	else:
-		_butang_craft.text = "Not enough materials"
-		_butang_craft.disabled = true
-
-
-# Bina baris harga: ikon bahan + nama + kiraan yang ada/perlu
-func _kemas_kini_harga(resipi: Dictionary) -> void:
-	if _bekas_harga == null:
-		return
-	for anak in _bekas_harga.get_children():
-		_bekas_harga.remove_child(anak)
-		anak.queue_free()
-
-	for bahan in resipi["bahan"]:
-		var ada := _bilangan_dalam_beg(bahan["id"])
-		var perlu := int(bahan["kuantiti"])
-
-		var baris := HBoxContainer.new()
-		baris.add_theme_constant_override("separation", 3)
-		_bekas_harga.add_child(baris)
-
-		var ikon := TextureRect.new()
-		ikon.custom_minimum_size = Vector2(12, 12)
-		ikon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		ikon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		var laluan_ikon: String = str(bahan.get("ikon", ""))
-		if laluan_ikon != "" and ResourceLoader.exists(laluan_ikon):
-			ikon.texture = load(laluan_ikon)
-		baris.add_child(ikon)
-
-		var lbl := Label.new()
-		lbl.add_theme_font_size_override("font_size", 7)
-		lbl.text = str(bahan["nama"]) + " " + str(ada) + "/" + str(perlu)
-		# Hijau bila bahan cukup, merah bila tak cukup
-		lbl.modulate = Color(0.4, 1.0, 0.45) if ada >= perlu else Color(1.0, 0.4, 0.4)
-		baris.add_child(lbl)
+	if _butang_craft:
+		if sudah:
+			_butang_craft.text = "Already crafted"
+			_butang_craft.disabled = true
+		elif not has_power:
+			_butang_craft.text = "No power"
+			_butang_craft.disabled = true
+		elif _bahan_cukup(resipi):
+			_butang_craft.text = "Craft"
+			_butang_craft.disabled = false
+		else:
+			_butang_craft.text = "Not enough materials"
+			_butang_craft.disabled = true
 
 
 func _on_butang_craft_pressed() -> void:
