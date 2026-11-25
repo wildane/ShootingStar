@@ -23,6 +23,7 @@ config/icon="res://icon.svg"
 
 BuildManager="*res://scene/level_3/build_system/BuildManager.gd"
 InventoryManager="*res://scene/Inventory/InventoryManager.gd"
+ProteinDrinkAuto="*res://scene/Item/0012ProteinDrink/protein_drink_auto.gd"
 SceneTransition="*res://scene/tscn_transition/SceneTransition.tscn"
 NetworkManager="*res://NetworkManager.gd"
 SaveManager="*res://SaveManager.gd"
