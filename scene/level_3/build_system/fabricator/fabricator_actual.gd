@@ -63,6 +63,21 @@ var resipi_dron: Array[Dictionary] = [
 			{"id": "item_0004", "nama": "Rock Anomaly (Geode)", "kuantiti": 2, "ikon": "res://scene/Item/0004Geode/Image_129.png"},
 		],
 	},
+	{
+		"id": "item_0014",
+		"nama": "Magnetic Shield",
+		"item": "res://scene/Item/0014MagneticShield/MagneticShield.tscn",
+		"ikon_slot": "res://scene/Item/0014MagneticShield/Image_shield.png",
+		"warna": Color(0.55, 0.95, 0.95),
+		"keterangan": "Deflector plate built from cosmic scale, steel and husk slime. Its magnetic field buzzes softly against impacts.",
+		"statistik_teks": "Magnetic Shield\nDeflector gear",
+		"nota_siap": "Magnetic Shield crafted!",
+		"bahan": [
+			{"id": "item_0007", "nama": "Cosmic Scale", "kuantiti": 10, "ikon": "res://scene/Item/0007CosmicScale/Image_176.png"},
+			{"id": "item_0009", "nama": "Steel", "kuantiti": 10, "ikon": "res://scene/Item/0009Steel/Image_steel.png"},
+			{"id": "item_0008", "nama": "Husk Slime", "kuantiti": 10, "ikon": "res://scene/Item/0008HuskSlime/Image_husk_slime.png"},
+		],
+	},
 ]
 
 # UI craft dron (semua di dalam menu Fabricator, tiada panel bertindih)
@@ -196,7 +211,7 @@ func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int):
 			if menu_ui.visible:
 				_tutup_menu()
 			else:
-				# Tiada menu depan - menu terus buka dengan 3 kad resipi dron.
+				# Tiada menu depan - menu terus buka dengan senarai kad resipi.
 				menu_ui.visible = true
 				_kemas_kini_craft()
 		get_viewport().set_input_as_handled()
@@ -204,7 +219,7 @@ func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int):
 # ==========================================================
 # 🛠️ SISTEM CRAFT DRON
 # ==========================================================
-# Menu terus tunjuk 3 kad resipi dron, kotak statistik + butang Craft,
+# Menu terus tunjuk kad resipi, kotak statistik + butang Craft,
 # dan butang Close/Demolish di bawah sekali (tiada menu depan).
 func _bina_ui_craft() -> void:
 	if menu_ui == null or _kotak_craft != null:
@@ -244,7 +259,7 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 	_kotak_craft.add_theme_constant_override("separation", 2)
 	vbox.add_child(_kotak_craft)
 
-	# --- BADAN: senarai kad resipi dron (gaya kad dapur) ---
+	# --- BADAN: senarai kad resipi (gaya kad dapur) ---
 	# Setiap dron satu kad: ikon dron + nama + ikon bahan dengan kiraan
 	# "perlu/ada". Klik kad untuk pilih dron yang hendak dibuat.
 	_senarai_kad = VBoxContainer.new()
@@ -322,7 +337,7 @@ func _bina_kandungan_craft(vbox: Node) -> void:
 	_pilih_craft(0)
 
 
-# Satu kad resipi dron, susun atur ikut kad dapur: ikon hasil di kiri,
+# Satu kad resipi, susun atur ikut kad dapur: ikon hasil di kiri,
 # nama di atas dan baris ikon bahan (perlu/ada) di bawah nama.
 func _bina_kad(indeks: int, resipi: Dictionary) -> PanelContainer:
 	var kad := PanelContainer.new()
@@ -624,16 +639,16 @@ func _on_butang_craft_pressed() -> void:
 	for bahan in resipi["bahan"]:
 		inv.tolak_item(bahan["id"], int(bahan["kuantiti"]))
 
-	# 2. Masukkan item dron ke dalam beg (ini yang membuka pilihan dron di HUD)
+	# 2. Masukkan item ke dalam beg (dron membuka pilihan dron di HUD)
 	inv.tambah_item({
 		"id": resipi["id"],
 		"nama": resipi["nama"],
-		"ikon": load(IKON_DRON),
+		"ikon": _ikon_resipi(resipi),
 		"scene_path": resipi["item"],
 	})
 
 	_kemas_kini_craft()
-	_tulis_info(str(resipi["nama"]) + " crafted! Select it from the drone button.")
+	_tulis_info(str(resipi.get("nota_siap", str(resipi["nama"]) + " crafted! Select it from the drone button.")))
 	print("Fabricator: ", resipi["nama"], " selesai dibuat")
 
 
