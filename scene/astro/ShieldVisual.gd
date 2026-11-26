@@ -1,90 +1,91 @@
-extends Node2D
+extends Sprite2D
 
 # ==========================================
-# GELEMBUNG PERISAI MAGNETIK (RAPAT PADA BENTUK PEMAIN)
+# GLOW PERISAI MAGNETIK (IKUT BENTUK PEMAIN)
 # ==========================================
-# Node ini diurus oleh HealthComponent: dicipta sekali sebagai anak pemain,
-# dipaparkan selagi masih ada Magnetic Shield dalam beg, dan berkilat setiap
-# kali satu serangan diserap. Bentuknya elips bercahaya yang mengikut nisbah
-# sprite pemain (kapal lebar dan rendah), bukan bulatan besar berlebih.
+# Node ini diurus oleh HealthComponent. Ia menyalin tekstur, frame dan
+# transform sprite pemain yang sedang kelihatan (SpriteAngkasa semasa di
+# angkasa, SpriteBase semasa di pangkalan), kemudian shader melukis cahaya
+# di luar siluet sprite itu sahaja. Jadi glow betul-betul mengikut bentuk
+# kapal, bukan bulatan atau petak.
 
-const WARNA_TERAS := Color(0.55, 1.0, 1.0, 1.0)
-const WARNA_CAHAYA := Color(0.20, 0.80, 1.0, 1.0)
-const SEGI_BULATAN := 40
+const BAHAN_GLOW: Shader = preload("res://scene/astro/shield_glow.gdshader")
+const LEBAR_GLOW_SKRIN: float = 2.0  # piksel skrin
+const WARNA_GLOW := Color(0.30, 0.90, 1.0, 1.0)
 
-# Jejari asas (piksel). HealthComponent menetapkannya ikut saiz sprite pemain.
-@export var jejari_x: float = 14.0
-@export var jejari_y: float = 10.0
+# Dikawal HealthComponent: glow hanya dipaparkan selagi stok shield ada.
+var aktif: bool = false
 
 var _masa: float = 0.0
 var _kilat: float = 0.0
+var _bahan: ShaderMaterial
 
 func _ready() -> void:
-	# Mod tambah (additive) membuatkan cincin kelihatan bercahaya pada latar gelap.
-	var bahan := CanvasItemMaterial.new()
-	bahan.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-	material = bahan
+	_bahan = ShaderMaterial.new()
+	_bahan.shader = BAHAN_GLOW
+	_bahan.set_shader_parameter("warna_glow", WARNA_GLOW)
+	material = _bahan
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	z_index = 1
+	visible = false
 
 func _process(delta: float) -> void:
 	_masa += delta
 	_kilat = maxf(_kilat - delta * 2.5, 0.0)
-	queue_redraw()
+	_salin_sprite_aktif()
 
-# Dipanggil setiap kali serangan diserap: gelembung membesar dan menyala.
+# Dipanggil HealthComponent bila stok shield mula/habis.
+func set_aktif(nilai: bool) -> void:
+	aktif = nilai
+	visible = nilai and _cari_sprite_aktif() != null
+
+# Dipanggil setiap kali serangan diserap: glow menyala sekejap.
 func kilat() -> void:
 	_kilat = 1.0
 
-# Titik-titik elips dengan jarak tambahan luar (untuk lapisan glow).
-func _elips(jarak: float) -> PackedVector2Array:
-	var titik := PackedVector2Array()
-	for i in range(SEGI_BULATAN + 1):
-		var sudut := TAU * float(i) / float(SEGI_BULATAN)
-		titik.append(Vector2(
-			cos(sudut) * (jejari_x + jarak),
-			sin(sudut) * (jejari_y + jarak)
-		))
-	return titik
+# Salin bentuk sprite pemain yang sedang kelihatan.
+func _salin_sprite_aktif() -> void:
+	var sumber := _cari_sprite_aktif()
+	if not aktif or sumber == null:
+		visible = false
+		return
+	visible = true
 
-# Sebahagian elips (untuk kilauan cahaya yang berputar).
-func _lengkok(mula: float, panjang: float) -> PackedVector2Array:
-	var titik := PackedVector2Array()
-	var langkah := 12
-	for i in range(langkah + 1):
-		var sudut := mula + panjang * (float(i) / float(langkah))
-		titik.append(Vector2(cos(sudut) * jejari_x, sin(sudut) * jejari_y))
-	return titik
+	texture = sumber.texture
+	hframes = sumber.hframes
+	vframes = sumber.vframes
+	frame = sumber.frame
+	frame_coords = sumber.frame_coords
+	centered = sumber.centered
+	offset = sumber.offset
+	flip_h = sumber.flip_h
+	flip_v = sumber.flip_v
+	position = sumber.position
+	scale = sumber.scale
+	rotation = sumber.rotation
 
-func _draw() -> void:
-	var denyut := sin(_masa * 3.0) * 0.5 + 0.5
-	var r := 1.0 + 0.04 * denyut + 0.18 * _kilat
-	var a := (0.70 + 0.30 * denyut) * (1.0 + 1.2 * _kilat)
-	var rx := jejari_x * r
-	var ry := jejari_y * r
+	_kemas_kini_kilauan()
 
-	var teras := _elips(0.0)
-	var asas := PackedVector2Array()
-	for titik in teras:
-		asas.append(Vector2(titik.x * (rx / jejari_x), titik.y * (ry / jejari_y)))
-	asas[asas.size() - 1] = asas[0]
+func _kemas_kini_kilauan() -> void:
+	if _bahan == null:
+		return
+	var skala: float = absf(scale.x)
+	if skala <= 0.0:
+		skala = 0.03
+	# Lebar glow dalam piksel tekstur supaya saiz di skrin kekal ~2 piksel.
+	_bahan.set_shader_parameter("lebar_glow", LEBAR_GLOW_SKRIN / skala)
+	var denyut := sin(_masa * 4.0) * 0.15
+	_bahan.set_shader_parameter("keamatan", (1.0 + denyut) * (1.0 + 1.5 * _kilat))
 
-	# Isi lembut supaya bahagian dalam kelihatan seperti gelembung, bukan kosong.
-	draw_colored_polygon(asas, Color(WARNA_CAHAYA, 0.05 * a))
-
-	# Lapisan cahaya di luar cincin (kian pudar) untuk kesan glow.
-	for i in range(3):
-		var lapisan := _elips(0.8 + float(i) * 1.0)
-		for j in range(lapisan.size()):
-			lapisan[j] = Vector2(lapisan[j].x * (rx / jejari_x), lapisan[j].y * (ry / jejari_y))
-		var alfa := (0.14 - 0.035 * float(i)) * a
-		draw_polyline(lapisan, Color(WARNA_CAHAYA, alfa), 1.6, true)
-
-	# Cincin teras yang tajam.
-	draw_polyline(asas, Color(WARNA_TERAS, 0.85 * a), 1.2, true)
-
-	# Kilauan berputar: sorotan cahaya yang bergerak mengelilingi gelembung.
-	var mula := _masa * 2.0
-	var sorot := _lengkok(mula, 0.7)
-	for k in range(sorot.size()):
-		sorot[k] = Vector2(sorot[k].x * (rx / jejari_x), sorot[k].y * (ry / jejari_y))
-	draw_polyline(sorot, Color(WARNA_TERAS, 0.55 * a), 1.6, true)
+# Sprite pemain yang kelihatan sekarang (Angkasa atau Base).
+func _cari_sprite_aktif() -> Sprite2D:
+	var pemain: Node = get_parent()
+	if pemain == null:
+		return null
+	var terjumpa: Sprite2D = null
+	for anak in pemain.get_children():
+		if anak is Sprite2D and anak != self:
+			var sprite: Sprite2D = anak as Sprite2D
+			if sprite.visible and sprite.texture != null:
+				terjumpa = sprite
+	return terjumpa
