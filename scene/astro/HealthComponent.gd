@@ -147,22 +147,27 @@ func _cipta_kesan_perisai() -> Node2D:
 	var gelembung: Node2D = SKRIP_KESAN_PERISAI.new()
 	gelembung.name = "KesanPerisai"
 	gelembung.z_index = 1
-	gelembung.set("jejari", _jejari_perisai())
+	var jejari: Vector2 = _jejari_perisai()
+	gelembung.set("jejari_x", jejari.x)
+	gelembung.set("jejari_y", jejari.y)
 	player.add_child(gelembung)
 	gelembung.position = Vector2.ZERO
 	return gelembung
 
-# Jejari ikut saiz sprite pemain supaya gelembung sentiasa mengelilinginya.
-func _jejari_perisai() -> float:
+# Jejari elips ikut nisbah sprite pemain supaya gelembung rapat pada badannya.
+func _jejari_perisai() -> Vector2:
 	var sprite: Node2D = _find_player_sprite()
 	if is_instance_valid(sprite) and sprite is Sprite2D:
-		var tekstur: Texture2D = (sprite as Sprite2D).texture
+		var teks: Sprite2D = sprite as Sprite2D
+		var tekstur: Texture2D = teks.texture
 		if tekstur != null:
-			var skala: Vector2 = sprite.global_scale.abs()
-			var lebar: float = float(tekstur.get_width()) * skala.x
+			var skala: Vector2 = teks.global_scale.abs()
+			var bingkai: int = maxi(teks.hframes, 1)
+			var lebar: float = float(tekstur.get_width()) / float(bingkai) * skala.x
 			var tinggi: float = float(tekstur.get_height()) * skala.y
-			return maxf(lebar, tinggi) * 0.5 + 6.0
-	return 18.0
+			# Sedikit ruang (1.5 piksel) supaya cincin tidak memotong sprite.
+			return Vector2(lebar * 0.5 + 1.5, tinggi * 0.5 + 1.5)
+	return Vector2(11.0, 8.0)
 
 # Kilauan gelembung sekejap sebagai tanda serangan diserap.
 func _papar_kesan_perisai() -> void:
