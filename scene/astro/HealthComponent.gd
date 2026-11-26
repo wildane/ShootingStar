@@ -38,6 +38,10 @@ const ID_MAGNETIC_SHIELD: String = "item_0014"
 const IKON_MAGNETIC_SHIELD: Texture2D = preload("res://scene/Item/0014MagneticShield/Image_shield.png")
 const WARNA_PERISAI := Color(0.6, 1.0, 1.0, 1.0)
 
+# Gelembung bulat bercahaya di sekeliling pemain (bukan ikon petak).
+const SKRIP_KESAN_PERISAI: GDScript = preload("res://scene/astro/ShieldVisual.gd")
+var _kesan_perisai: Node2D = null
+
 func _ready() -> void:
 	hp = max_hp
 
@@ -45,6 +49,7 @@ func _process(delta: float) -> void:
 	if _baki_cooldown_pulih > 0.0:
 		_baki_cooldown_pulih = maxf(_baki_cooldown_pulih - delta, 0.0)
 	_cuba_pulih_hp()
+	_kemas_kini_kesan_perisai()
 
 func _cuba_pulih_hp() -> void:
 	# Pil diutamakan untuk luka besar supaya 3 HP tidak membazir.
@@ -123,28 +128,50 @@ func _popup_perisai(teks: String) -> void:
 		IKON_MAGNETIC_SHIELD, teks, player.global_position, self, WARNA_PERISAI
 	)
 
-# Kilauan perisai sekejap pada kedudukan pemain sebagai tanda serangan diserap.
-func _papar_kesan_perisai() -> void:
+# Gelembung perisai dipaparkan selagi pemain masih ada shield dalam beg.
+func _kemas_kini_kesan_perisai() -> void:
+	if not perisai_sedia():
+		if is_instance_valid(_kesan_perisai):
+			_kesan_perisai.visible = false
+		return
+	if not is_instance_valid(_kesan_perisai):
+		_kesan_perisai = _cipta_kesan_perisai()
+	if not is_instance_valid(_kesan_perisai):
+		return
+	_kesan_perisai.visible = true
+
+# Cipta gelembung sebagai anak pemain supaya ia ikut bergerak secara automatik.
+func _cipta_kesan_perisai() -> Node2D:
 	if not is_instance_valid(player):
+		return null
+	var gelembung: Node2D = SKRIP_KESAN_PERISAI.new()
+	gelembung.name = "KesanPerisai"
+	gelembung.z_index = 1
+	gelembung.set("jejari", _jejari_perisai())
+	player.add_child(gelembung)
+	gelembung.position = Vector2.ZERO
+	return gelembung
+
+# Jejari ikut saiz sprite pemain supaya gelembung sentiasa mengelilinginya.
+func _jejari_perisai() -> float:
+	var sprite: Node2D = _find_player_sprite()
+	if is_instance_valid(sprite) and sprite is Sprite2D:
+		var tekstur: Texture2D = (sprite as Sprite2D).texture
+		if tekstur != null:
+			var skala: Vector2 = sprite.global_scale.abs()
+			var lebar: float = float(tekstur.get_width()) * skala.x
+			var tinggi: float = float(tekstur.get_height()) * skala.y
+			return maxf(lebar, tinggi) * 0.5 + 6.0
+	return 18.0
+
+# Kilauan gelembung sekejap sebagai tanda serangan diserap.
+func _papar_kesan_perisai() -> void:
+	if not is_instance_valid(_kesan_perisai):
+		_kesan_perisai = _cipta_kesan_perisai()
+	if not is_instance_valid(_kesan_perisai):
 		return
-	var induk: Node = player.get_parent()
-	if induk == null:
-		induk = get_tree().current_scene
-	if induk == null:
-		return
-	var kilau := Sprite2D.new()
-	kilau.texture = IKON_MAGNETIC_SHIELD
-	kilau.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	kilau.z_index = 90
-	kilau.modulate = WARNA_PERISAI
-	kilau.scale = Vector2(0.03, 0.03)
-	induk.add_child(kilau)
-	kilau.global_position = player.global_position
-	var tw := kilau.create_tween()
-	tw.set_parallel(true)
-	tw.tween_property(kilau, "scale", Vector2(0.075, 0.075), 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tw.tween_property(kilau, "modulate:a", 0.0, 0.35).set_delay(0.1)
-	tw.chain().tween_callback(kilau.queue_free)
+	_kesan_perisai.visible = true
+	_kesan_perisai.call("kilat")
 
 func take_damage(amount: float) -> void:
 	if is_dead: return
