@@ -18,6 +18,8 @@ func get_data() -> Dictionary:
 	# meta, jadi ia mesti ikut masuk data slot supaya tak reset bila load.
 	if parent.has_meta("hp_serangan"):
 		data["hp_serangan"] = int(parent.get_meta("hp_serangan"))
+		if parent.has_meta("hp_sasaran_maks"):
+			data["hp_sasaran_maks"] = int(parent.get_meta("hp_sasaran_maks"))
 	# State tambahan khusus perabot (contoh: batch smelter yang belum siap).
 	if parent.has_method("get_data_simpanan_tambahan"):
 		var tambahan = parent.get_data_simpanan_tambahan()

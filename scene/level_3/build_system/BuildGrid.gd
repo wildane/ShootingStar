@@ -73,6 +73,7 @@ static var mod_aktif: bool = false
 var _tile: Dictionary = {}        # Vector2i -> jenis (tile siap dibina)
 var _hp_tile: Dictionary = {}     # Vector2i -> HP semasa tile (serangan husk)
 var _badan_pintu: Dictionary = {} # Vector2i -> StaticBody2D
+var _badan_tile: Dictionary = {}  # Vector2i -> nod kolider/zon tile (body atau zon lantai)
 var _pintu_dekat: Dictionary = {} # Vector2i -> bool
 var _zon_lantai: Dictionary = {}  # Vector2i -> Area2D (zon bina perabot)
 
@@ -483,15 +484,19 @@ func _buang_tile(g: Vector2i) -> void:
 	_hp_tile.erase(g)
 	_padam_tanda.erase(g)
 	_padam_kemajuan.erase(g)
+	var nod_tile: Node2D = _badan_tile.get(g, null) as Node2D
+	_badan_tile.erase(g)
+	if nod_tile != null and is_instance_valid(nod_tile):
+		# Bar HP hilang serta-merta bersama struktur yang dirobohkan.
+		BAR_HP.buang(nod_tile)
+		nod_tile.queue_free()
 	var badan: StaticBody2D = _badan_pintu.get(g, null)
-	if badan == null:
-		badan = get_node_or_null("Grid_%d_%d" % [g.x, g.y]) as StaticBody2D
-	if badan != null and is_instance_valid(badan):
+	if badan != null and is_instance_valid(badan) and badan != nod_tile:
 		badan.queue_free()
 	_badan_pintu.erase(g)
 	_pintu_dekat.erase(g)
 	var zon: Area2D = _zon_lantai.get(g, null)
-	if zon != null and is_instance_valid(zon):
+	if zon != null and is_instance_valid(zon) and zon != nod_tile:
 		zon.queue_free()
 	_zon_lantai.erase(g)
 
@@ -555,6 +560,19 @@ func muat_data_save(data: Dictionary) -> void:
 				_bina_kemajuan[g] = clampf(float(item.get("kemajuan", 0.0)), 0.0, 0.99)
 	PowerGrid.tanda_kotor_semua("grid_muat")
 	queue_redraw()
+	_papar_bar_hp_rosak()
+
+# Struktur yang masih cedera (HP < maks) tunjuk bar HP semula selepas load,
+# supaya player tahu mana yang rosak walaupun raid sudah lama tamat.
+func _papar_bar_hp_rosak() -> void:
+	for g in _tile:
+		var maks: int = hp_maks_tile(int(_tile[g]))
+		var baki: int = hp_tile(g)
+		if baki >= maks:
+			continue
+		var nod_tile := _nod_tile(g)
+		if nod_tile != null:
+			BAR_HP.papar(nod_tile, baki, maks)
 
 # Dipakai preview bangunan luar (contoh: Solar Module) supaya struktur yang
 # dibina pemain (lantai/dinding/pintu, termasuk yang masih berstatus rancangan)
@@ -631,12 +649,20 @@ func kena_serangan(g: Vector2i) -> bool:
 # Nod visual/kolider bagi sesuatu tile (dinding/pintu: StaticBody2D,
 # lantai: zon Area2D). Dipakai untuk meletak bar HP di atasnya.
 func _nod_tile(g: Vector2i) -> Node2D:
-	var badan: Node2D = _badan_pintu.get(g, null) as Node2D
-	if badan == null or not is_instance_valid(badan):
-		badan = get_node_or_null("Grid_%d_%d" % [g.x, g.y]) as Node2D
-	if badan == null:
-		badan = _zon_lantai.get(g, null) as Node2D
-	return badan
+	var nod: Node2D = _badan_tile.get(g, null) as Node2D
+	if nod != null and is_instance_valid(nod):
+		return nod
+	nod = _badan_pintu.get(g, null) as Node2D
+	if nod != null and is_instance_valid(nod):
+		return nod
+	nod = get_node_or_null("Grid_%d_%d" % [g.x, g.y]) as Node2D
+	if nod == null:
+		nod = _zon_lantai.get(g, null) as Node2D
+	return nod
+
+# Nod tile untuk kegunaan luar/ujian.
+func nod_tile(g: Vector2i) -> Node2D:
+	return _nod_tile(g)
 
 # Husk memusnahkan satu tile dengan satu serangan: visual, kolider dinding/pintu
 # dan zon lantai terus dibuang dari grid.
@@ -684,6 +710,10 @@ func _bina_kolider(g: Vector2i, jenis: int) -> void:
 	bentuk.shape = segi
 	badan.add_child(bentuk)
 	add_child(badan)
+	# Simpan nod sendiri (jangan harap nama): selepas muat semula, nama boleh
+	# bertukar kalau nod lama masih menunggu queue_free.
+	badan.set_meta("grid_sel", g)
+	_badan_tile[g] = badan
 	if jenis == JENIS_PINTU:
 		_badan_pintu[g] = badan
 
@@ -704,6 +734,8 @@ func _bina_zon_lantai(g: Vector2i) -> void:
 	bentuk.shape = segi
 	zon.add_child(bentuk)
 	add_child(zon)
+	zon.set_meta("grid_sel", g)
+	_badan_tile[g] = zon
 	_zon_lantai[g] = zon
 
 # ==========================================

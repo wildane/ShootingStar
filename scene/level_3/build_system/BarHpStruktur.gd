@@ -1,16 +1,14 @@
 class_name BarHpStruktur
 extends Node2D
 
-## Bar HP kecil di atas struktur pangkalan (dinding/pintu/perabot) yang baru
-## kena serangan husk. Muncul serta-merta dengan baki HP semasa, kekal beberapa
-## saat, kemudian pudar dan membebaskan dirinya sendiri.
+## Bar HP kekal di atas struktur pangkalan (dinding/pintu/perabot) yang rosak
+## akibat serangan husk. Ia TIDAK pudar, jadi selepas raid player boleh nampak
+## struktur mana yang sudah cedera dan berapa baki HP-nya.
 ##
 ## Satu bar sahaja bagi setiap struktur: serangan seterusnya mengemas kini bar
-## yang sama (bukan bertindan). Bar hidup sebagai anak kepada induk struktur,
-## jadi ia turut hilang bila strukturnya musnah.
+## yang sama. Bar hidup sebagai anak kepada struktur itu sendiri, jadi ia
+## hilang serta-merta bersama struktur apabila dirobohkan atau dimusnahkan.
 
-const MASA_PAPAR: float = 3.0
-const MASA_PUDAR: float = 0.8
 const LEBAR: float = 22.0
 const TINGGI: float = 4.0
 const JARAK_ATAS: float = 15.0
@@ -23,13 +21,10 @@ const WARNA_KRITIKAL: Color = Color(1.0, 0.42, 0.36)
 
 var baki: int = 1
 var maksimum: int = 1
-## Struktur yang diikut bar ini (posisi dikemas kini tiap frame).
-var sasaran: Node2D = null
 
-var _masa: float = 0.0
+var _sasaran: Node2D = null
 
 # Tunjuk atau segarkan bar HP untuk sesuatu struktur.
-# sasaran mesti Node2D yang sudah berada dalam scene.
 static func papar(sasaran: Node2D, hp_baki: int, hp_maks: int) -> void:
 	if sasaran == null or not is_instance_valid(sasaran):
 		return
@@ -41,37 +36,38 @@ static func papar(sasaran: Node2D, hp_baki: int, hp_maks: int) -> void:
 			bar = lama
 
 	if bar == null:
-		var induk: Node = sasaran.get_parent()
-		if induk == null:
-			induk = sasaran
 		bar = BarHpStruktur.new()
 		bar.name = "BarHpStruktur"
 		bar.z_index = 50
-		induk.add_child(bar)
+		# top_level: bar tak ikut putaran/skala struktur, cuma posisinya.
+		bar.top_level = true
+		sasaran.add_child(bar)
 		sasaran.set_meta(KUNCI_META, bar)
 
-	bar.sasaran = sasaran
+	bar._sasaran = sasaran
 	bar.tetapkan(hp_baki, hp_maks)
+
+# Buang bar HP serta-merta (dipakai bila struktur dirobohkan/dimusnahkan).
+static func buang(sasaran: Node) -> void:
+	if sasaran == null or not is_instance_valid(sasaran):
+		return
+	if not sasaran.has_meta(KUNCI_META):
+		return
+	var lama: Variant = sasaran.get_meta(KUNCI_META)
+	sasaran.remove_meta(KUNCI_META)
+	if lama is BarHpStruktur and is_instance_valid(lama):
+		lama.queue_free()
 
 func tetapkan(hp_baki: int, hp_maks: int) -> void:
 	baki = maxi(0, hp_baki)
 	maksimum = maxi(1, hp_maks)
-	_masa = 0.0
-	modulate.a = 1.0
+	if _sasaran != null and is_instance_valid(_sasaran):
+		global_position = _sasaran.global_position
 	queue_redraw()
 
-func _process(delta: float) -> void:
-	if sasaran != null:
-		if not is_instance_valid(sasaran):
-			queue_free()
-			return
-		global_position = sasaran.global_position
-
-	_masa += delta
-	if _masa > MASA_PAPAR:
-		modulate.a = clampf(1.0 - (_masa - MASA_PAPAR) / MASA_PUDAR, 0.0, 1.0)
-		if modulate.a <= 0.0:
-			queue_free()
+func _process(_delta: float) -> void:
+	if _sasaran != null and is_instance_valid(_sasaran):
+		global_position = _sasaran.global_position
 
 func _draw() -> void:
 	var nisbah: float = clampf(float(baki) / float(maksimum), 0.0, 1.0)

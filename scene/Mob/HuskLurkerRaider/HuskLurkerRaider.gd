@@ -263,6 +263,10 @@ func _hancurkan_sasaran(sasaran: Dictionary, badan_kena: Node = null) -> void:
 	# sasaran jauh di sebaliknya.
 	var grid := get_tree().get_first_node_in_group("BuildGrid")
 	if badan_kena is Node2D and grid != null and badan_kena.get_parent() == grid:
+		var sel: Variant = badan_kena.get_meta("grid_sel", null)
+		if sel is Vector2i and grid.has_method("kena_serangan"):
+			grid.call("kena_serangan", sel)
+			return
 		var bahagian: PackedStringArray = str(badan_kena.name).split("_")
 		if bahagian.size() == 3 and grid.has_method("kena_serangan"):
 			grid.call("kena_serangan", Vector2i(int(bahagian[1]), int(bahagian[2])))
@@ -286,7 +290,9 @@ func _serang_nod(nod: Node) -> void:
 		nod.queue_free()
 		return
 	nod.set_meta("hp_serangan", baki)
-	# Player nampak baki HP perabot sebelum ia pecah.
+	# Player nampak baki HP perabot sebelum ia pecah; HP maks turut disimpan
+	# supaya bar boleh dipulihkan selepas load.
 	if nod is Node2D:
+		nod.set_meta("hp_sasaran_maks", hp_perabot)
 		BAR_HP.papar(nod as Node2D, baki, hp_perabot)
 	print("Raider: %s kena lendir, HP tinggal %d/%d" % [nod.name, baki, hp_perabot])

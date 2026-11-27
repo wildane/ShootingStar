@@ -2,6 +2,8 @@ extends Node
 
 signal semua_data_siap_di_load
 
+const BAR_HP_STRUKTUR := preload("res://scene/level_3/build_system/BarHpStruktur.gd")
+
 # Simpanan berbilang slot: setiap slot satu fail JSON dalam user://saves/.
 # Nama dan masa setiap slot disimpan dalam katalog supaya boleh ditukar nama
 # atau dipadam dari halaman Muat Simpanan.
@@ -582,8 +584,14 @@ func _pakai_data_objek(nod: Node, data: Dictionary) -> void:
 		var tenaga_maks: float = float(nod.get("tenaga_maks")) if "tenaga_maks" in nod else float(data["tenaga"])
 		nod.set("tenaga", clampf(float(data["tenaga"]), 1.0, tenaga_maks))
 	# HP perabot yang diserang husk (disimpan sebagai meta, bukan properti hp).
-	if data.has("hp_serangan"):
-		nod.set_meta("hp_serangan", maxi(1, int(data.get("hp_serangan", 1))))
+	# Bar HP dipaparkan semula supaya struktur rosak kekal jelas selepas load.
+	if data.has("hp_serangan") and nod is Node2D:
+		var baki: int = maxi(1, int(data.get("hp_serangan", 1)))
+		var maks: int = maxi(baki, int(data.get("hp_sasaran_maks", baki)))
+		nod.set_meta("hp_serangan", baki)
+		nod.set_meta("hp_sasaran_maks", maks)
+		if baki < maks:
+			BAR_HP_STRUKTUR.papar(nod as Node2D, baki, maks)
 	# State tambahan khusus objek (contoh: batch smelter yang belum siap).
 	if nod.has_method("pakai_data_simpanan_tambahan"):
 		nod.call("pakai_data_simpanan_tambahan", data)
