@@ -581,6 +581,9 @@ func _pakai_data_objek(nod: Node, data: Dictionary) -> void:
 	if "tenaga" in nod and data.has("tenaga"):
 		var tenaga_maks: float = float(nod.get("tenaga_maks")) if "tenaga_maks" in nod else float(data["tenaga"])
 		nod.set("tenaga", clampf(float(data["tenaga"]), 1.0, tenaga_maks))
+	# HP perabot yang diserang husk (disimpan sebagai meta, bukan properti hp).
+	if data.has("hp_serangan"):
+		nod.set_meta("hp_serangan", maxi(1, int(data.get("hp_serangan", 1))))
 	# State tambahan khusus objek (contoh: batch smelter yang belum siap).
 	if nod.has_method("pakai_data_simpanan_tambahan"):
 		nod.call("pakai_data_simpanan_tambahan", data)

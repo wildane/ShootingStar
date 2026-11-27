@@ -193,5 +193,22 @@ func _jalan() -> void:
 	husk.free()
 	raider_uji.free()
 
+	# --- HP perabot masuk data slot dan pulih selepas load ---
+	var simpan: Node2D = Node2D.new()
+	simpan.name = "PerabotSimpan"
+	var komponen: Node = load("res://scene/level_3/build_system/SaveComponent.gd").new()
+	komponen.name = "SaveComponent"
+	simpan.add_child(komponen)
+	akar.add_child(simpan)
+	simpan.set_meta("hp_serangan", 1)
+	var data_perabot: Dictionary = komponen.call("get_data")
+	_semak(int(data_perabot.get("hp_serangan", -1)) == 1, "HP perabot 1/2 masuk data slot")
+	simpan.set_meta("hp_serangan", 2)  # seolah-olah baru dimuat semula
+	var pengurus: Node = load("res://SaveManager.gd").new()
+	pengurus.call("_pakai_data_objek", simpan, data_perabot)
+	_semak(int(simpan.get_meta("hp_serangan", -1)) == 1, "HP perabot pulih 1/2 selepas load")
+	pengurus.free()
+	simpan.free()
+
 	print("LULUS=", lulus)
 	quit()
