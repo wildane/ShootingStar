@@ -79,6 +79,7 @@ func keluar_state() -> void:
 		sprite_angkasa.hide()
 		
 	set_jet_aktif(false)
+	Sfx.jet_berhenti()
 		
 	if lock_on_comp:
 		lock_on_comp.buka_lock()
@@ -162,6 +163,7 @@ func kemas_kini_fizik(delta: float) -> void:
 		joystick_dir = Vector2.ZERO
 		astro.velocity = Vector2.ZERO
 		set_jet_aktif(false)
+		Sfx.jet_berhenti()
 		return
 
 	var sprite_angkasa = astro.get_node_or_null("SpriteAngkasa")
@@ -216,6 +218,10 @@ func kemas_kini_fizik(delta: float) -> void:
 	velocity_target = input_terhad * current_max_speed
 	astro.velocity = astro.velocity.lerp(velocity_target, acceleration * delta)
 	astro.move_and_slide()
+
+	# Bunyi jet pack: pic dan isipadu ikut kelajuan sebenar pemain. Berhenti
+	# sendiri bila pemain berhenti (Sfx mengendalikan pemain berulang).
+	Sfx.jet(astro.velocity.length(), max_speed)
 
 	# --- LOGIK VISUAL & ROTASI ---
 	var jet_thruster = astro.get_node_or_null("SpriteAngkasa/JetThruster")

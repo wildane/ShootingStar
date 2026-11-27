@@ -26,6 +26,9 @@ var _ambien_kawasan: AudioStreamPlayer = null
 var _muzik_bos: AudioStreamPlayer = null
 var _dalam_kawasan: bool = false
 var _tween_ambien: Tween = null
+# Jet pack pemain: satu pemain berulang yang pic/isipadunya ikut kelajuan.
+var _jet_pemain: AudioStreamPlayer = null
+var _jet_nisbah: float = 0.0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -52,8 +55,12 @@ func _ready() -> void:
 	_sedia("menu_inverter")
 	_sedia("menu_kajian")
 	_sedia("menu_tutup")
+	# Langkah pemain: logam (lantai dibina) dan batu (asteroid).
+	_sedia("langkah_logam")
+	_sedia("langkah_batu")
 	_aliran["teleport"] = _jana_teleport()
 	_mula_ambien()
+	_mula_jet()
 	_mula_ambien_kawasan()
 	_mula_muzik_bos()
 
@@ -89,6 +96,39 @@ func mainkan_di(nama: String, posisi: Vector2, isipadu_db: float = -6.0,
 	pemain.global_position = posisi
 	pemain.finished.connect(pemain.queue_free)
 	pemain.play()
+
+# ---- Bunyi jet pack pemain: gelung ikut kelajuan ---------------------
+# Satu pemain berulang; pic dan isipadu dinaikkan mengikut nisbah kelajuan
+# (0 = berhenti, 1 = laju maksimum). Dipanggil setiap frame dari AngkasaState.
+func _mula_jet() -> void:
+	var stream := _jana_jet()
+	if stream == null:
+		return
+	_jet_pemain = AudioStreamPlayer.new()
+	_jet_pemain.stream = stream
+	_jet_pemain.volume_db = -30.0
+	_jet_pemain.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_jet_pemain)
+
+func jet(laju: float, laju_maks: float) -> void:
+	if _jet_pemain == null:
+		return
+	var nisbah: float = clampf(laju / maxf(laju_maks, 1.0), 0.0, 1.0)
+	# Dilici perlahan supaya pic tidak "melompat" bila kelajuan berubah mendadak.
+	_jet_nisbah = lerpf(_jet_nisbah, nisbah, 0.18)
+	if _jet_nisbah < 0.03:
+		jet_berhenti()
+		return
+	if not _jet_pemain.playing:
+		_jet_pemain.play()
+	_jet_pemain.pitch_scale = lerpf(0.72, 1.55, _jet_nisbah)
+	_jet_pemain.volume_db = lerpf(-27.0, -13.0, _jet_nisbah)
+
+# Pemain berhenti / masuk mod bina / keluar asteroid: jet terus senyap.
+func jet_berhenti() -> void:
+	_jet_nisbah = 0.0
+	if _jet_pemain != null and _jet_pemain.playing:
+		_jet_pemain.stop()
 
 # ---- Ambien: ruang angkasa + kawasan AquaHusk ------------------------
 
@@ -287,6 +327,10 @@ func _jana(nama: String) -> AudioStreamWAV:
 		return _jana_rancang_gagal()
 	if nama == "retak":
 		return _jana_retak()
+	if nama == "langkah_logam":
+		return _jana_langkah_logam()
+	if nama == "langkah_batu":
+		return _jana_langkah_batu()
 	# Tutup menu perabot: satu bunyi generik, sama untuk semua jenis menu.
 	if nama == "menu_tutup":
 		return _jana_menu_tutup()
@@ -1086,3 +1130,93 @@ func _jana_menu_tutup() -> AudioStreamWAV:
 	_lulus_rendah(s, 4800.0)
 	_normal(s, 0.85)
 	return _ke_stream(s, false)
+
+
+# ---- Bunyi langkah pemain: logam (lantai dibina) dan batu (asteroid) -----
+
+# Langkah logam: klik tumit + dering plat nipis.
+func _jana_langkah_logam() -> AudioStreamWAV:
+	var tempoh: float = 0.14
+	var n: int = int(KADAR * tempoh)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var a_klik: float = clampf(TAU * 2600.0 / float(KADAR), 0.0, 1.0)
+	var y_klik: float = 0.0
+	var fasa_plat: float = 0.0
+	var fasa_tumit: float = 0.0
+	for i in n:
+		var t: float = float(i) / float(KADAR)
+		var putih: float = randf_range(-1.0, 1.0)
+		y_klik += a_klik * (putih - y_klik)
+		fasa_plat += TAU * 2350.0 / float(KADAR)
+		fasa_tumit += TAU * lerpf(180.0, 90.0, clampf(t / 0.05, 0.0, 1.0)) / float(KADAR)
+		var klik: float = (putih - y_klik) * exp(-t * 320.0) * 0.8
+		var plat: float = (sin(fasa_plat) + 0.4 * sin(fasa_plat * 1.9)) * exp(-t * 55.0) * 0.28
+		var tumit: float = sin(fasa_tumit) * exp(-t * 38.0) * 0.35
+		s[i] = klik + plat + tumit
+	_lulus_rendah(s, 8000.0)
+	_normal(s, 0.8)
+	return _ke_stream(s, false)
+
+# Langkah batu: kerikil hancur + hentakan rendah (lebih lembut, tiada dering).
+func _jana_langkah_batu() -> AudioStreamWAV:
+	var tempoh: float = 0.16
+	var n: int = int(KADAR * tempoh)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var a_kasar: float = clampf(TAU * 1500.0 / float(KADAR), 0.0, 1.0)
+	var a_rendah: float = clampf(TAU * 220.0 / float(KADAR), 0.0, 1.0)
+	var y_kasar: float = 0.0
+	var y_rendah: float = 0.0
+	var fasa: float = 0.0
+	for i in n:
+		var t: float = float(i) / float(KADAR)
+		var putih: float = randf_range(-1.0, 1.0)
+		y_kasar += a_kasar * (putih - y_kasar)
+		y_rendah += a_rendah * (putih - y_rendah)
+		fasa += TAU * lerpf(120.0, 70.0, clampf(t / 0.06, 0.0, 1.0)) / float(KADAR)
+		var kerikil: float = (putih - y_kasar) * exp(-t * 150.0) * 0.7
+		var tanah: float = (y_kasar - y_rendah) * exp(-t * 45.0) * 1.2
+		var hentak: float = sin(fasa) * exp(-t * 40.0) * 0.3
+		s[i] = kerikil + tanah + hentak
+	_lulus_rendah(s, 4200.0)
+	_normal(s, 0.75)
+	return _ke_stream(s, false)
+
+# ---- Bunyi jet pack: hembusan udara + raungan enjin, gelung licin --------
+# Gelung 0.6s dengan crossfade hujung-ke-kepala supaya tiada "pop" bila
+# bunyi diulang. Pic dinaikkan oleh jet() mengikut kelajuan.
+func _jana_jet() -> AudioStreamWAV:
+	var tempoh: float = 0.6
+	var gelung: int = int(KADAR * tempoh)
+	var silang: int = int(KADAR * 0.08)
+	var n: int = gelung + silang
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var a_badan: float = clampf(TAU * 900.0 / float(KADAR), 0.0, 1.0)
+	var a_udara: float = clampf(TAU * 4200.0 / float(KADAR), 0.0, 1.0)
+	var y_badan: float = 0.0
+	var y_udara: float = 0.0
+	var fasa: float = 0.0
+	for i in n:
+		var t: float = float(i) / float(KADAR)
+		var putih: float = randf_range(-1.0, 1.0)
+		y_badan += a_badan * (putih - y_badan)
+		y_udara += a_udara * (putih - y_udara)
+		fasa += TAU * 62.0 / float(KADAR)
+		# Getaran enjin perlahan supaya bunyi tidak rata sepanjang gelung.
+		var getar: float = 0.75 + 0.25 * sin(TAU * 7.0 * t)
+		var hembus: float = (y_udara - y_badan) * 1.2 + y_badan * 0.9
+		var raung: float = sin(fasa) * 0.35 + 0.15 * sin(fasa * 2.0)
+		s[i] = (hembus * getar + raung) * 1.4
+	_lulus_rendah(s, 6000.0)
+	_normal(s, 0.55)
+	# Crossfade hujung ke kepala supaya gelung tidak "pop".
+	for i in silang:
+		var w: float = float(i) / float(silang)
+		s[i] = s[i] * w + s[n - silang + i] * (1.0 - w)
+	var hasil := PackedFloat32Array()
+	hasil.resize(gelung)
+	for i in gelung:
+		hasil[i] = s[i]
+	return _ke_stream(hasil, true)
