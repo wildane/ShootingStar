@@ -9,6 +9,10 @@ var player_in_range := false
 var cooldown := 0.0
 const COOLDOWN := 0.2
 
+# Berapa kali pintu ini digunakan (teleport). Tutorial membancuh kiraan ini
+# untuk tahu pemain sudah berjaya berinteraksi dengan pintu.
+var jumlah_digunakan: int = 0
+
 # Tetapkan koordinat statik kamu di sini
 const OUTSIDE_POS := Vector2(144, 200)
 const INSIDE_POS := Vector2(144, 128)
@@ -105,6 +109,7 @@ func _on_input(_viewport, event, _shape_idx):
 
 	if pressed:
 		cooldown = COOLDOWN
+		jumlah_digunakan += 1
 		var player = _get_player()
 
 		if player:

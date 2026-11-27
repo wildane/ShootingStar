@@ -53,6 +53,8 @@ var _tamat: bool = false
 
 var _pemain: Node2D = null
 var _pos_asal: Vector2 = Vector2.ZERO
+# Jumlah penggunaan pintu semasa langkah pintu bermula.
+var _pintu_awal: int = 0
 
 
 # Cincin berdenyut yang menunjuk tempat pemain patut tekan/drag.
@@ -102,11 +104,20 @@ func _ready() -> void:
 func _senarai_langkah() -> Array:
 	return [
 		{
-			"id": "terbang",
+			"id": "bergerak",
 			"label": "Move the astronaut",
 			"teks": "Drag anywhere to move.\nTap the screen to go there.",
 			"cincin": Callable(self, "_cincin_tengah"),
 			"syarat": Callable(self, "_semak_bergerak"),
+		},
+		{
+			"id": "pintu",
+			"label": "Use the doorway",
+			"teks": "Get close to an object and it glows green.\nWalk to the doorway, then tap it.",
+			"sasaran_dunia": Callable(self, "_pos_dunia_pintu"),
+			"mula": Callable(self, "_rekod_pintu"),
+			"syarat": Callable(self, "_semak_pintu"),
+			"masa_maks": 45.0,
 		},
 	]
 
@@ -119,6 +130,44 @@ func _semak_bergerak() -> bool:
 	if not is_instance_valid(_pemain):
 		return false
 	return _pemain.global_position.distance_to(_pos_asal) > JARAK_BERGERAK
+
+
+# Pintu terdekat pada pemain: cincin tutorial menunjuk ke pintu itu dan
+# bergerak mengikut kamera. Vector2.INF bermakna tiada pintu.
+func _pos_dunia_pintu() -> Vector2:
+	if not is_instance_valid(_pemain):
+		return Vector2.INF
+
+	var terbaik: Node2D = null
+	var jarak_terbaik: float = INF
+	for nod in get_tree().get_nodes_in_group("Pintu"):
+		if not (nod is Node2D):
+			continue
+		var jarak: float = (nod as Node2D).global_position.distance_to(_pemain.global_position)
+		if jarak < jarak_terbaik:
+			jarak_terbaik = jarak
+			terbaik = nod
+
+	if terbaik == null:
+		return Vector2.INF
+	# Sprite pintu dilukis 8 px di atas asal nod.
+	return terbaik.global_position + Vector2(0.0, -8.0)
+
+
+func _jumlah_guna_pintu() -> int:
+	var jumlah: int = 0
+	for nod in get_tree().get_nodes_in_group("Pintu"):
+		if "jumlah_digunakan" in nod:
+			jumlah += int(nod.jumlah_digunakan)
+	return jumlah
+
+
+func _rekod_pintu() -> void:
+	_pintu_awal = _jumlah_guna_pintu()
+
+
+func _semak_pintu() -> bool:
+	return _jumlah_guna_pintu() > _pintu_awal
 
 
 func _tunggu_pemain() -> void:
@@ -151,6 +200,12 @@ func _tunjuk_langkah(indeks: int) -> void:
 	_masa_langkah = 0.0
 	_aktif = true
 	_label_teks.text = str(_langkah_semua[indeks].get("teks", ""))
+
+	# Langkah boleh sediakan nilai awal sendiri (cth. kiraan pintu).
+	var sediakan: Callable = _langkah_semua[indeks].get("mula", Callable())
+	if sediakan.is_valid():
+		sediakan.call()
+
 	_letak_cincin(indeks)
 	_segarkan_senarai()
 	print("[Tutorial] Langkah %d: %s" % [indeks + 1, str(_langkah_semua[indeks].get("id", ""))])
@@ -161,9 +216,17 @@ func _process(delta: float) -> void:
 		return
 
 	_masa_langkah += delta
+
+	# Cincin ikut sasaran dalam dunia (pintu/perabot) setiap bingkai, jadi ia
+	# kekal di tempat betul walaupun kamera bergerak.
+	var sasaran: Callable = _langkah_semua[_langkah].get("sasaran_dunia", Callable())
+	if sasaran.is_valid():
+		_letak_cincin_dunia(sasaran.call())
+
 	var syarat: Callable = _langkah_semua[_langkah].get("syarat", Callable())
 	var lulus: bool = syarat.is_valid() and bool(syarat.call())
-	if lulus or _masa_langkah >= MASA_MAKS_LANGKAH:
+	var masa_maks: float = float(_langkah_semua[_langkah].get("masa_maks", MASA_MAKS_LANGKAH))
+	if lulus or _masa_langkah >= masa_maks:
 		_lulus_langkah()
 
 
@@ -325,8 +388,30 @@ func _letak_cincin(indeks: int) -> void:
 		if hasil is Vector2:
 			pusat = hasil
 
+	# Langkah yang menunjuk objek dalam dunia dikemas kini setiap bingkai.
+	var sasaran: Callable = _langkah_semua[indeks].get("sasaran_dunia", Callable())
+	if sasaran.is_valid():
+		_letak_cincin_dunia(sasaran.call())
+		return
+
 	_cincin.size = Vector2(72.0, 72.0)
 	_cincin.position = pusat - _cincin.size * 0.5
+	_cincin.visible = true
+
+
+# Tukar posisi dunia ke posisi skrin, dan rapatkan ke tepi skrin bila sasaran
+# berada di luar pandangan supaya pemain tahu arah yang perlu dituju.
+func _letak_cincin_dunia(pos_dunia) -> void:
+	if not (pos_dunia is Vector2) or pos_dunia == Vector2.INF:
+		_cincin.visible = false
+		return
+
+	var saiz_skrin: Vector2 = get_viewport().get_visible_rect().size
+	var skrin: Vector2 = get_viewport().get_canvas_transform() * pos_dunia
+	skrin.x = clampf(skrin.x, 28.0, saiz_skrin.x - 28.0)
+	skrin.y = clampf(skrin.y, 28.0, saiz_skrin.y - 28.0)
+	_cincin.size = Vector2(72.0, 72.0)
+	_cincin.position = skrin - _cincin.size * 0.5
 	_cincin.visible = true
 
 
