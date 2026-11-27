@@ -17,6 +17,10 @@ var hp: int = 5
 var is_being_mined: bool = false
 var mine_timer: float = 0.0
 
+# Berapa kali meteor ini dipukul. Tutorial membancuh kiraan ini untuk tahu
+# pemain sudah mula melombong.
+var jumlah_dilombong: int = 0
+
 # Retak yang muncul sikit-sikit bila HP berkurang
 var hp_maks: int = 5
 var _keretakan: Array[Sprite2D] = []
@@ -36,6 +40,8 @@ const WARNA_KILAT: Color = Color(1.8, 1.8, 1.8)
 @onready var spark_vfx: CPUParticles2D = $SparkVFX 
 
 func _ready() -> void:
+	# Kumpulan ini dipakai tutorial untuk menunjuk meteor terdekat.
+	add_to_group("Meteorit")
 	direction = Vector2(randf_range(-1, 1), randf_range(-1, 1)).normalized()
 	rotation_speed = randf_range(-0.1, 0.1)
 	
@@ -114,6 +120,7 @@ func _kilat() -> void:
 
 func take_damage() -> void:
 	hp -= 1
+	jumlah_dilombong += 1
 	print("MELOMBONG -> Baki HP Meteorite: ", hp)
 	
 	_kemas_kini_keretakan()

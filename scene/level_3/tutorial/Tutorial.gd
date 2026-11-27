@@ -51,8 +51,9 @@ var _tamat: bool = false
 
 var _pemain: Node2D = null
 var _pos_asal: Vector2 = Vector2.ZERO
-# Jumlah penggunaan pintu semasa langkah pintu bermula.
+# Kiraan penggunaan objek semasa langkah bermula (pintu, meteor).
 var _pintu_awal: int = 0
+var _meteorit_awal: int = 0
 
 
 # Cincin berdenyut yang menunjuk tempat pemain patut tekan/drag.
@@ -117,6 +118,15 @@ func _senarai_langkah() -> Array:
 			"syarat": Callable(self, "_semak_pintu"),
 			"masa_maks": 45.0,
 		},
+		{
+			"id": "lombong",
+			"label": "Mine a meteorite",
+			"teks": "Fly into a meteorite to mine it.\nStay close — it takes a few hits.",
+			"sasaran_dunia": Callable(self, "_pos_dunia_meteorit"),
+			"mula": Callable(self, "_rekod_meteorit"),
+			"syarat": Callable(self, "_semak_meteorit"),
+			"masa_maks": 60.0,
+		},
 	]
 
 
@@ -130,42 +140,65 @@ func _semak_bergerak() -> bool:
 	return _pemain.global_position.distance_to(_pos_asal) > JARAK_BERGERAK
 
 
-# Pintu terdekat pada pemain: cincin tutorial menunjuk ke pintu itu dan
-# bergerak mengikut kamera. Vector2.INF bermakna tiada pintu.
-func _pos_dunia_pintu() -> Vector2:
+# Nod dalam kumpulan yang paling dekat dengan pemain, atau null.
+func _nod_terdekat(kumpulan: String) -> Node2D:
 	if not is_instance_valid(_pemain):
-		return Vector2.INF
+		return null
 
 	var terbaik: Node2D = null
 	var jarak_terbaik: float = INF
-	for nod in get_tree().get_nodes_in_group("Pintu"):
+	for nod in get_tree().get_nodes_in_group(kumpulan):
 		if not (nod is Node2D):
 			continue
 		var jarak: float = (nod as Node2D).global_position.distance_to(_pemain.global_position)
 		if jarak < jarak_terbaik:
 			jarak_terbaik = jarak
 			terbaik = nod
+	return terbaik
 
-	if terbaik == null:
+
+# Posisi dunia sasaran supaya cincin tutorial boleh menunjuk ke sana.
+# Vector2.INF bermakna tiada objek dalam kumpulan itu.
+func _pos_dunia_kumpulan(kumpulan: String, ofset: Vector2) -> Vector2:
+	var nod := _nod_terdekat(kumpulan)
+	if nod == null:
 		return Vector2.INF
-	# Sprite pintu dilukis 8 px di atas asal nod.
-	return terbaik.global_position + Vector2(0.0, -8.0)
+	return nod.global_position + ofset
 
 
-func _jumlah_guna_pintu() -> int:
+# Jumlah kiraan penggunaan bagi semua nod dalam kumpulan (cth. berapa kali
+# pintu dipakai atau meteor dipukul).
+func _jumlah_kumpulan(kumpulan: String, kunci: String) -> int:
 	var jumlah: int = 0
-	for nod in get_tree().get_nodes_in_group("Pintu"):
-		if "jumlah_digunakan" in nod:
-			jumlah += int(nod.jumlah_digunakan)
+	for nod in get_tree().get_nodes_in_group(kumpulan):
+		if kunci in nod:
+			jumlah += int(nod.get(kunci))
 	return jumlah
 
 
+# Sprite pintu dilukis 8 px di atas asal nod.
+func _pos_dunia_pintu() -> Vector2:
+	return _pos_dunia_kumpulan("Pintu", Vector2(0.0, -8.0))
+
+
 func _rekod_pintu() -> void:
-	_pintu_awal = _jumlah_guna_pintu()
+	_pintu_awal = _jumlah_kumpulan("Pintu", "jumlah_digunakan")
 
 
 func _semak_pintu() -> bool:
-	return _jumlah_guna_pintu() > _pintu_awal
+	return _jumlah_kumpulan("Pintu", "jumlah_digunakan") > _pintu_awal
+
+
+func _pos_dunia_meteorit() -> Vector2:
+	return _pos_dunia_kumpulan("Meteorit", Vector2.ZERO)
+
+
+func _rekod_meteorit() -> void:
+	_meteorit_awal = _jumlah_kumpulan("Meteorit", "jumlah_dilombong")
+
+
+func _semak_meteorit() -> bool:
+	return _jumlah_kumpulan("Meteorit", "jumlah_dilombong") > _meteorit_awal
 
 
 func _tunggu_pemain() -> void:
