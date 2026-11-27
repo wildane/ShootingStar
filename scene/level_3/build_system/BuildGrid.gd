@@ -42,6 +42,9 @@ const JARAK_BUKA_PINTU: float = 22.0
 # atau dinyahbina apabila pemain cukup dekat. Setiap tile kos 1 Basic Iron.
 const JARAK_BINA: float = 28.0
 const MASA_BINA: float = 0.9
+# Bunyi kerja (tukul/sepana/retak) diulang setiap JARAK_BUNYI_KERJA saat
+# selagi kemajuan naik, supaya kedengaran seperti kerja sedang berjalan.
+const JARAK_BUNYI_KERJA: float = 0.26
 const ID_BESI: String = "item_0001"
 const NAMA_BESI: String = "Basic Iron Ore"
 const IKON_BESI: String = "res://scene/Item/0001BasicIronOre/Image_959.png"
@@ -89,6 +92,9 @@ var _padam_kemajuan: Dictionary = {} # Vector2i -> float 0..1 (sedang nyahbina)
 # Tile rosak yang dirancang untuk dibaiki (highlight biru) dan kemajuannya.
 var _baiki_tanda: Dictionary = {} # Vector2i -> true
 var _baiki_kemajuan: Dictionary = {} # Vector2i -> float 0..1 (sedang dibaiki)
+# Kira detik bunyi kerja seterusnya; dikongsi kerana hanya satu tile dikerjakan
+# pada satu masa.
+var _bunyi_kerja_masa: float = 0.0
 
 var _mod: int = -1
 var _jari: int = -1
@@ -546,6 +552,7 @@ func baiki_tile(g: Vector2i) -> bool:
 		BAR_HP.buang(nod_tile)
 	_apung_besi(-kos)
 	_label_status.text = "%s repaired (%d Iron)" % [NAMA_JENIS[jenis], kos]
+	_bunyi("baiki_siap", to_global(_tengah_sel(g)))
 	queue_redraw()
 	return true
 
@@ -1051,11 +1058,13 @@ func _kemas_kini_pembinaan(delta: float, pos_pemain: Vector2) -> void:
 		if not _tolak_besi():
 			return
 		_bina_kemajuan[sasaran] = 0.0
+		_bunyi_kerja_masa = 0.0
 		_label_status.text = "Constructing " + NAMA_JENIS[int(_rancang[sasaran])] + "..."
 
 	_bina_kemajuan[sasaran] = float(_bina_kemajuan.get(sasaran, 0.0)) + delta / MASA_BINA
 	queue_redraw()
 	if float(_bina_kemajuan[sasaran]) < 1.0:
+		_bunyi_kerja("bina", sasaran, delta)
 		return
 
 	# Siap dibina: jadikan tile sebenar.
@@ -1066,6 +1075,7 @@ func _kemas_kini_pembinaan(delta: float, pos_pemain: Vector2) -> void:
 	_hp_tile[sasaran] = hp_maks_tile(jenis)
 	_bina_kolider(sasaran, jenis)
 	_label_status.text = NAMA_JENIS[jenis] + " built"
+	_bunyi("bina_siap", to_global(_tengah_sel(sasaran)))
 	_apung_besi(-KOS_BESI)
 	PowerGrid.tanda_kotor_semua("grid_bina")
 	queue_redraw()
@@ -1105,11 +1115,13 @@ func _kemas_kini_nyahbina(delta: float, pos_pemain: Vector2) -> void:
 
 	if not sudah_bermula:
 		_padam_kemajuan[sasaran] = 0.0
+		_bunyi_kerja_masa = 0.0
 		_label_status.text = "Deconstructing " + NAMA_JENIS[int(_tile[sasaran])] + "..."
 
 	_padam_kemajuan[sasaran] = float(_padam_kemajuan.get(sasaran, 0.0)) + delta / MASA_BINA
 	queue_redraw()
 	if float(_padam_kemajuan[sasaran]) < 1.0:
+		_bunyi_kerja("roboh", sasaran, delta)
 		return
 
 	# Siap nyahbina: buang tile. Bahan hanya dipulangkan kalau struktur masih
@@ -1123,6 +1135,7 @@ func _kemas_kini_nyahbina(delta: float, pos_pemain: Vector2) -> void:
 		_apung_besi(KOS_BESI)
 	else:
 		_label_status.text = NAMA_JENIS[jenis] + " deconstructed (damaged, no materials)"
+	_bunyi("roboh_siap", to_global(_tengah_sel(sasaran)))
 	PowerGrid.tanda_kotor_semua("grid_roboh")
 	queue_redraw()
 
@@ -1171,11 +1184,13 @@ func _kemas_kini_baiki(delta: float, pos_pemain: Vector2) -> void:
 			_label_status.text = "Need %d %s to repair %s" % [kos, NAMA_BESI, NAMA_JENIS[jenis]]
 			return
 		_baiki_kemajuan[sasaran] = 0.0
+		_bunyi_kerja_masa = 0.0
 		_label_status.text = "Repairing " + NAMA_JENIS[jenis] + "..."
 
 	_baiki_kemajuan[sasaran] = float(_baiki_kemajuan.get(sasaran, 0.0)) + delta / MASA_BINA
 	queue_redraw()
 	if float(_baiki_kemajuan[sasaran]) < 1.0:
+		_bunyi_kerja("baiki", sasaran, delta)
 		return
 
 	# Siap dibaiki: pulihkan HP penuh dan buang bar HP lama.
@@ -1188,7 +1203,26 @@ func _kemas_kini_baiki(delta: float, pos_pemain: Vector2) -> void:
 	_baiki_kemajuan.erase(sasaran)
 	_apung_besi(-kos_siap)
 	_label_status.text = "%s repaired (%d Iron)" % [NAMA_JENIS[jenis], kos_siap]
+	_bunyi("baiki_siap", to_global(_tengah_sel(sasaran)))
 	queue_redraw()
+
+# ==========================================
+# BUNYI KERJA BINA / BAIKI / ROBOH
+# ==========================================
+# Sfx diambil melalui /root (bukan nama autoload) supaya ujian headless yang
+# berjalan tanpa autoload tidak gagal.
+func _bunyi(nama: String, pos: Vector2, isipadu_db: float = -7.0) -> void:
+	var sfx := get_node_or_null("/root/Sfx")
+	if sfx != null and sfx.has_method("mainkan_di"):
+		sfx.mainkan_di(nama, pos, isipadu_db)
+
+# Ketukan kerja diulang setiap JARAK_BUNYI_KERJA saat, bukan setiap frame.
+func _bunyi_kerja(nama: String, g: Vector2i, delta: float) -> void:
+	_bunyi_kerja_masa -= delta
+	if _bunyi_kerja_masa > 0.0:
+		return
+	_bunyi_kerja_masa = JARAK_BUNYI_KERJA
+	_bunyi(nama, to_global(_tengah_sel(g)))
 
 func _physics_process(delta: float) -> void:
 	var pemain := get_tree().get_first_node_in_group("Player") as Node2D
