@@ -101,6 +101,10 @@ var _bunyi_kerja_masa: float = 0.0
 # dan kerja siap semasa pemain berjalan. Teks panduan mod (pilih Floor / Wall /
 # Door) pula kekal sampai mod dibatalkan.
 const MASA_STATUS_SEMENTARA: float = 1.2
+
+# Bunyi siap (bina/baiki/roboh) dinaikkan sedikit daripada isipadu lalai -7.0
+# supaya kedengaran jelas walaupun ada bunyi kerja dan tembakan lain.
+const ISIPADU_BUNYI_SIAP: float = -3.0
 var _status_masa: float = 0.0
 
 var _mod: int = -1
@@ -575,7 +579,7 @@ func baiki_tile(g: Vector2i) -> bool:
 		BAR_HP.buang(nod_tile)
 	_apung_besi(-kos)
 	_status("%s repaired (%d Iron)" % [NAMA_JENIS[jenis], kos])
-	_bunyi("baiki_siap", to_global(_tengah_sel(g)))
+	_bunyi("baiki_siap", to_global(_tengah_sel(g)), ISIPADU_BUNYI_SIAP)
 	queue_redraw()
 	return true
 
@@ -852,7 +856,7 @@ func hancurkan(g: Vector2i) -> bool:
 	_buang_tile(g)
 	PowerGrid.tanda_kotor_semua("grid_hancur")
 	# Struktur yang runtuh kena serang guna bunyi roboh yang sama macam nyahbina.
-	_bunyi("roboh_siap", pos)
+	_bunyi("roboh_siap", pos, ISIPADU_BUNYI_SIAP)
 	queue_redraw()
 	print("BuildGrid: %s di %s musnah diserang husk" % [NAMA_JENIS[jenis], g])
 	return true
@@ -1105,7 +1109,7 @@ func _kemas_kini_pembinaan(delta: float, pos_pemain: Vector2) -> void:
 	_hp_tile[sasaran] = hp_maks_tile(jenis)
 	_bina_kolider(sasaran, jenis)
 	_status(NAMA_JENIS[jenis] + " built")
-	_bunyi("bina_siap", to_global(_tengah_sel(sasaran)))
+	_bunyi("bina_siap", to_global(_tengah_sel(sasaran)), ISIPADU_BUNYI_SIAP)
 	_apung_besi(-KOS_BESI)
 	PowerGrid.tanda_kotor_semua("grid_bina")
 	queue_redraw()
@@ -1165,7 +1169,7 @@ func _kemas_kini_nyahbina(delta: float, pos_pemain: Vector2) -> void:
 		_apung_besi(KOS_BESI)
 	else:
 		_status(NAMA_JENIS[jenis] + " deconstructed (damaged, no materials)")
-	_bunyi("roboh_siap", to_global(_tengah_sel(sasaran)))
+	_bunyi("roboh_siap", to_global(_tengah_sel(sasaran)), ISIPADU_BUNYI_SIAP)
 	PowerGrid.tanda_kotor_semua("grid_roboh")
 	queue_redraw()
 
@@ -1233,7 +1237,7 @@ func _kemas_kini_baiki(delta: float, pos_pemain: Vector2) -> void:
 	_baiki_kemajuan.erase(sasaran)
 	_apung_besi(-kos_siap)
 	_status("%s repaired (%d Iron)" % [NAMA_JENIS[jenis], kos_siap])
-	_bunyi("baiki_siap", to_global(_tengah_sel(sasaran)))
+	_bunyi("baiki_siap", to_global(_tengah_sel(sasaran)), ISIPADU_BUNYI_SIAP)
 	queue_redraw()
 
 # ==========================================

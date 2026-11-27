@@ -310,7 +310,7 @@ func _serang_nod(nod: Node) -> void:
 		var pos := Vector2.ZERO
 		if nod is Node2D:
 			pos = (nod as Node2D).global_position
-		Sfx.mainkan_di("roboh_siap", pos, -7.0)
+		Sfx.mainkan_di("roboh_siap", pos, -3.0)
 		nod.queue_free()
 		return
 	nod.set_meta("hp_serangan", baki)
