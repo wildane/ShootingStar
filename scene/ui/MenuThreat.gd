@@ -11,7 +11,7 @@ extends PanelContainer
 const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
 const LALUAN_IKON_HUSK: String = "res://scene/Mob/HuskLurker/Image_husk.png"
 const LEBAR_MENU: float = 248.0
-const THREAT_SETIAP_BUNUH: int = 10
+const THREAT_SETIAP_BUNUH: int = 1  # 1 bunuhan husk = 1% threat
 const SELA_UI: float = 0.1
 
 var _label_status: Label
@@ -25,6 +25,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	name = "MenuThreat"
 	visible = false
+	StorThreat.muat()
 	TemaPerabot.pasang(self)
 	_bina()
 	_kemas_kini()
@@ -154,17 +155,22 @@ func _buat_label(ibu: Node, teks: String, saiz: int, warna: Color) -> Label:
 func _kemas_kini() -> void:
 	# Kiraan dibaca dari stor static: husk menulis ke situ, jadi menu berubah
 	# walaupun autoload SeranganBalas lambat dimuatkan.
+	StorThreat.muat()
 	var bunuh: int = StorThreat.bunuh
 	var baki: float = StorThreat.masa_serang
 	var ada_spawner: bool = _ada_pemantau()
 	var peratus: int = clampi(bunuh * THREAT_SETIAP_BUNUH, 0, 100)
+	var julat: Vector2i = StorThreat.julat_raider()
 
 	if _label_threat:
 		_label_threat.text = "Threat %d%%" % peratus
 	if _label_bunuh:
 		_label_bunuh.text = "Husk kills: %d" % bunuh
 	if _label_raider:
-		_label_raider.text = "Est. raiders: %d" % bunuh
+		if julat.x == julat.y:
+			_label_raider.text = "Est. raiders: %d" % julat.x
+		else:
+			_label_raider.text = "Est. raiders: %d-%d" % [julat.x, julat.y]
 	if _label_status:
 		if not ada_spawner:
 			_label_status.text = "Spawner off"

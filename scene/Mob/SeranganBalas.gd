@@ -3,13 +3,15 @@ extends Node
 # ==========================================================
 # SERANGAN BALAS HUSK
 #
-# Setiap HuskLurker yang dibunuh di mana-mana menambah SATU
-# penyerang. Serangan dijadualkan 5 minit selepas bunuhan pertama;
-# bila tiba masanya, semua penyerang yang terkumpul bergerak
-# menyerang pangkalan pemain.
+# Setiap HuskLurker yang dibunuh di mana-mana menaikkan threat 1%.
+# Serangan dijadualkan 3 minit selepas bunuhan pertama; bila tiba
+# masanya, bilangan penyerang ikut threat semasa (lihat StorThreat).
+# Threat dan baki masa disimpan ke cakera, jadi ia kekal selepas game
+# ditutup. Selepas gelombang, pemasa hanya bermula semula apabila
+# pemain membunuh husk lagi.
 #
-# Komponen ini autoload supaya kiraan tidak hilang bila scene
-# dimuat semula. HuskLurker hanya perlu lapor kematiannya.
+# Nod ini duduk dalam level_3.tscn (bukan autoload) supaya ia pasti
+# dimuatkan pada semua peranti.
 # ==========================================================
 
 signal serangan_dijadualkan(masa_serang: float)
@@ -25,36 +27,51 @@ const JEJARI_TIBA: float = 26.0
 @export var jejari_kolider_spawn: float = 10.0
 @export var scene_penyerang: PackedScene = preload("res://scene/Mob/HuskLurker/HuskLurker.tscn")
 
+var _simpan_tick: float = 2.0
+
 # Kiraan dan baki masa disimpan pada stor static (dikongsi menu threat),
 # supaya menu tetap menunjukkan angka terbaru walaupun nilai di sini hilang.
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
+	# Sambung semula threat + baki masa yang disimpan sebelum ini.
+	StorThreat.muat()
+	if StorThreat.masa_serang >= 0.0:
+		print("SeranganBalas: sambung pemasa, baki %.1f saat (threat %d%%)" % [StorThreat.masa_serang, StorThreat.peratus()])
 
 # Dipanggil oleh HuskLurker yang tumbang. Setiap bunuhan dikira,
 # tidak kira di mana husk itu dibunuh. Posisi dikekalkan dalam
 # tandatangan untuk keserasian pemanggil.
 func daftar_bunuh_husk(_posisi: Vector2 = Vector2.ZERO) -> void:
-	# HuskLurker sudah menaikkan StorThreat.bunuh sebelum memanggil ini; di sini
-	# kita hanya pastikan pemasa bermula (kalau belum) dan beri notis.
-	if StorThreat.masa_serang < 0.0:
-		StorThreat.masa_serang = StorThreat.MASA_SERANGAN
-		print("SeranganBalas: husk tumbang, serangan balas dalam %.0f saat" % StorThreat.MASA_SERANGAN)
-		serangan_dijadualkan.emit(StorThreat.MASA_SERANGAN)
+	# StorThreat.daftar_bunuh() (dipanggil HuskLurker) sudah menaikkan threat dan
+	# memulakan pemasa kalau belum berjalan; di sini kita cuma beri notis.
+	if StorThreat.masa_serang > 0.0:
+		print("SeranganBalas: threat %d%%, serangan balas dalam %.0f saat" % [StorThreat.peratus(), StorThreat.masa_serang])
+		emit_signal("serangan_dijadualkan", StorThreat.masa_serang)
 
 
 func _process(delta: float) -> void:
-	if StorThreat.masa_serang >= 0.0:
-		StorThreat.masa_serang -= delta
-		if StorThreat.masa_serang <= 0.0:
-			_lancar_serangan()
+	if StorThreat.masa_serang < 0.0:
+		return
+
+	StorThreat.masa_serang -= delta
+	if StorThreat.masa_serang <= 0.0:
+		_lancar_serangan()
+		return
+
+	# Simpan baki masa sekali-sekala supaya pemasa kekal selepas game ditutup.
+	_simpan_tick -= delta
+	if _simpan_tick <= 0.0:
+		_simpan_tick = 2.0
+		StorThreat.simpan()
 
 # Hantar semua penyerang terkumpul ke pangkalan.
+# Bilangan penyerang ikut threat semasa (10% = 1 ... 100% = 6).
 func _lancar_serangan() -> void:
-	var jumlah: int = StorThreat.bunuh
-	StorThreat.reset()
+	var jumlah: int = StorThreat.bilangan_raider()
 
 	if jumlah <= 0:
+		StorThreat.selesai_gelombang()
 		return
 
 	var scene_utama := get_tree().current_scene
@@ -67,7 +84,6 @@ func _lancar_serangan() -> void:
 	if bekas == null or scene_penyerang == null:
 		# Bukan dalam level permainan (contoh: menu) - cuba lagi sekejap lagi.
 		print("SeranganBalas: tiada scene/penyerang, cuba lagi (scene=", scene_utama, ")")
-		StorThreat.bunuh = jumlah
 		StorThreat.masa_serang = 1.0
 		return
 
@@ -88,7 +104,10 @@ func _lancar_serangan() -> void:
 		penyerang.global_position = _posisi_spawn(i, jumlah, pusat)
 		print("SeranganBalas: penyerang muncul di ", penyerang.global_position, " (player di ", pusat, ")")
 
-	print("SeranganBalas: %d penyerang husk muncul dekat player di %s" % [jumlah, pusat])
+	print("SeranganBalas: %d penyerang husk muncul dekat player di %s (threat %d%%)" % [jumlah, pusat, StorThreat.peratus()])
+	# Gelombang sudah dilancarkan: pemasa berhenti, threat dikekalkan untuk
+	# gelombang seterusnya yang bermula pada bunuhan husk berikutnya.
+	StorThreat.selesai_gelombang()
 	serangan_bermula.emit(jumlah)
 
 # Player pemain (group "Player" atau nod SpaceShip dalam scene semasa).
