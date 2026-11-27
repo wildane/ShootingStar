@@ -17,11 +17,6 @@ class_name AstroBaseState
 @export var click_to_move: bool = true
 @export var jarak_berhenti: float = 6.0
 
-@export_group("Bunyi Langkah")
-# Jarak (piksel) yang perlu dilalui sebelum satu bunyi langkah dimainkan.
-@export var jarak_langkah: float = 16.0
-@export var isipadu_langkah: float = -16.0
-
 # ==========================================================
 # INTERNAL VARIABLES
 # ==========================================================
@@ -37,11 +32,6 @@ var ada_target: bool = false
 var pos_target: Vector2 = Vector2.ZERO
 
 var lock_on_comp: LockOnComponent = null
-
-# Jarak terkumpul sejak bunyi langkah terakhir.
-var _jarak_langkah: float = 0.0
-# Selang-seli dua versi bunyi langkah besi supaya tidak sama tiap langkah.
-var _seli_langkah: bool = false
 
 func masuk_state() -> void:
 	print("-> Mengaktifkan Visual BaseState (Guna Sentuhan Tepat Komponen)")
@@ -87,7 +77,6 @@ func keluar_state() -> void:
 	if sprite_base:
 		sprite_base.hide()
 	touches.clear()
-	_jarak_langkah = 0.0
 	
 	if lock_on_comp:
 		lock_on_comp.buka_lock()
@@ -155,27 +144,6 @@ func kosongkan_kawalan_sentuh() -> void:
 func mod_bina_aktif() -> bool:
 	return (is_instance_valid(BuildManager) and BuildManager.mod_pembinaan) or BuildGrid.mod_aktif
 
-# Bunyi langkah diulang setiap `jarak_langkah` piksel yang dilalui. Jenis
-# bunyi ikut lantai di bawah pemain: logam untuk lantai yang dibina, batu
-# untuk permukaan asteroid.
-func _bunyi_langkah(delta: float) -> void:
-	var laju: float = astro.velocity.length()
-	if laju < 5.0:
-		_jarak_langkah = 0.0
-		return
-	_jarak_langkah += laju * delta
-	if _jarak_langkah < jarak_langkah:
-		return
-	_jarak_langkah = 0.0
-	var nama: String = "langkah_batu"
-	var grid := get_tree().get_first_node_in_group("BuildGrid") as BuildGrid
-	if grid != null and grid.jenis_tile_di(astro.global_position) == BuildGrid.JENIS_LANTAI:
-		# Dua versi plat besi berselang-seli: langkah berturut tidak sama bunyi.
-		_seli_langkah = not _seli_langkah
-		nama = "langkah_logam_b" if _seli_langkah else "langkah_logam"
-	# Isipadu berubah sedikit setiap langkah seperti langkah manusia sebenar.
-	Sfx.mainkan(nama, isipadu_langkah + randf_range(-2.0, 1.5))
-
 func _skrin_ke_dunia(pos_skrin: Vector2) -> Vector2:
 	# Tukar posisi skrin (klik) kepada posisi dunia (ikut kamera)
 	return astro.get_viewport().get_canvas_transform().affine_inverse() * pos_skrin
@@ -189,7 +157,6 @@ func kemas_kini_fizik(delta: float) -> void:
 		ada_target = false
 		joystick_dir = Vector2.ZERO
 		astro.velocity = Vector2.ZERO
-		_jarak_langkah = 0.0
 		return
 
 	# WASD papan kekunci + joystick sentuh (sentuhan diutamakan)
@@ -207,7 +174,6 @@ func kemas_kini_fizik(delta: float) -> void:
 
 	astro.velocity = arah * max_speed
 	astro.move_and_slide()
-	_bunyi_langkah(delta)
 
 	var sprite_base = astro.get_node_or_null("SpriteBase")
 	var collision = astro.get_node_or_null("CollisionShape2D")

@@ -752,15 +752,6 @@ func _papar_bar_hp_rosak() -> void:
 		if nod_tile != null:
 			BAR_HP.papar(nod_tile, baki, maks)
 
-# Jenis tile di posisi dunia: JENIS_LANTAI bila pemain berdiri atas lantai
-# yang dibina, -1 bila atas batu asteroid (tiada tile). Dipakai untuk memilih
-# bunyi langkah (logam vs batu).
-func jenis_tile_di(pos_dunia: Vector2) -> int:
-	var g := _sel_dari_dunia(to_local(pos_dunia))
-	if not _tile.has(g):
-		return -1
-	return int(_tile[g])
-
 # Dipakai preview bangunan luar (contoh: Solar Module) supaya struktur yang
 # dibina pemain (lantai/dinding/pintu, termasuk yang masih berstatus rancangan)
 # tidak boleh ditindih. Bangunan luar hanya sah di permukaan kosong.
