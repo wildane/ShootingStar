@@ -211,6 +211,23 @@ func _jalan() -> void:
 		"sasaran dalam jarak serang: raider berhenti (%.1f), tembak dari jauh" % laju_dekat)
 	_semak(raider_dekat.global_position.is_equal_approx(Vector2(200, 200)),
 		"raider tak bergerak dekat sasaran dalam jarak tembak")
+
+	# --- Satu serangan sahaja: tak tembak player dan struktur serentak ---
+	var player_dekat: Node2D = Node2D.new()
+	player_dekat.name = "SpaceShipDekat"
+	player_dekat.add_to_group("Player")
+	akar.add_child(player_dekat)
+	player_dekat.global_position = Vector2(200, 300)  # 100 px dari raider
+	raider_dekat.set("_cooldown_serang", 0.0)
+	raider_dekat.set("cooldown_lendir", 0.0)
+	raider_dekat.call("_gerak_penyerang", 0.016, player_dekat, 100.0, true)
+	var bil_lendir: int = 0
+	for anak in akar.get_children():
+		if str(anak.name).begins_with("Lendir"):
+			bil_lendir += 1
+	_semak(bil_lendir == 1,
+		"raider tembak satu sasaran sahaja setiap kitaran (lendir=%d)" % bil_lendir)
+	player_dekat.queue_free()
 	raider_dekat.queue_free()
 
 	# --- Player tak boleh tolak husk/raider: dua-dua pejal dan saling mengunci ---

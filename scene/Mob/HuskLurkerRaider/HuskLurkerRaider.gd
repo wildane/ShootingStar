@@ -122,9 +122,10 @@ func _gerak_penyerang(delta: float, player: Node2D, jarak: float, nampak: bool) 
 	# bila nampak player dan tetap berjalan walaupun sedang menembak.
 	sedang_kejar = false
 
-	# Masih tembak player kalau dia nampak, macam husk biasa.
+	# Masih tembak player kalau dia nampak, macam husk biasa - tetapi satu
+	# serangan sahaja setiap kitaran (jangan tembak player + struktur serentak).
 	if is_instance_valid(player) and nampak and jarak <= jarak_tembak:
-		_tembak_lendir(player)
+		_tembak_player(player)
 
 	# Tersangkut pada dinding? Raider berhenti di tempat yang sama walaupun
 	# sepatutnya berjalan: musnahkan tile dinding terdekat supaya laluan terbuka,
@@ -234,6 +235,14 @@ func _sasaran_sah() -> bool:
 
 # Satu serangan: tembak lendir ke arah struktur. Struktur barulah hancur
 # bila lendir itu pecah (kena dinding atau sampai di sasaran).
+# Tembak player dengan had serangan yang sama seperti serangan struktur.
+func _tembak_player(player: Node2D) -> void:
+	if _cooldown_serang > 0.0 or cooldown_lendir > 0.0:
+		return
+	_tembak_lendir(player)
+	if cooldown_lendir > 0.0:
+		_cooldown_serang = jeda_serang
+
 func _serang_sasaran() -> void:
 	if _sasaran.is_empty():
 		return
