@@ -200,6 +200,90 @@ static func _komponen_nod(nod: Node2D, grid: Node, komponen: Dictionary) -> int:
 	var sel := _sel_grid(grid, nod.global_position)
 	return int(komponen.get(sel, -1))
 
+# Rect dunia bagi sesebuah zon bina (gabungan semua bentuk kolider anaknya).
+static func _rect_zon(zon: Area2D) -> Rect2:
+	var hasil := Rect2(zon.global_position, Vector2.ZERO)
+	var ada: bool = false
+	for anak in zon.get_children():
+		if not (anak is CollisionShape2D) or anak.shape == null:
+			continue
+		var bentuk := anak as CollisionShape2D
+		var setempat: Rect2 = bentuk.shape.get_rect()
+		var xf: Transform2D = bentuk.global_transform
+		var bucu := [
+			xf * setempat.position,
+			xf * Vector2(setempat.end.x, setempat.position.y),
+			xf * setempat.end,
+			xf * Vector2(setempat.position.x, setempat.end.y),
+		]
+		var min_v: Vector2 = bucu[0]
+		var max_v: Vector2 = bucu[0]
+		for s in bucu:
+			min_v = min_v.min(s)
+			max_v = max_v.max(s)
+		var segi := Rect2(min_v, max_v - min_v)
+		hasil = segi if not ada else hasil.merge(segi)
+		ada = true
+	return hasil
+
+# Sel BuildGrid yang pusatnya berada di dalam rect ini.
+static func _sel_dalam_rect(grid: Node, rect: Rect2) -> Array:
+	var hasil: Array = []
+	if grid == null:
+		return hasil
+	var saiz_sel := 16
+	if "SAIZ_SEL" in grid:
+		saiz_sel = int(grid.SAIZ_SEL)
+	var kiri_atas := _sel_grid(grid, rect.position)
+	var kanan_bawah := _sel_grid(grid, rect.end)
+	for x in range(kiri_atas.x, kanan_bawah.x + 1):
+		for y in range(kiri_atas.y, kanan_bawah.y + 1):
+			var sel := Vector2i(x, y)
+			var tengah: Vector2 = grid.to_global(Vector2((float(x) + 0.5) * float(saiz_sel), (float(y) + 0.5) * float(saiz_sel)))
+			if rect.has_point(tengah):
+				hasil.append(sel)
+	return hasil
+
+# Zon bina sedia ada dalam scene (contoh: lantai base pada png) bukan
+# sebahagian daripada BuildGrid._tile, jadi PowerGrid menjadikannya rangkaian
+# kuasa sendiri. Perabot/inverter di atas zon yang sama berkongsi bekalan, dan
+# tile BuildGrid di dalam zon dicantumkan dengan rangkaian zon itu.
+static func _senarai_zon(tree: SceneTree, grid: Node, komponen: Dictionary, tile: Dictionary) -> Array:
+	var hasil: Array = []
+	var id_zon := 0
+	for nilai in komponen.values():
+		id_zon = maxi(id_zon, int(nilai))
+	for nod in tree.get_nodes_in_group("BuildableZone"):
+		if not _nod_sah(nod) or not (nod is Area2D):
+			continue
+		id_zon += 1
+		var rect := _rect_zon(nod as Area2D)
+		var dicantum: Array = []
+		for sel in _sel_dalam_rect(grid, rect):
+			if tile.has(sel) and komponen.has(sel):
+				var id_sel := int(komponen[sel])
+				if dicantum.find(id_sel) < 0:
+					dicantum.append(id_sel)
+		if not dicantum.is_empty():
+			for sel in komponen.keys():
+				if dicantum.find(int(komponen[sel])) >= 0:
+					komponen[sel] = id_zon
+		hasil.append({"nod": nod, "rect": rect, "komp": id_zon})
+	return hasil
+
+# Komponen rangkaian bagi sesuatu nod: tile BuildGrid dahulu, kemudian zon
+# bina sedia ada yang menutupi kedudukan nod.
+static func _komponen_nod_zon(nod: Node2D, grid: Node, komponen: Dictionary, zon_info: Array) -> int:
+	var komp := _komponen_nod(nod, grid, komponen)
+	if komp >= 0:
+		return komp
+	var pos := nod.global_position
+	for info in zon_info:
+		var rect: Rect2 = info["rect"]
+		if rect.has_point(pos):
+			return int(info["komp"])
+	return -1
+
 # --- Proses utama ---
 
 static func perlu_kira() -> bool:
@@ -235,6 +319,7 @@ static func proses(tree: SceneTree, paksa: bool = false) -> void:
 	if grid != null and "_tile" in grid:
 		tile = grid._tile
 	var komponen := _bina_komponen(tile)
+	var zon_info := _senarai_zon(tree, grid, komponen, tile)
 
 	# Reset paparan inverter dahulu; akan dikemas kini mengikut rangkaian.
 	for inv: Node2D in inverters:
@@ -285,7 +370,7 @@ static func proses(tree: SceneTree, paksa: bool = false) -> void:
 	var bekalan_rangkaian: Dictionary = {} # komp_id -> float
 	var inverter_rangkaian: Dictionary = {} # komp_id -> Array[Node2D]
 	for inv: Node2D in inverters:
-		var komp := _komponen_nod(inv, grid, komponen)
+		var komp := _komponen_nod_zon(inv, grid, komponen, zon_info)
 		var bekalan := float(kuasa_inverter.get(inv.get_instance_id(), 0.0))
 		if komp < 0:
 			# Inverter tiada pada rangkaian struktur: tiada agihan ke perabot.
@@ -307,7 +392,7 @@ static func proses(tree: SceneTree, paksa: bool = false) -> void:
 	for perabot: Node2D in semua_perabot:
 		if not perabot.has_method("set_power_status"):
 			continue
-		var komp_p := _komponen_nod(perabot, grid, komponen)
+		var komp_p := _komponen_nod_zon(perabot, grid, komponen, zon_info)
 		if komp_p < 0 or not baki_rangkaian.has(komp_p):
 			_matikan_perabot(perabot, null)
 			continue
@@ -339,7 +424,7 @@ static func proses(tree: SceneTree, paksa: bool = false) -> void:
 		if not _nod_sah(inv):
 			continue
 		# Jika inverter berada pada rangkaian, ia sudah dikemas kini.
-		var komp_inv := _komponen_nod(inv, grid, komponen)
+		var komp_inv := _komponen_nod_zon(inv, grid, komponen, zon_info)
 		if komp_inv < 0:
 			var bekalan_inv := float(kuasa_inverter.get(inv.get_instance_id(), 0.0))
 			# Bekalan wireless diterima tetapi tiada rangkaian untuk diagih.

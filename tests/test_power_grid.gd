@@ -73,6 +73,7 @@ func _jalankan() -> void:
 	await _uji_asas_rangkaian()
 	await _uji_tiada_rangkaian()
 	await _uji_dinding_jambatan()
+	await _uji_zon_bina_sedia()
 	await _uji_solar_terdekat()
 	await _uji_solar_luar_radius()
 	await _uji_rangkaian_terpisah()
@@ -106,6 +107,19 @@ func _isi_lantai(grid: MockBuildGrid, dari: Vector2i, ke: Vector2i) -> void:
 	for x in range(mini(dari.x, ke.x), maxi(dari.x, ke.x) + 1):
 		for y in range(mini(dari.y, ke.y), maxi(dari.y, ke.y) + 1):
 			grid.tambah_lantai(Vector2i(x, y))
+
+func _buat_zon_bina(pos: Vector2, saiz: Vector2) -> Area2D:
+	var zon := Area2D.new()
+	zon.collision_layer = 4 # layer 3 = zon bina
+	zon.add_to_group("BuildableZone")
+	zon.position = pos
+	var bentuk := CollisionShape2D.new()
+	var segi := RectangleShape2D.new()
+	segi.size = saiz
+	bentuk.shape = segi
+	zon.add_child(bentuk)
+	root.add_child(zon)
+	return zon
 
 func _buat_inverter(pos: Vector2) -> MockInverter:
 	var n := MockInverter.new()
@@ -187,6 +201,25 @@ func _uji_dinding_jambatan() -> void:
 	_proses()
 	_assert("perabot seberang pintu dapat kuasa", p.has_power)
 	_bersih(p); _bersih(s); _bersih(inv); _bersih(grid)
+	await create_timer(0.05).timeout
+
+func _uji_zon_bina_sedia() -> void:
+	print("Ujian zon bina sedia ada jadi rangkaian kuasa")
+	PowerGridRef.reset()
+	var grid := _buat_grid() # tiada tile dibina, hanya zon base
+	var zon := _buat_zon_bina(Vector2(300, 300), Vector2(96, 96))
+	var inv := _buat_inverter(Vector2(300, 300))
+	var s := _buat_solar(Vector2(340, 300), 100.0)
+	var p := _buat_perabot(Vector2(320, 320), 20.0)
+	_proses()
+	_assert("perabot atas zon bina base dapat kuasa", p.has_power and p.inverter_pembekal == inv)
+	_assert("inverter atas zon bina base kira bekalan", inv.total_power_supply == 100.0)
+	# Tile yang dibina di dalam zon mencantum dengan rangkaian zon yang sama.
+	grid.tambah_lantai(Vector2i(19, 19)) # pusat (312, 312) di dalam zon
+	PowerGridRef.tanda_kotor_semua("uji_zon_tile")
+	_proses()
+	_assert("tile dalam zon kekal satu rangkaian dengan perabot", p.has_power)
+	_bersih(p); _bersih(s); _bersih(inv); _bersih(zon); _bersih(grid)
 	await create_timer(0.05).timeout
 
 func _uji_solar_terdekat() -> void:
