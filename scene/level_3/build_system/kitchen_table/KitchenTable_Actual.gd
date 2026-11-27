@@ -151,4 +151,6 @@ func _on_butang_demolish_pressed():
 		
 	# Memadam keseluruhan StaticBody2D (Fabricator dan UI sekali) secara selamat dari memori
 	PowerGrid.tanda_kotor_semua("bina_atau_roboh")
+	# Bunyi roboh siap yang sama macam nyahbina tile: perabot runtuh berkecai.
+	Sfx.mainkan_di("roboh_siap", global_position, -3.0)
 	queue_free()

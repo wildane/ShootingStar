@@ -233,6 +233,8 @@ func _on_butang_demolish_pressed():
 	player_dekat = false
 	if sprite: sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
 	PowerGridRef.nyahdaftar_inverter(self)
+	# Bunyi roboh siap yang sama macam nyahbina tile: perabot runtuh berkecai.
+	Sfx.mainkan_di("roboh_siap", global_position, -3.0)
 	queue_free()
 
 func _exit_tree() -> void:

@@ -817,6 +817,8 @@ func _on_butang_demolish_pressed() -> void:
 		sprite.modulate = Color.WHITE
 		sprite.scale = _skala_asal
 	PowerGridRef.nyahdaftar_perabot(self)
+	# Bunyi roboh siap yang sama macam nyahbina tile: perabot runtuh berkecai.
+	Sfx.mainkan_di("roboh_siap", global_position, -3.0)
 	queue_free()
 
 func _exit_tree() -> void:
