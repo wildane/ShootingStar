@@ -5,6 +5,8 @@ extends StaticBody2D
 @onready var area_penderia = get_node_or_null("Area2D")
 const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
 const PowerGridRef := preload("res://scene/level_3/build_system/PowerInverter/PowerGrid.gd")
+const REPAIR := preload("res://scene/level_3/build_system/RepairStruktur.gd")
+const PANEL_REPAIR := preload("res://scene/level_3/build_system/PanelRepair.gd")
 
 @onready var menu_ui = get_node_or_null("CanvasLayer/MenuUI") 
 @onready var butang_tutup = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonTutup")
@@ -91,6 +93,8 @@ var _kad_dron: Array[Dictionary] = []
 var _label_statistik: Label = null
 var _label_keterangan: RichTextLabel = null
 var _butang_craft: Button = null
+# Panel baiki di atas kad resipi (kelihatan hanya bila fabricator rosak).
+var _panel_repair = null
 var _pilihan_craft: int = 0
 var _cache_ikon: Dictionary = {}
 func _ready():
@@ -239,6 +243,7 @@ func _bina_ui_craft() -> void:
 		_tajuk_menu.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 
 	_bina_kandungan_craft(vbox)
+	_bina_panel_repair(vbox)
 
 	# Butang Close/Demolish sentiasa di bawah kad + butang Craft.
 	if _baris_menu:
@@ -251,6 +256,16 @@ func _bina_ui_craft() -> void:
 
 	print("Fabricator: Butang craft sedia (", _semua_resipi().size(), " resipi)")
 
+
+# Panel baiki: bahan repair + butang Repair di atas kad resipi.
+func _bina_panel_repair(vbox: Node) -> void:
+	if vbox == null or _panel_repair != null:
+		return
+	_panel_repair = PANEL_REPAIR.new()
+	vbox.add_child(_panel_repair)
+	vbox.move_child(_panel_repair, 1)
+	_panel_repair.sediakan(self)
+	_panel_repair.selesai_baiki.connect(_kemas_kini_craft)
 
 # Kandungan craft: senarai kad resipi dron, kotak info, butang Craft
 func _bina_kandungan_craft(vbox: Node) -> void:
@@ -548,6 +563,8 @@ func _bahan_cukup(resipi: Dictionary) -> bool:
 
 # Kemas kini kad resipi, kotak stats dan butang craft
 func _kemas_kini_craft() -> void:
+	if is_instance_valid(_panel_repair):
+		_panel_repair.segarkan()
 	if _kotak_craft == null or _kad_dron.is_empty():
 		return
 
@@ -605,7 +622,10 @@ func _kemas_kini_craft() -> void:
 		_label_keterangan.text = str(resipi["keterangan"])
 
 	if _butang_craft:
-		if sudah:
+		if REPAIR.rosak(self):
+			_butang_craft.text = "Damaged"
+			_butang_craft.disabled = true
+		elif sudah:
 			_butang_craft.text = "Already crafted"
 			_butang_craft.disabled = true
 		elif not has_power:
@@ -624,6 +644,10 @@ func _on_butang_craft_pressed() -> void:
 	if _pilihan_craft < 0 or _pilihan_craft >= senarai.size():
 		return
 	var resipi: Dictionary = senarai[_pilihan_craft]
+
+	if REPAIR.rosak(self):
+		_tulis_info("Repair the fabricator first")
+		return
 
 	if not _boleh_ulang(resipi) and _sudah_punya(resipi["id"]):
 		_tulis_info(str(resipi["nama"]) + " is already crafted")
@@ -694,8 +718,9 @@ func kos_bina() -> Array:
 
 func _on_butang_demolish_pressed():
 	print("Sistem Khas: Objek perabot telah dimusnahkan!")
-	# Pulangkan bahan bina (popup "+N <nama>") sebelum perabot dibuang.
-	BahanBinaan.pulangkan(self)
+	# Perabot yang rosak dirobohkan tanpa pulangan bahan langsung.
+	if not REPAIR.rosak(self):
+		BahanBinaan.pulangkan(self)
 	player_dekat = false
 	if sprite: sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
 	PowerGridRef.nyahdaftar_perabot(self)

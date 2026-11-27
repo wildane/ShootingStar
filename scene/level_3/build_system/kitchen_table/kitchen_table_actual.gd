@@ -10,6 +10,8 @@ extends StaticBody2D
 const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
 const BulatanCraft := preload("res://scene/level_3/build_system/smelter/bulatan_craft.gd")
 const PowerGridRef := preload("res://scene/level_3/build_system/PowerInverter/PowerGrid.gd")
+const REPAIR := preload("res://scene/level_3/build_system/RepairStruktur.gd")
+const PANEL_REPAIR := preload("res://scene/level_3/build_system/PanelRepair.gd")
 
 @onready var menu_ui = get_node_or_null("CanvasLayer/Pusat/MenuUI")
 @onready var butang_tutup = get_node_or_null("CanvasLayer/Pusat/MenuUI/VBoxContainer/HBoxContainer/ButtonTutup")
@@ -72,6 +74,8 @@ var senarai_resipi: Array[Dictionary] = [
 var resipi_semasa: int = 0
 var _cache_ikon: Dictionary = {}
 var kad_ui: Array[Dictionary] = []
+# Panel baiki di atas senarai resipi (kelihatan hanya bila meja rosak).
+var _panel_repair = null
 
 @export_category("Sistem Kuasa")
 @export var power_required: float = 200.0
@@ -135,6 +139,7 @@ func _ready() -> void:
 	_pasang_gaya_menu()
 	_bina_lapis_terapung()
 	_bina_bulatan()
+	_bina_panel_repair()
 	_kemas_kini_ui()
 	_kemas_kini_warna_visual()
 
@@ -177,6 +182,19 @@ func _pasang_gaya_menu() -> void:
 		butang_masak.add_theme_color_override("font_hover_color", Color(0.01, 0.05, 0.08, 1))
 		butang_masak.add_theme_color_override("font_pressed_color", Color(0.75, 0.95, 1, 1))
 		butang_masak.add_theme_color_override("font_disabled_color", Color(0.4, 0.52, 0.6, 1))
+
+# Panel baiki: bahan repair + butang Repair di atas senarai resipi.
+func _bina_panel_repair() -> void:
+	if menu_ui == null:
+		return
+	var vbox := menu_ui.get_node_or_null("VBoxContainer")
+	if vbox == null:
+		return
+	_panel_repair = PANEL_REPAIR.new()
+	vbox.add_child(_panel_repair)
+	vbox.move_child(_panel_repair, 1)
+	_panel_repair.sediakan(self)
+	_panel_repair.selesai_baiki.connect(_kemas_kini_ui)
 
 # Cincin kemajuan kecil di atas meja, hanya nampak semasa memasak.
 func _bina_bulatan() -> void:
@@ -384,6 +402,8 @@ func _on_butang_masak_pressed() -> void:
 		_berhenti_selepas_unit = true
 		_kemas_kini_ui()
 		return
+	if REPAIR.rosak(self):
+		return
 	if not has_power:
 		return
 	var maks: int = _maks_unit()
@@ -535,6 +555,8 @@ func _kemas_kini_iklan(delta: float) -> void:
 # UI
 # ==========================================================
 func _kemas_kini_ui() -> void:
+	if is_instance_valid(_panel_repair):
+		_panel_repair.segarkan()
 	var maks: int = _maks_unit()
 	if not sedang_masak:
 		kuantiti_pilihan = clampi(kuantiti_pilihan, 1, maxi(1, maks))
@@ -558,7 +580,10 @@ func _kemas_kini_ui() -> void:
 		butang_tambah.disabled = sedang_masak or kuantiti_pilihan >= maks
 
 	if label_status:
-		if not has_power:
+		if REPAIR.rosak(self):
+			label_status.text = "Damaged"
+			label_status.add_theme_color_override("font_color", WARNA_KURANG)
+		elif not has_power:
 			label_status.text = "No power"
 			label_status.add_theme_color_override("font_color", WARNA_KURANG)
 		elif sedang_masak:
@@ -577,7 +602,7 @@ func _kemas_kini_ui() -> void:
 			butang_masak.disabled = _berhenti_selepas_unit
 		else:
 			butang_masak.text = "Cook"
-			butang_masak.disabled = (not has_power) or (not _bahan_cukup())
+			butang_masak.disabled = (not has_power) or (not _bahan_cukup()) or REPAIR.rosak(self)
 
 	_kemas_progres()
 
@@ -783,8 +808,9 @@ func kos_bina() -> Array:
 	]
 
 func _on_butang_demolish_pressed() -> void:
-	# Pulangkan bahan bina (popup "+N <nama>") sebelum meja dibuang.
-	BahanBinaan.pulangkan(self)
+	# Meja yang rosak dirobohkan tanpa pulangan bahan langsung.
+	if not REPAIR.rosak(self):
+		BahanBinaan.pulangkan(self)
 	sedang_masak = false
 	player_dekat = false
 	if sprite:

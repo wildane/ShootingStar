@@ -5,6 +5,8 @@ extends StaticBody2D
 @onready var area_penderia = get_node_or_null("Area2D")
 const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
 const PowerGridRef := preload("res://scene/level_3/build_system/PowerInverter/PowerGrid.gd")
+const REPAIR := preload("res://scene/level_3/build_system/RepairStruktur.gd")
+const PANEL_REPAIR := preload("res://scene/level_3/build_system/PanelRepair.gd")
 
 @onready var menu_ui = get_node_or_null("CanvasLayer/MenuUI") 
 @onready var butang_tutup = get_node_or_null("CanvasLayer/MenuUI/VBoxContainer/HBoxContainer/ButtonTutup")
@@ -18,6 +20,9 @@ const SELA_MASA_MINIMUM: float = 0.2
 @export var power_required: float = 20.0  
 var has_power: bool = false               
 var inverter_pembekal: Node2D = null
+
+## Panel baiki di atas butang menu (kelihatan hanya bila meja rosak).
+var _panel_repair = null
 
 func _ready():
 	# 1. Masuk group perabot
@@ -37,8 +42,26 @@ func _ready():
 	if butang_tutup: butang_tutup.pressed.connect(_on_butang_tutup_pressed)
 	if butang_demolish: butang_demolish.pressed.connect(_on_butang_demolish_pressed)
 
+	_bina_panel_repair()
 	_kemas_kini_warna_visual()
 	PowerGridRef.daftar_perabot(self)
+
+# Panel baiki: bahan repair + butang Repair di atas butang tutup/demolish.
+func _bina_panel_repair() -> void:
+	if menu_ui == null:
+		return
+	var vbox := menu_ui.get_node_or_null("VBoxContainer")
+	if vbox == null:
+		return
+	_panel_repair = PANEL_REPAIR.new()
+	vbox.add_child(_panel_repair)
+	vbox.move_child(_panel_repair, 1)
+	_panel_repair.sediakan(self)
+	_panel_repair.selesai_baiki.connect(_segarkan_repair)
+
+func _segarkan_repair() -> void:
+	if is_instance_valid(_panel_repair):
+		_panel_repair.segarkan()
 
 # 🔴 Sistem Pengurusan Kuasa Elektrik
 func set_power_status(status_elektrik: bool, pembekal: Node2D = null) -> void:
@@ -130,6 +153,8 @@ func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int):
 		
 		if menu_ui:
 			menu_ui.visible = !menu_ui.visible
+			if menu_ui.visible:
+				_segarkan_repair()
 		get_viewport().set_input_as_handled()
 
 # 🔴 Pengurusan Butang UI
@@ -144,8 +169,9 @@ func kos_bina() -> Array:
 
 func _on_butang_demolish_pressed():
 	print("Sistem Khas: Objek perabot telah dimusnahkan!")
-	# Pulangkan bahan bina (popup "+N <nama>") sebelum perabot dibuang.
-	BahanBinaan.pulangkan(self)
+	# Perabot yang rosak dirobohkan tanpa pulangan bahan langsung.
+	if not REPAIR.rosak(self):
+		BahanBinaan.pulangkan(self)
 	player_dekat = false
 	if sprite: sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
 	PowerGridRef.nyahdaftar_perabot(self)
