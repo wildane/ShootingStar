@@ -97,6 +97,19 @@ func _jalan() -> void:
 	raider.set("mod_penyerang", true)
 	raider.set("posisi_pangkalan", Vector2(200, 200))
 
+	# Raider kedua jauh dari pangkalan: laju mesti laju jalan biasa, bukan chase.
+	var raider_jauh: Node2D = load("res://scene/Mob/HuskLurkerRaider/HuskLurkerRaider.tscn").instantiate()
+	raider_jauh.masa_teleport = 999.0
+	akar.add_child(raider_jauh)
+	raider_jauh.global_position = Vector2(900, 900)
+	raider_jauh.set("mod_penyerang", true)
+	raider_jauh.set("posisi_pangkalan", Vector2(1100, 1100))
+	var laju: float = raider_jauh.call("_gerak_penyerang", 0.016, null, 999999.0, false)
+	_semak(is_equal_approx(laju, float(raider_jauh.get("wander_speed"))),
+		"raider jalan laju normal (%.1f), bukan chase (%.1f)" % [laju, float(raider_jauh.get("chase_speed"))])
+	_semak(not bool(raider_jauh.get("sedang_kejar")), "raider tak masuk mod chase")
+	raider_jauh.queue_free()
+
 	# Tunggu teleport habis, kemudian beri masa AI bertindak.
 	await create_timer(0.6).timeout
 	_semak(not bool(raider.get("_dalam_teleport")), "raider keluar dari teleport")

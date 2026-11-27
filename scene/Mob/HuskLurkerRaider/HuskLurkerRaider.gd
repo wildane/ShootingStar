@@ -109,6 +109,10 @@ func _gerak_penyerang(delta: float, player: Node2D, jarak: float, nampak: bool) 
 	if _cooldown_serang > 0.0:
 		_cooldown_serang -= delta
 
+	# Raider sengaja TIDAK masuk mod chase: jalan biasa sahaja, tak memecut
+	# bila nampak player dan tetap berjalan walaupun sedang menembak.
+	sedang_kejar = false
+
 	# Masih tembak player kalau dia nampak, macam husk biasa.
 	if is_instance_valid(player) and nampak and jarak <= jarak_tembak:
 		_tembak_lendir(player)
@@ -120,22 +124,26 @@ func _gerak_penyerang(delta: float, player: Node2D, jarak: float, nampak: bool) 
 	elif not _sasaran_sah():
 		_sasaran = {}
 
-	# Tiada apa-apa untuk dimusnahkan di sekitar: jalan ke pangkalan macam biasa.
-	if _sasaran.is_empty():
-		return super._gerak_penyerang(delta, player, jarak, nampak)
+	# Tiada apa-apa untuk dimusnahkan di sekitar: jalan ke pangkalan.
+	var posisi: Vector2 = posisi_pangkalan
+	if not _sasaran.is_empty():
+		posisi = _sasaran.get("posisi", posisi_pangkalan)
 
-	var posisi: Vector2 = _sasaran.get("posisi", global_position)
 	var jarak_sasaran: float = global_position.distance_to(posisi)
 	_hala_ke(posisi, delta)
 
-	if jarak_sasaran <= jarak_serang and _cooldown_serang <= 0.0:
+	if not _sasaran.is_empty() and jarak_sasaran <= jarak_serang and _cooldown_serang <= 0.0:
 		_serang_sasaran()
 		return 0.0
-	return chase_speed
+	if jarak_sasaran <= jarak_serang:
+		# Sudah tiba di pangkalan tetapi belum ada apa-apa untuk dimusnahkan.
+		return 0.0
+	# Laju macam husk biasa (wander_speed), bukan chase_speed.
+	return wander_speed
 
 # Pusing badan ke arah sasaran (logik sama seperti _gerak_penyerang asal).
 func _hala_ke(posisi: Vector2, delta: float) -> void:
-	sedang_kejar = true
+	sedang_kejar = false
 	var ke: Vector2 = posisi - global_position
 	if ke.length() <= 0.5:
 		return
