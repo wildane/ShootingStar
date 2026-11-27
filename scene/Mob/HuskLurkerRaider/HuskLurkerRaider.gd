@@ -218,25 +218,59 @@ func _sasaran_sah() -> bool:
 	if str(_sasaran.get("jenis", "")) == "grid":
 		var grid := get_tree().get_first_node_in_group("BuildGrid")
 		return grid != null and is_instance_valid(grid)
-	var nod := _sasaran.get("nod") as Node
+	# Guna Variant: nod yang sudah dibebaskan tidak boleh di-cast.
+	var nod: Variant = _sasaran.get("nod")
 	return nod != null and is_instance_valid(nod)
 
-# Satu serangan: sasaran terus hancur.
+# Satu serangan: tembak lendir ke arah struktur. Struktur barulah hancur
+# bila lendir itu pecah (kena dinding atau sampai di sasaran).
 func _serang_sasaran() -> void:
 	if _sasaran.is_empty():
 		return
 	_cooldown_serang = jeda_serang
-	var jenis: String = str(_sasaran.get("jenis", ""))
-
-	if jenis == "grid":
-		var grid := get_tree().get_first_node_in_group("BuildGrid")
-		if grid != null and grid.has_method("hancurkan"):
-			grid.call("hancurkan", _sasaran.get("grid", Vector2i.ZERO))
-	else:
-		var nod := _sasaran.get("nod") as Node
-		if nod != null and is_instance_valid(nod):
-			print("Raider: musnahkan ", nod.name)
-			nod.queue_free()
-
+	var sasaran: Dictionary = _sasaran
 	_sasaran = {}
 	_timer_cari = 0.0
+
+	var posisi: Vector2 = sasaran.get("posisi", global_position)
+	var ke: Vector2 = posisi - global_position
+	var jarak: float = maxf(1.0, ke.length())
+
+	var lendir: Node = null
+	if peluru_lendir != null:
+		lendir = peluru_lendir.instantiate()
+	if lendir == null:
+		# Lendir tak dapat dicipta: hancurkan terus supaya serangan tak tersekat.
+		_hancurkan_sasaran(sasaran, null)
+		return
+
+	get_tree().current_scene.add_child(lendir)
+	if lendir is Node2D:
+		(lendir as Node2D).global_position = global_position + ke.normalized() * 10.0
+	if lendir.has_method("tembak_struktur"):
+		# Lendir hanya tahu "pecah": sasaran yang disimpan di sini ikut hancur.
+		var bila_pecah := func(badan: Node) -> void: _hancurkan_sasaran(sasaran, badan)
+		lendir.call("tembak_struktur", ke.normalized(), jarak, bila_pecah)
+	else:
+		_hancurkan_sasaran(sasaran, null)
+
+# Dipanggil lendir semasa pecah: hancurkan struktur yang kena.
+func _hancurkan_sasaran(sasaran: Dictionary, badan_kena: Node = null) -> void:
+	# Lendir terlanggar dinding grid: musnahkan tile dinding itu sendiri, bukan
+	# sasaran jauh di sebaliknya.
+	var grid := get_tree().get_first_node_in_group("BuildGrid")
+	if badan_kena is Node2D and grid != null and badan_kena.get_parent() == grid:
+		var bahagian: PackedStringArray = str(badan_kena.name).split("_")
+		if bahagian.size() == 3 and grid.has_method("hancurkan"):
+			grid.call("hancurkan", Vector2i(int(bahagian[1]), int(bahagian[2])))
+			return
+
+	var jenis: String = str(sasaran.get("jenis", ""))
+	if jenis == "grid":
+		if grid != null and grid.has_method("hancurkan"):
+			grid.call("hancurkan", sasaran.get("grid", Vector2i.ZERO))
+	else:
+		var nod: Variant = sasaran.get("nod")
+		if nod != null and is_instance_valid(nod):
+			print("Raider: musnahkan ", (nod as Node).name)
+			(nod as Node).queue_free()

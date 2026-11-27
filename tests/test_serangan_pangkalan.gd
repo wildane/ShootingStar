@@ -93,9 +93,12 @@ func _jalan() -> void:
 	raider_tembak.global_position = Vector2(200, 200)
 	raider_tembak.set("mod_penyerang", true)
 	raider_tembak.set("posisi_pangkalan", Vector2(200, 200))
-	await create_timer(0.5).timeout
+	await create_timer(0.3).timeout
+	_semak(not grid.sasaran_terdekat(Vector2(296, 200), 30.0).is_empty(),
+		"lendir masih terbang: dinding belum pecah")
+	await create_timer(1.2).timeout
 	_semak(grid.sasaran_terdekat(Vector2(296, 200), 30.0).is_empty(),
-		"raider tembak dinding dari jauh (~96 px, jarak_serang %.0f)" % float(raider_tembak.get("jarak_serang")))
+		"lendir kena dinding dari jauh (~96 px, jarak_serang %.0f): baru dinding pecah" % float(raider_tembak.get("jarak_serang")))
 	raider_tembak.queue_free()
 
 	# --- Raider: cari perabot dan musnahkan satu serangan ---

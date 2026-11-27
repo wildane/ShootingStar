@@ -18,6 +18,12 @@ var arah: Vector2 = Vector2.RIGHT
 var jarak_dilalui: float = 0.0
 var masa_hidup: float = 0.0
 var sudah_pecah: bool = false
+## Bila lendir ditembak raider ke arah struktur pangkalan: callable ini dipanggil
+## semasa lendir PECAH (kena sesuatu atau habis jarak), jadi struktur barulah
+## hancur - bukan terus hilang bila raider menembak.
+var sasaran_hancur: Callable = Callable()
+## Badan yang terlanggar (untuk tahu dinding grid mana yang pecah).
+var badan_kena: Node = null
 
 @onready var sprite: Sprite2D = $Sprite2D
 
@@ -29,6 +35,13 @@ func tembak(hala: Vector2, dmg: int = 1) -> void:
 	arah = hala.normalized()
 	kerosakan = dmg
 	rotation = arah.angle()
+
+# Raider tembak struktur pangkalan: lendir terbang sejauh jarak ke sasaran,
+# kemudian pecah dan barulah sasaran itu musnah.
+func tembak_struktur(hala: Vector2, jarak: float, hancur: Callable) -> void:
+	jarak_maksimum = maxf(20.0, jarak + 6.0)
+	sasaran_hancur = hancur
+	tembak(hala, 1)
 
 func _physics_process(delta: float) -> void:
 	if sudah_pecah:
@@ -55,8 +68,9 @@ func _on_body_entered(body: Node) -> void:
 	if body.is_in_group("enemy") or body.is_in_group("enemies"):
 		return
 
-	# Dinding / objek pejal -> lendir pecah
+	# Dinding / objek pejal -> lendir pecah (dan struktur yang kena hancur)
 	if body is StaticBody2D:
+		badan_kena = body
 		_pecah()
 		return
 
@@ -84,6 +98,12 @@ func _pecah() -> void:
 	if sudah_pecah:
 		return
 	sudah_pecah = true
+
+	# Struktur sasaran hancur sekarang - bukan semasa raider menembak.
+	if sasaran_hancur.is_valid():
+		var panggil := sasaran_hancur
+		sasaran_hancur = Callable()
+		panggil.call(badan_kena)
 	set_deferred("monitoring", false)
 	set_deferred("monitorable", false)
 	set_physics_process(false)
