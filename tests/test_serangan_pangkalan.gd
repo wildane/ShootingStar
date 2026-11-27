@@ -115,5 +115,27 @@ func _jalan() -> void:
 	_semak(not bool(raider.get("_dalam_teleport")), "raider keluar dari teleport")
 	_semak(not is_instance_valid(perabot), "raider musnahkan perabot dengan 1 serangan")
 
+	# --- Raider sampai pangkalan tanpa sasaran: jangan duduk diam, dekati player ---
+	var player := Node2D.new()
+	player.name = "SpaceShip"
+	player.add_to_group("Player")
+	akar.add_child(player)
+	player.global_position = Vector2(400, 400)
+
+	var raider_diam: Node2D = load("res://scene/Mob/HuskLurkerRaider/HuskLurkerRaider.tscn").instantiate()
+	raider_diam.masa_teleport = 999.0
+	akar.add_child(raider_diam)
+	raider_diam.global_position = Vector2(200, 200)
+	raider_diam.set("mod_penyerang", true)
+	raider_diam.set("posisi_pangkalan", Vector2(200, 200))
+	raider_diam.set("_pos_terakhir", Vector2(200, 200))
+	var laju_diam: float = raider_diam.call("_gerak_penyerang", 0.2, player, 280.0, false)
+	_semak(is_equal_approx(laju_diam, float(raider_diam.get("wander_speed"))),
+		"tiada sasaran di pangkalan: raider tetap berjalan (%.1f), tak duduk diam" % laju_diam)
+	var arah_ke_player: Vector2 = (player.global_position - raider_diam.global_position).normalized()
+	_semak(Vector2(raider_diam.get("arah")).dot(arah_ke_player) > 0.9,
+		"raider pusing ke arah player, bukan menembak sambil duduk")
+	raider_diam.queue_free()
+
 	print("LULUS=", lulus)
 	quit()

@@ -35,6 +35,9 @@ var _mask_asal: int = 11
 var _sasaran: Dictionary = {}
 var _timer_cari: float = 0.0
 var _cooldown_serang: float = 0.0
+# Kesan raider tersangkut pada dinding (tak bergerak walaupun sepatutnya berjalan).
+var _pos_terakhir: Vector2 = Vector2.ZERO
+var _masa_tersangkut: float = 0.0
 
 func _ready() -> void:
 	super._ready()
@@ -89,6 +92,8 @@ func _main_kesan(pada: Vector2) -> void:
 # Badan muncul semula dengan kilau singkat, kemudian AI berjalan seperti biasa.
 func _keluar_dari_teleport() -> void:
 	_dalam_teleport = false
+	_pos_terakhir = global_position
+	_masa_tersangkut = 0.0
 	collision_layer = _layer_asal
 	collision_mask = _mask_asal
 	# sprite.modulate dikawal oleh animasi HuskLurker setiap frame, jadi
@@ -117,6 +122,22 @@ func _gerak_penyerang(delta: float, player: Node2D, jarak: float, nampak: bool) 
 	if is_instance_valid(player) and nampak and jarak <= jarak_tembak:
 		_tembak_lendir(player)
 
+	# Tersangkut pada dinding? Raider berhenti di tempat yang sama walaupun
+	# sepatutnya berjalan: musnahkan tile dinding terdekat supaya laluan terbuka,
+	# jangan duduk diam sambil menembak player dari jauh.
+	var gerak_nyata: float = global_position.distance_to(_pos_terakhir)
+	_pos_terakhir = global_position
+	if gerak_nyata < 0.4:
+		_masa_tersangkut += delta
+	else:
+		_masa_tersangkut = 0.0
+	if _masa_tersangkut >= 0.3:
+		var sasaran_dinding: Dictionary = _sasaran_terdekat_grid(48.0)
+		if not sasaran_dinding.is_empty():
+			_sasaran = sasaran_dinding
+			_timer_cari = 0.0
+			_masa_tersangkut = 0.0
+
 	_timer_cari -= delta
 	if _timer_cari <= 0.0:
 		_timer_cari = sela_cari_sasaran
@@ -135,11 +156,24 @@ func _gerak_penyerang(delta: float, player: Node2D, jarak: float, nampak: bool) 
 	if not _sasaran.is_empty() and jarak_sasaran <= jarak_serang and _cooldown_serang <= 0.0:
 		_serang_sasaran()
 		return 0.0
-	if jarak_sasaran <= jarak_serang:
-		# Sudah tiba di pangkalan tetapi belum ada apa-apa untuk dimusnahkan.
+
+	# Tiada sasaran dalam jarak serang: terus dekati player (sambil menembak),
+	# jangan berdiri diam di satu tempat.
+	if _sasaran.is_empty() and jarak_sasaran <= jarak_serang:
+		if is_instance_valid(player):
+			_hala_ke(player.global_position, delta)
+			return wander_speed
 		return 0.0
+
 	# Laju macam husk biasa (wander_speed), bukan chase_speed.
 	return wander_speed
+
+# Tile grid (dinding/lantai/pintu) paling hampir dengan raider dalam jejari tertentu.
+func _sasaran_terdekat_grid(jarak_maks: float) -> Dictionary:
+	var grid := get_tree().get_first_node_in_group("BuildGrid")
+	if grid == null or not grid.has_method("sasaran_terdekat"):
+		return {}
+	return grid.call("sasaran_terdekat", global_position, jarak_maks)
 
 # Pusing badan ke arah sasaran (logik sama seperti _gerak_penyerang asal).
 func _hala_ke(posisi: Vector2, delta: float) -> void:
