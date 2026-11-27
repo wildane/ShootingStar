@@ -16,8 +16,9 @@ const KESAN_TELEPORT := preload("res://scene/level_3/build_system/doorway/KesanT
 @export var masa_teleport: float = 0.4
 
 # --- Serangan pangkalan ---
-## Jarak untuk terus menghancurkan sasaran dengan satu serangan.
-@export var jarak_serang: float = 20.0
+## Jarak untuk memusnahkan sasaran: raider tembak struktur (dinding/lantai/pintu/
+## perabot) dari jauh, tak perlu sentuh dulu.
+@export var jarak_serang: float = 120.0
 ## Jarak carian sasaran di sekeliling raider.
 @export var jarak_cari_sasaran: float = 520.0
 ## Sela semakan semula sasaran (saat).

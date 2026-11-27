@@ -24,8 +24,8 @@ const JEJARI_TIBA: float = 26.0
 @export var posisi_pangkalan: Vector2 = Vector2(141.0, 228.0)
 # Penyerang muncul di keliling batu asteroid yang pemain guna sebagai pangkalan:
 # sedikit di luar tepi batu, jadi mereka datang dari semua arah.
-@export var tambahan_jarak_spawn: float = 24.0
-@export var jarak_min_spawn: float = 8.0
+@export var tambahan_jarak_spawn: float = 140.0
+@export var jarak_min_spawn: float = 80.0
 @export var jejari_kolider_spawn: float = 10.0
 @export # Penyerang gelombang guna HuskLurker Raider (hijau, lendir kuning, tiada drop).
 var scene_penyerang: PackedScene = preload("res://scene/Mob/HuskLurkerRaider/HuskLurkerRaider.tscn")

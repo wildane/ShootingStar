@@ -70,6 +70,8 @@ func _jalan() -> void:
 			keliling_ok = false
 			print("  spawn %d jarak %.1f" % [i, jarak])
 	_semak(keliling_ok, "semua spawn berada di keliling asteroid")
+	_semak(serangan.jarak_min_spawn >= 60.0,
+		"spawn jauh dari tepi asteroid (%.0f-%.0f px)" % [serangan.jarak_min_spawn, serangan.tambahan_jarak_spawn])
 
 	# --- Grid: sasaran terdekat + hancur 1 serangan ---
 	var dekat: Dictionary = grid.sasaran_terdekat(Vector2(200, 200), 100.0)
@@ -82,6 +84,19 @@ func _jalan() -> void:
 	_semak(grid.hancurkan(Vector2i(13, 12)), "hancurkan() buang tile lantai")
 	_semak(grid.sasaran_terdekat(Vector2(200, 200), 100.0).is_empty(),
 		"tiada tile lagi selepas kedua-duanya musnah")
+
+	# --- Raider tembak dinding dari jauh, tak perlu sentuh dulu ---
+	grid.muat_data_save({"tiles": [{"x": 18, "y": 12, "jenis": 1}]})  # dinding di (296,200)
+	var raider_tembak: Node2D = load("res://scene/Mob/HuskLurkerRaider/HuskLurkerRaider.tscn").instantiate()
+	raider_tembak.masa_teleport = 0.05
+	akar.add_child(raider_tembak)
+	raider_tembak.global_position = Vector2(200, 200)
+	raider_tembak.set("mod_penyerang", true)
+	raider_tembak.set("posisi_pangkalan", Vector2(200, 200))
+	await create_timer(0.5).timeout
+	_semak(grid.sasaran_terdekat(Vector2(296, 200), 30.0).is_empty(),
+		"raider tembak dinding dari jauh (~96 px, jarak_serang %.0f)" % float(raider_tembak.get("jarak_serang")))
+	raider_tembak.queue_free()
 
 	# --- Raider: cari perabot dan musnahkan satu serangan ---
 	var perabot := Node2D.new()
