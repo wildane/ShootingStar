@@ -14,6 +14,7 @@ extends RefCounted
 
 const BAHAN := preload("res://scene/level_3/build_system/BahanBinaan.gd")
 const BAR_HP := preload("res://scene/level_3/build_system/BarHpStruktur.gd")
+const KESAN_RETAK := preload("res://scene/level_3/build_system/KesanRetak.gd")
 
 const KUNCI_HP: String = "hp_serangan"
 const KUNCI_MAKS: String = "hp_sasaran_maks"
@@ -112,4 +113,5 @@ static func baiki(perabot: Node) -> bool:
 		BAHAN.papar_iklan(kos, (perabot as Node2D).global_position + Vector2(0.0, -10.0), perabot, -1)
 	perabot.set_meta(KUNCI_HP, hp_maks(perabot))
 	BAR_HP.buang(perabot)
+	KESAN_RETAK.buang(perabot)
 	return true

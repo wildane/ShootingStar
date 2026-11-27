@@ -819,6 +819,8 @@ func kena_serangan(g: Vector2i) -> bool:
 	if baki <= 0:
 		return hancurkan(g)
 	_hp_tile[g] = baki
+	# Struktur cedera tetapi belum pecah: bunyi retak.
+	_bunyi("retak", to_global(_tengah_sel(g)))
 	queue_redraw()
 	# Player nampak baki HP di atas struktur yang baru kena serangan.
 	var nod_tile := _nod_tile(g)
@@ -1284,6 +1286,33 @@ func _physics_process(delta: float) -> void:
 # ==========================================
 # LUKISAN
 # ==========================================
+# Retak pada tile rosak (dinding/pintu/lantai): makin banyak HP hilang, makin
+# banyak garis retak. Bentuk ditentukan oleh sel, jadi ia kekal sama setiap redraw.
+func _lukis_retak(g: Vector2i, rect: Rect2) -> void:
+	if not _tile.has(g):
+		return
+	var maks: int = hp_maks_tile(int(_tile[g]))
+	var baki: int = hp_tile(g)
+	if baki >= maks:
+		return
+	var rosak: float = 1.0 - float(baki) / float(maks)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(g)
+	var pusat: Vector2 = rect.get_center()
+	var garis: int = 2 + int(rosak * 2.0)
+	for i in garis:
+		var arah: float = rng.randf_range(0.0, TAU)
+		var panjang: float = rect.size.x * rng.randf_range(0.3, 0.5)
+		var mula: Vector2 = pusat + Vector2(cos(arah), sin(arah)) * rect.size.x * rng.randf_range(0.0, 0.18)
+		var hujung: Vector2 = mula + Vector2(cos(arah), sin(arah)) * panjang
+		var a: Vector2 = mula
+		for j in 3:
+			var b: Vector2 = a.lerp(hujung, 0.34)
+			b += Vector2(rng.randf_range(-1.6, 1.6), rng.randf_range(-1.6, 1.6))
+			draw_line(a, b, Color(0.04, 0.03, 0.04, 0.85), maxf(1.0, rect.size.x * 0.07))
+			draw_line(a + Vector2(0.6, 0.6), b + Vector2(0.6, 0.6), Color(0.9, 0.93, 1.0, 0.22), 1.0)
+			a = b
+
 func _draw() -> void:
 	var saiz := Vector2(SAIZ_SEL, SAIZ_SEL)
 	for g in _tile:
@@ -1313,6 +1342,8 @@ func _draw() -> void:
 					draw_texture_rect(TEKSTUR_PINTU, rect, false, warna)
 				if terbuka:
 					draw_rect(rect, Color(0.5, 1.0, 1.0, 0.5), false, 1.0)
+
+		_lukis_retak(g, rect)
 
 		# Tanda nyahbina: overlay merah + bar kemajuan.
 		if _padam_tanda.has(g):

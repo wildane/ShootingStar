@@ -43,6 +43,7 @@ func _ready() -> void:
 	_sedia("roboh_siap")
 	_sedia("rancang_ok")
 	_sedia("rancang_gagal")
+	_sedia("retak")
 	_aliran["teleport"] = _jana_teleport()
 	_mula_ambien()
 	_mula_ambien_kawasan()
@@ -276,6 +277,8 @@ func _jana(nama: String) -> AudioStreamWAV:
 		return _jana_rancang_ok()
 	if nama == "rancang_gagal":
 		return _jana_rancang_gagal()
+	if nama == "retak":
+		return _jana_retak()
 	push_warning("Sfx: bunyi tidak dikenali - " + nama)
 	return null
 
@@ -931,4 +934,32 @@ func _jana_rancang_gagal() -> AudioStreamWAV:
 		s[i] = nada * 0.6
 	_lulus_rendah(s, 3200.0)
 	_normal(s, 0.85)
+	return _ke_stream(s, false)
+
+
+# ---- Bunyi retak: struktur cedera tetapi belum pecah -----------------
+
+func _jana_retak() -> AudioStreamWAV:
+	var tempoh: float = 0.16
+	var n: int = int(KADAR * tempoh)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	# Retak tajam: desir pendek yang ditapis pada dua badan kayu.
+	var asas := PackedFloat32Array()
+	asas.resize(n)
+	for i in n:
+		var t: float = float(i) / float(KADAR)
+		asas[i] = randf_range(-1.0, 1.0) * exp(-t * 120.0)
+	var b1: PackedFloat32Array = asas.duplicate()
+	_lulus_jalur(b1, 900.0, 3.0)
+	var b2: PackedFloat32Array = asas.duplicate()
+	_lulus_jalur(b2, 1800.0, 2.0)
+	var fasa: float = 0.0
+	for i in n:
+		var t: float = float(i) / float(KADAR)
+		fasa += TAU * lerpf(180.0, 90.0, clampf(t / 0.1, 0.0, 1.0)) / float(KADAR)
+		var dentum: float = sin(fasa) * exp(-t * 45.0) * 0.3
+		s[i] = asas[i] * 0.7 + b1[i] * 1.8 + b2[i] * 1.1 + dentum
+	_lulus_rendah(s, 9000.0)
+	_normal(s, 0.9)
 	return _ke_stream(s, false)

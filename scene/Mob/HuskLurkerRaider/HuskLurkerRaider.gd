@@ -12,6 +12,7 @@ extends "res://scene/Mob/HuskLurker/HuskLurker.gd"
 
 const KESAN_TELEPORT := preload("res://scene/level_3/build_system/doorway/KesanTeleport.gd")
 const BAR_HP := preload("res://scene/level_3/build_system/BarHpStruktur.gd")
+const KESAN_RETAK := preload("res://scene/level_3/build_system/KesanRetak.gd")
 
 ## Tempoh animasi teleport sebelum badan benar-benar muncul.
 @export var masa_teleport: float = 0.4
@@ -314,6 +315,17 @@ func _serang_nod(nod: Node) -> void:
 		nod.queue_free()
 		return
 	nod.set_meta("hp_serangan", baki)
+	# Bunyi retak + retak visual: perabot cedera tetapi belum pecah.
+	var pos_retak := Vector2.ZERO
+	if nod is Node2D:
+		pos_retak = (nod as Node2D).global_position
+		var saiz_retak := Vector2(24.0, 24.0)
+		var spr := nod.get_node_or_null("Sprite2D") as Sprite2D
+		if spr != null and spr.texture != null:
+			saiz_retak = spr.texture.get_size() * spr.scale.abs()
+		KESAN_RETAK.papar(nod as Node2D, saiz_retak,
+			1.0 - float(baki) / float(maxi(1, hp_perabot)))
+	Sfx.mainkan_di("retak", pos_retak, -6.0)
 	# Player nampak baki HP perabot sebelum ia pecah; HP maks turut disimpan
 	# supaya bar boleh dipulihkan selepas load.
 	if nod is Node2D:

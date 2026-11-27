@@ -3,6 +3,7 @@ extends Node
 signal semua_data_siap_di_load
 
 const BAR_HP_STRUKTUR := preload("res://scene/level_3/build_system/BarHpStruktur.gd")
+const KESAN_RETAK_STRUKTUR := preload("res://scene/level_3/build_system/KesanRetak.gd")
 
 # Simpanan berbilang slot: setiap slot satu fail JSON dalam user://saves/.
 # Nama dan masa setiap slot disimpan dalam katalog supaya boleh ditukar nama
@@ -592,6 +593,8 @@ func _pakai_data_objek(nod: Node, data: Dictionary) -> void:
 		nod.set_meta("hp_sasaran_maks", maks)
 		if baki < maks:
 			BAR_HP_STRUKTUR.papar(nod as Node2D, baki, maks)
+			KESAN_RETAK_STRUKTUR.papar(nod as Node2D, Vector2(24.0, 24.0),
+				1.0 - float(baki) / float(maks))
 	# State tambahan khusus objek (contoh: batch smelter yang belum siap).
 	if nod.has_method("pakai_data_simpanan_tambahan"):
 		nod.call("pakai_data_simpanan_tambahan", data)
