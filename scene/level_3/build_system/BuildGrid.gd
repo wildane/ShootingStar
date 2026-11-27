@@ -492,12 +492,14 @@ func padam(g: Vector2i) -> bool:
 			_status("Plan cancelled (+1 Iron)")
 		else:
 			_status("Plan cancelled")
+		_bunyi("rancang_ok", to_global(_tengah_sel(g)))
 		queue_redraw()
 		return true
 	# Tanda tile siap untuk nyahbina.
 	if _tile.has(g):
 		if _padam_tanda.has(g):
 			_status("Already marked for deconstruction")
+			_bunyi("rancang_gagal", to_global(_tengah_sel(g)))
 			return false
 		# Tanda nyahbina membatalkan rancangan baiki pada tile yang sama.
 		_baiki_tanda.erase(g)
@@ -505,9 +507,11 @@ func padam(g: Vector2i) -> bool:
 		_padam_tanda[g] = true
 		_padam_kemajuan.erase(g)
 		_status("Marked for deconstruction. Go near to deconstruct (1 Iron only if intact)")
+		_bunyi("rancang_ok", to_global(_tengah_sel(g)))
 		queue_redraw()
 		return true
 	_status("Nothing to erase here")
+	_bunyi("rancang_gagal", to_global(_tengah_sel(g)))
 	return false
 
 # ==========================================
@@ -532,18 +536,22 @@ func tanda_baiki(g: Vector2i) -> bool:
 			_status(NAMA_JENIS[int(_tile[g])] + " is already intact")
 		else:
 			_status("Nothing to repair here")
+		_bunyi("rancang_gagal", to_global(_tengah_sel(g)))
 		return false
 	if _baiki_kemajuan.has(g):
 		_status("Already repairing " + NAMA_JENIS[int(_tile[g])])
+		_bunyi("rancang_gagal", to_global(_tengah_sel(g)))
 		return false
 	if _baiki_tanda.has(g):
 		_baiki_tanda.erase(g)
 		_status("Repair plan cancelled")
+		_bunyi("rancang_ok", to_global(_tengah_sel(g)))
 		queue_redraw()
 		return true
 	_baiki_tanda[g] = true
 	_status("%s marked for repair (%d Iron). Go near to repair" % [
 		NAMA_JENIS[int(_tile[g])], kos_repair_tile(g)])
+	_bunyi("rancang_ok", to_global(_tengah_sel(g)))
 	queue_redraw()
 	return true
 

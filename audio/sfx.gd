@@ -831,19 +831,18 @@ func _jana_rancang_ok() -> AudioStreamWAV:
 	return _ke_stream(s, false)
 
 func _jana_rancang_gagal() -> AudioStreamWAV:
-	var tempoh: float = 0.20
+	var tempoh: float = 0.09
 	var n: int = int(KADAR * tempoh)
 	var s := PackedFloat32Array()
 	s.resize(n)
 	var fasa: float = 0.0
 	for i in n:
 		var t: float = float(i) / float(KADAR)
-		# Dua denyut rendah yang turun: isyarat "tak boleh letak di sini".
-		var f: float = 210.0 if t < 0.07 else 150.0
-		fasa += TAU * f / float(KADAR)
-		var denyut: float = exp(-fmod(t, 0.10) * 34.0)
-		var nada: float = (sin(fasa) + 0.25 * sin(fasa * 2.0)) * denyut
-		s[i] = nada * 0.55
-	_lulus_rendah(s, 2600.0)
+		# "Tet" pendek: satu denyut yang terus putus, isyarat "tak boleh".
+		fasa += TAU * 320.0 / float(KADAR)
+		var naik: float = 1.0 - exp(-t * 900.0)
+		var nada: float = (sin(fasa) + 0.30 * sin(fasa * 3.0)) * naik * exp(-t * 45.0)
+		s[i] = nada * 0.6
+	_lulus_rendah(s, 3200.0)
 	_normal(s, 0.85)
 	return _ke_stream(s, false)
