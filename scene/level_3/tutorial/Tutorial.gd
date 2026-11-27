@@ -19,7 +19,6 @@ signal tamat
 const LALUAN_STATUS: String = "user://tutorial.json"
 const LAYER_TUTORIAL: int = 100  # bawah SaveMenu (101) supaya menu menutupinya
 
-const ALPHA_GELAP: float = 0.42
 const FON_TAJUK: int = 7
 const FON_TEKS: int = 9
 const FON_SENARAI: int = 7
@@ -37,7 +36,6 @@ const WARNA_REDUP: Color = Color(0.55, 0.65, 0.75, 0.80)
 const WARNA_SIAP: Color = Color(0.45, 0.85, 0.55, 0.90)
 
 var _akar: Control
-var _gelap: ColorRect
 var _kad: PanelContainer
 var _label_teks: Label
 var _cincin: Control
@@ -268,14 +266,8 @@ func _bina_ui() -> void:
 	_akar.visible = false
 	add_child(_akar)
 
-	# Lapisan gelap TIDAK menyekat sentuhan: pemain masih kena boleh
-	# menerbangkan kapal semasa langkah pertama.
-	_gelap = ColorRect.new()
-	_gelap.color = Color(0.0, 0.02, 0.05, ALPHA_GELAP)
-	_gelap.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_gelap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_akar.add_child(_gelap)
-
+	# Tiada lapisan gelap: glow hijau pada pintu/perabot mesti kekal jelas
+	# kelihatan, jadi hanya kad teks dan cincin yang dilukis.
 	_bina_senarai_semak()
 	_bina_kad()
 
