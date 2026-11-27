@@ -21,6 +21,12 @@ const JENIS_PINTU: int = 2
 const JENIS_ERASE: int = 3
 const NAMA_JENIS: Array[String] = ["Floor", "Wall", "Door", "Erase"]
 
+# HP struktur: serangan husk/raider kena beberapa kali barulah tile pecah.
+# Dinding dan pintu 3 kali, lantai 1 kali.
+const HP_LANTAI: int = 1
+const HP_DINDING: int = 3
+const HP_PINTU: int = 3
+
 # Layer 2 (nilai 2) = wall, layer 4 (nilai 8) = environment.
 # Dinding/pintu mesti berada pada layer "wall" juga supaya semua sistem
 # penglihatan dan peluru yang mengimbas layer wall (dron, mob, lendir) betul-
@@ -64,6 +70,7 @@ const IKON_HUD_BATAL: Texture2D = preload("res://scene/level_3/build_system/icon
 static var mod_aktif: bool = false
 
 var _tile: Dictionary = {}        # Vector2i -> jenis (tile siap dibina)
+var _hp_tile: Dictionary = {}     # Vector2i -> HP semasa tile (serangan husk)
 var _badan_pintu: Dictionary = {} # Vector2i -> StaticBody2D
 var _pintu_dekat: Dictionary = {} # Vector2i -> bool
 var _zon_lantai: Dictionary = {}  # Vector2i -> Area2D (zon bina perabot)
@@ -472,6 +479,7 @@ func kosongkan() -> void:
 # Buang satu tile siap sahaja (tanpa sentuh teks status).
 func _buang_tile(g: Vector2i) -> void:
 	_tile.erase(g)
+	_hp_tile.erase(g)
 	_padam_tanda.erase(g)
 	_padam_kemajuan.erase(g)
 	var badan: StaticBody2D = _badan_pintu.get(g, null)
@@ -493,7 +501,7 @@ func _buang_tile(g: Vector2i) -> void:
 func dapatkan_data_save() -> Dictionary:
 	var senarai: Array = []
 	for g in _tile:
-		senarai.append({"x": g.x, "y": g.y, "jenis": int(_tile[g])})
+		senarai.append({"x": g.x, "y": g.y, "jenis": int(_tile[g]), "hp": hp_tile(g)})
 	var senarai_rancang: Array = []
 	for g in _rancang:
 		var entri: Dictionary = {"x": g.x, "y": g.y, "jenis": int(_rancang[g])}
@@ -521,6 +529,7 @@ func muat_data_save(data: Dictionary) -> void:
 			continue
 		var g := Vector2i(int(item.get("x", 0)), int(item.get("y", 0)))
 		_tile[g] = jenis
+		_hp_tile[g] = clampi(int(item.get("hp", hp_maks_tile(jenis))), 1, hp_maks_tile(jenis))
 		_bina_kolider(g, jenis)
 	# Pulihkan tanda nyahbina (hanya untuk tile siap yang wujud).
 	for item in data.get("padam_tanda", []):
@@ -581,8 +590,38 @@ func sasaran_terdekat(pos_dunia: Vector2, jarak_maks: float) -> Dictionary:
 		var jarak := pos_dunia.distance_to(pusat)
 		if jarak <= jarak_terbaik:
 			jarak_terbaik = jarak
-			hasil = {"jenis": "grid", "grid": g, "posisi": pusat, "tile": int(_tile[g])}
+			hasil = {"jenis": "grid", "grid": g, "posisi": pusat, "tile": int(_tile[g]), "hp": hp_tile(g)}
 	return hasil
+
+# HP penuh sesuatu jenis tile (lantai 1, dinding & pintu 3).
+func hp_maks_tile(jenis: int) -> int:
+	match jenis:
+		JENIS_DINDING:
+			return HP_DINDING
+		JENIS_PINTU:
+			return HP_PINTU
+	return HP_LANTAI
+
+# HP semasa tile (0 jika tile tiada).
+func hp_tile(g: Vector2i) -> int:
+	if not _tile.has(g):
+		return 0
+	return int(_hp_tile.get(g, hp_maks_tile(int(_tile[g]))))
+
+# Satu serangan husk/raider: kurangkan HP dahulu. Tile musnah hanya bila HP
+# habis. Pulang true bila tile pecah.
+func kena_serangan(g: Vector2i) -> bool:
+	if not _tile.has(g):
+		return false
+	var jenis := int(_tile[g])
+	var baki: int = hp_tile(g) - 1
+	if baki <= 0:
+		return hancurkan(g)
+	_hp_tile[g] = baki
+	queue_redraw()
+	print("BuildGrid: %s di %s kena serangan, HP tinggal %d/%d" % [
+		NAMA_JENIS[jenis], g, baki, hp_maks_tile(jenis)])
+	return false
 
 # Husk memusnahkan satu tile dengan satu serangan: visual, kolider dinding/pintu
 # dan zon lantai terus dibuang dari grid.
@@ -829,6 +868,7 @@ func _kemas_kini_pembinaan(delta: float, pos_pemain: Vector2) -> void:
 	_rancang.erase(sasaran)
 	_bina_kemajuan.erase(sasaran)
 	_tile[sasaran] = jenis
+	_hp_tile[sasaran] = hp_maks_tile(jenis)
 	_bina_kolider(sasaran, jenis)
 	_label_status.text = NAMA_JENIS[jenis] + " built"
 	_apung_besi(-KOS_BESI)

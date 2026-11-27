@@ -25,6 +25,8 @@ const KESAN_TELEPORT := preload("res://scene/level_3/build_system/doorway/KesanT
 @export var sela_cari_sasaran: float = 0.35
 ## Jeda antara dua tembakan lendir ke struktur pangkalan (saat).
 @export var jeda_serang: float = 2.0
+## HP perabot: berapa kali lendir kena sebelum perabot pecah.
+@export var hp_perabot: int = 2
 
 # Kumpulan nod yang boleh dimusnahkan: perabot, pintu, panel solar, inverter.
 const KUMPULAN_SASARAN: Array[String] = ["Furniture", "Pintu", "SolarModule", "PowerInverter"]
@@ -261,16 +263,26 @@ func _hancurkan_sasaran(sasaran: Dictionary, badan_kena: Node = null) -> void:
 	var grid := get_tree().get_first_node_in_group("BuildGrid")
 	if badan_kena is Node2D and grid != null and badan_kena.get_parent() == grid:
 		var bahagian: PackedStringArray = str(badan_kena.name).split("_")
-		if bahagian.size() == 3 and grid.has_method("hancurkan"):
-			grid.call("hancurkan", Vector2i(int(bahagian[1]), int(bahagian[2])))
+		if bahagian.size() == 3 and grid.has_method("kena_serangan"):
+			grid.call("kena_serangan", Vector2i(int(bahagian[1]), int(bahagian[2])))
 			return
 
 	var jenis: String = str(sasaran.get("jenis", ""))
 	if jenis == "grid":
-		if grid != null and grid.has_method("hancurkan"):
-			grid.call("hancurkan", sasaran.get("grid", Vector2i.ZERO))
+		if grid != null and grid.has_method("kena_serangan"):
+			grid.call("kena_serangan", sasaran.get("grid", Vector2i.ZERO))
 	else:
 		var nod: Variant = sasaran.get("nod")
 		if nod != null and is_instance_valid(nod):
-			print("Raider: musnahkan ", (nod as Node).name)
-			(nod as Node).queue_free()
+			_serang_nod(nod as Node)
+
+# Perabot ada HP (default 2): lendir pertama cuma cedera, lendir kedua baru pecah.
+func _serang_nod(nod: Node) -> void:
+	var baki: int = int(nod.get_meta("hp_serangan", hp_perabot)) - 1
+	if baki <= 0:
+		nod.set_meta("hp_serangan", 0)
+		print("Raider: musnahkan ", nod.name)
+		nod.queue_free()
+		return
+	nod.set_meta("hp_serangan", baki)
+	print("Raider: %s kena lendir, HP tinggal %d/%d" % [nod.name, baki, hp_perabot])

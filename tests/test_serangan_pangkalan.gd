@@ -85,6 +85,21 @@ func _jalan() -> void:
 	_semak(grid.sasaran_terdekat(Vector2(200, 200), 100.0).is_empty(),
 		"tiada tile lagi selepas kedua-duanya musnah")
 
+	# --- HP struktur: dinding/pintu 3, lantai 1, dan HP ikut tersimpan ---
+	grid.muat_data_save({"tiles": [
+		{"x": 10, "y": 10, "jenis": 2},  # pintu
+		{"x": 10, "y": 11, "jenis": 0},  # lantai
+	]})
+	_semak(grid.hp_tile(Vector2i(10, 10)) == 3, "pintu mula dengan HP 3")
+	_semak(grid.hp_tile(Vector2i(10, 11)) == 1, "lantai mula dengan HP 1")
+	_semak(not grid.kena_serangan(Vector2i(10, 10)), "pintu kena 1 serangan belum pecah")
+	_semak(grid.hp_tile(Vector2i(10, 10)) == 2, "pintu HP tinggal 2/3 selepas 1 serangan")
+	grid.muat_data_save(grid.dapatkan_data_save())
+	_semak(grid.hp_tile(Vector2i(10, 10)) == 2, "HP tile pulih dari simpanan")
+	_semak(not grid.kena_serangan(Vector2i(10, 10)), "pintu kena 2 serangan belum pecah")
+	_semak(grid.kena_serangan(Vector2i(10, 10)), "pintu pecah pada serangan ke-3")
+	_semak(grid.kena_serangan(Vector2i(10, 11)), "lantai pecah dengan 1 serangan")
+
 	# --- Raider tembak dinding dari jauh, tak perlu sentuh dulu ---
 	grid.muat_data_save({"tiles": [{"x": 18, "y": 12, "jenis": 1}]})  # dinding di (296,200)
 	var raider_tembak: Node2D = load("res://scene/Mob/HuskLurkerRaider/HuskLurkerRaider.tscn").instantiate()
@@ -93,12 +108,18 @@ func _jalan() -> void:
 	raider_tembak.global_position = Vector2(200, 200)
 	raider_tembak.set("mod_penyerang", true)
 	raider_tembak.set("posisi_pangkalan", Vector2(200, 200))
+	raider_tembak.jeda_serang = 0.25
 	await create_timer(0.3).timeout
 	_semak(not grid.sasaran_terdekat(Vector2(296, 200), 30.0).is_empty(),
 		"lendir masih terbang: dinding belum pecah")
-	await create_timer(1.2).timeout
+	_semak(grid.hp_tile(Vector2i(18, 12)) == 3, "dinding mula dengan HP 3")
+	await create_timer(0.7).timeout
+	var hp_dinding: int = grid.hp_tile(Vector2i(18, 12))
+	_semak(hp_dinding > 0 and hp_dinding < 3,
+		"dinding kena lendir tapi belum pecah (HP %d/3)" % hp_dinding)
+	await create_timer(1.3).timeout
 	_semak(grid.sasaran_terdekat(Vector2(296, 200), 30.0).is_empty(),
-		"lendir kena dinding dari jauh (~96 px, jarak_serang %.0f): baru dinding pecah" % float(raider_tembak.get("jarak_serang")))
+		"3 lendir kena dinding dari jauh (~96 px, jarak_serang %.0f): baru dinding pecah" % float(raider_tembak.get("jarak_serang")))
 	raider_tembak.queue_free()
 
 	# --- Raider: cari perabot dan musnahkan satu serangan ---
@@ -114,6 +135,7 @@ func _jalan() -> void:
 	raider.global_position = Vector2(234, 205)
 	raider.set("mod_penyerang", true)
 	raider.set("posisi_pangkalan", Vector2(200, 200))
+	raider.jeda_serang = 0.4
 
 	# Raider kedua jauh dari pangkalan: laju mesti laju jalan biasa, bukan chase.
 	var raider_jauh: Node2D = load("res://scene/Mob/HuskLurkerRaider/HuskLurkerRaider.tscn").instantiate()
@@ -129,9 +151,12 @@ func _jalan() -> void:
 	raider_jauh.queue_free()
 
 	# Tunggu teleport habis, kemudian beri masa AI bertindak.
-	await create_timer(0.6).timeout
+	await create_timer(0.35).timeout
 	_semak(not bool(raider.get("_dalam_teleport")), "raider keluar dari teleport")
-	_semak(not is_instance_valid(perabot), "raider musnahkan perabot dengan 1 serangan")
+	_semak(is_instance_valid(perabot) and int(perabot.get_meta("hp_serangan", 2)) == 1,
+		"perabot kena 1 lendir: HP tinggal 1/2, belum pecah")
+	await create_timer(0.7).timeout
+	_semak(not is_instance_valid(perabot), "perabot kena 2 lendir: baru pecah")
 
 	# --- Raider sampai pangkalan tanpa sasaran: jangan duduk diam, dekati player ---
 	var player := Node2D.new()
