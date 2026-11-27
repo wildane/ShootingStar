@@ -143,12 +143,11 @@ func _buat_label(ibu: Node, teks: String, saiz: int, warna: Color) -> Label:
 	return label
 
 func _kemas_kini() -> void:
-	var bunuh: int = 0
-	var baki: float = -1.0
-	var serangan := get_node_or_null("/root/SeranganBalas")
-	if serangan != null:
-		bunuh = int(serangan.get("bilangan_husk_dibunuh"))
-		baki = float(serangan.get("baki_masa"))
+	# Kiraan dibaca dari stor static: husk menulis ke situ, jadi menu berubah
+	# walaupun autoload SeranganBalas lambat dimuatkan.
+	var bunuh: int = StorThreat.bunuh
+	var baki: float = StorThreat.masa_serang
+	var ada_spawner: bool = get_node_or_null("/root/SeranganBalas") != null
 	var peratus: int = clampi(bunuh * THREAT_SETIAP_BUNUH, 0, 100)
 
 	if _label_threat:
@@ -158,7 +157,10 @@ func _kemas_kini() -> void:
 	if _label_raider:
 		_label_raider.text = "Est. raiders: %d" % bunuh
 	if _label_status:
-		if baki >= 0.0:
+		if not ada_spawner:
+			_label_status.text = "Spawner off"
+			_label_status.add_theme_color_override("font_color", Color(1.0, 0.45, 0.4, 1.0))
+		elif baki >= 0.0:
 			_label_status.text = "Wave incoming"
 			_label_status.add_theme_color_override("font_color", Color(1.0, 0.55, 0.45, 1.0))
 		elif bunuh > 0:

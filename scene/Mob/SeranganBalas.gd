@@ -15,8 +15,6 @@ extends Node
 signal serangan_dijadualkan(masa_serang: float)
 signal serangan_bermula(bilangan: int)
 
-# Masa menunggu sebelum serangan balas bermula (5 saat, sementara untuk ujian).
-const MASA_SERANGAN: float = 5.0
 # Jarak penyerang dianggap sudah tiba di pangkalan.
 const JEJARI_TIBA: float = 26.0
 
@@ -27,10 +25,8 @@ const JEJARI_TIBA: float = 26.0
 @export var jejari_kolider_spawn: float = 10.0
 @export var scene_penyerang: PackedScene = preload("res://scene/Mob/HuskLurker/HuskLurker.tscn")
 
-# Bilangan penyerang yang menunggu masa serangan.
-var bilangan_husk_dibunuh: int = 0
-# Baki masa sehingga serangan; < 0 bermaksud tiada serangan dijadualkan.
-var baki_masa: float = -1.0
+# Kiraan dan baki masa disimpan pada stor static (dikongsi menu threat),
+# supaya menu tetap menunjukkan angka terbaru walaupun nilai di sini hilang.
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -39,25 +35,24 @@ func _ready() -> void:
 # tidak kira di mana husk itu dibunuh. Posisi dikekalkan dalam
 # tandatangan untuk keserasian pemanggil.
 func daftar_bunuh_husk(_posisi: Vector2 = Vector2.ZERO) -> void:
-	bilangan_husk_dibunuh += 1
-
-	if baki_masa < 0.0:
-		baki_masa = MASA_SERANGAN
-		print("SeranganBalas: husk tumbang, serangan balas dalam %.0f saat" % MASA_SERANGAN)
-		serangan_dijadualkan.emit(MASA_SERANGAN)
+	# HuskLurker sudah menaikkan StorThreat.bunuh sebelum memanggil ini; di sini
+	# kita hanya pastikan pemasa bermula (kalau belum) dan beri notis.
+	if StorThreat.masa_serang < 0.0:
+		StorThreat.masa_serang = StorThreat.MASA_SERANGAN
+		print("SeranganBalas: husk tumbang, serangan balas dalam %.0f saat" % StorThreat.MASA_SERANGAN)
+		serangan_dijadualkan.emit(StorThreat.MASA_SERANGAN)
 
 
 func _process(delta: float) -> void:
-	if baki_masa >= 0.0:
-		baki_masa -= delta
-		if baki_masa <= 0.0:
+	if StorThreat.masa_serang >= 0.0:
+		StorThreat.masa_serang -= delta
+		if StorThreat.masa_serang <= 0.0:
 			_lancar_serangan()
 
 # Hantar semua penyerang terkumpul ke pangkalan.
 func _lancar_serangan() -> void:
-	baki_masa = -1.0
-	var jumlah: int = bilangan_husk_dibunuh
-	bilangan_husk_dibunuh = 0
+	var jumlah: int = StorThreat.bunuh
+	StorThreat.reset()
 
 	if jumlah <= 0:
 		return
@@ -72,8 +67,8 @@ func _lancar_serangan() -> void:
 	if bekas == null or scene_penyerang == null:
 		# Bukan dalam level permainan (contoh: menu) - cuba lagi sekejap lagi.
 		print("SeranganBalas: tiada scene/penyerang, cuba lagi (scene=", scene_utama, ")")
-		bilangan_husk_dibunuh = jumlah
-		baki_masa = 1.0
+		StorThreat.bunuh = jumlah
+		StorThreat.masa_serang = 1.0
 		return
 
 	# Untuk ujian: penyerang muncul dekat player, bukan di sekeliling pangkalan.

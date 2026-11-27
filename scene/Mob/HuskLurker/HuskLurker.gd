@@ -358,6 +358,10 @@ func _mati() -> void:
 	# penyerang untuk serangan balas ke pangkalan pemain. Penyerang yang
 	# dihantar oleh sistem tidak dikira semula.
 	if not mod_penyerang:
+		# Kiraan disimpan pada stor static, jadi menu threat tetap berubah
+		# walaupun autoload SeranganBalas belum siap.
+		StorThreat.daftar_bunuh()
+		print("HuskLurker: lapor bunuh, jumlah husk=", StorThreat.bunuh)
 		var serangan := get_node_or_null("/root/SeranganBalas")
 		if serangan != null and serangan.has_method("daftar_bunuh_husk"):
 			serangan.daftar_bunuh_husk(global_position)
