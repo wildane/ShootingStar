@@ -996,51 +996,57 @@ func _jana_retak() -> AudioStreamWAV:
 	return _ke_stream(s, false)
 
 
-# ---- Bunyi klik butang menu: suis ditekan ----------------------------
-# Sangat pendek (~0.07s) supaya menekan butang berturut-turut tidak bertindih.
-func _jana_klik() -> AudioStreamWAV:
-	var tempoh: float = 0.07
-	var n: int = int(KADAR * tempoh)
-	var s := PackedFloat32Array()
-	s.resize(n)
-	var fasa: float = 0.0
-	for i in n:
-		var t: float = float(i) / float(KADAR)
-		# Desir tajam yang reput pantas: rasa suis fizikal ditekan.
-		var klik: float = randf_range(-1.0, 1.0) * exp(-t * 900.0) * 0.55
-		# Nada rendah lembut sebagai badan bunyi.
-		fasa += TAU * lerpf(640.0, 440.0, clampf(t / tempoh, 0.0, 1.0)) / float(KADAR)
-		var nada: float = sin(fasa) * (1.0 - exp(-t * 700.0)) * exp(-t * 60.0) * 0.45
-		s[i] = klik + nada
-	_lulus_rendah(s, 6500.0)
-	_normal(s, 0.7)
-	return _ke_stream(s, false)
+# ---- Bunyi menu gaya game lama (8-bit) -------------------------------
+# Bunyi menu (klik, buka, tutup) sengaja dibuat seperti cip bunyi konsol lama:
+# gelombang segi empat, amplitud 4 tahap dan kadar sampel separuh.
 
-# ---- Bunyi buka panel menu: nada naik (lawan menu_tutup yang turun) ---
-# Dipakai bila halaman simpanan, hub menu atau dialog dibuka.
+func _segi(fasa: float) -> float:
+	return 1.0 if fposmod(fasa, TAU) < PI else -1.0
+
+# Kuantisasi amplitud + pegang sampel (kadar sampel separuh) untuk rasa 8-bit.
+func _retro(s: PackedFloat32Array, faktor: int = 2, tahap: float = 4.0) -> AudioStreamWAV:
+	for i in s.size():
+		s[i] = roundf(s[i] * tahap) / tahap
+	var keluar := PackedFloat32Array()
+	keluar.resize(ceili(float(s.size()) / float(faktor)))
+	for i in keluar.size():
+		keluar[i] = s[mini(i * faktor, s.size() - 1)]
+	return _ke_stream(keluar, false, int(KADAR / faktor))
+
+# ---- Bunyi klik butang menu: bip pendek gaya konsol lama ----------------
+# Tiga tahap nada turun (C6-G5-E5) dalam 0.06s, seperti menekan menu NES.
+func _jana_klik() -> AudioStreamWAV:
+	var tempoh: float = 0.06
+	var n: int = int(KADAR * tempoh)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var nota: Array = [1046.50, 783.99, 659.25]
+	var fasa: float = 0.0
+	for i in n:
+		var t: float = float(i) / float(KADAR)
+		var idx: int = mini(int(t / 0.02), nota.size() - 1)
+		fasa += TAU * float(nota[idx]) / float(KADAR)
+		s[i] = _segi(fasa) * (1.0 - t / tempoh) * 0.6
+	return _retro(s, 2, 4.0)
+
+# ---- Bunyi buka panel menu: arpeggio naik gaya game lama ---------------
+# C5-E5-G5-C6 bergerak, melawan menu_tutup yang turun.
 func _jana_menu_buka() -> AudioStreamWAV:
-	var tempoh: float = 0.24
+	var nota: Array = [523.25, 659.25, 783.99, 1046.50]
+	var tempoh_nota: float = 0.05
+	var tempoh: float = tempoh_nota * float(nota.size())
 	var n: int = int(KADAR * tempoh)
 	var s := PackedFloat32Array()
 	s.resize(n)
 	var fasa: float = 0.0
 	for i in n:
 		var t: float = float(i) / float(KADAR)
-		fasa += TAU * lerpf(420.0, 760.0, clampf(t / 0.16, 0.0, 1.0)) / float(KADAR)
-		var sampul: float = (1.0 - exp(-t * 110.0)) * exp(-t * 16.0)
-		s[i] += (sin(fasa) + 0.22 * sin(fasa * 2.0)) * sampul * 0.5
-	# Desir naik halus, macam panel meluncur masuk.
-	var desir := PackedFloat32Array()
-	desir.resize(n)
-	for i in n:
-		var td: float = float(i) / float(KADAR)
-		desir[i] = randf_range(-1.0, 1.0) * (1.0 - exp(-td * 90.0)) * exp(-td * 18.0)
-	_lulus_jalur(desir, 2200.0, 1.5)
-	for i in n:
-		s[i] += desir[i] * 0.45
-	_lulus_rendah(s, 6000.0)
-	_normal(s, 0.85)
-	return _ke_stream(s, false)
+		var idx: int = mini(int(t / tempoh_nota), nota.size() - 1)
+		fasa += TAU * float(nota[idx]) / float(KADAR)
+		# Ekor ditarik pendek supaya tidak terpotong terasa.
+		var ekor: float = clampf((tempoh - t) / 0.05, 0.0, 1.0)
+		s[i] = _segi(fasa) * ekor * 0.55
+	return _retro(s, 2, 4.0)
 
 # ---- Bunyi menu perabot: satu tekstur per jenis -----------------------
 # Pendek (~0.34s) supaya buka/tutup menu berulang kali tidak menggangu.
@@ -1122,30 +1128,20 @@ func _jana_menu(nama: String) -> AudioStreamWAV:
 	_normal(s, 0.85)
 	return _ke_stream(s, false)
 
-# ---- Bunyi tutup menu perabot: satu bunyi generik untuk semua menu -------
-# Nada turun lembut + desir pendek (~0.2s), sama untuk semua perabot supaya
-# bunyi "menu ditutup" konsisten.
+# ---- Bunyi tutup menu: arpeggio turun gaya game lama --------------------
+# G5-E5-C5-G4, satu bunyi generik untuk semua menu supaya konsisten.
 func _jana_menu_tutup() -> AudioStreamWAV:
-	var tempoh: float = 0.20
+	var nota: Array = [783.99, 659.25, 523.25, 392.00]
+	var tempoh_nota: float = 0.045
+	var tempoh: float = tempoh_nota * float(nota.size())
 	var n: int = int(KADAR * tempoh)
 	var s := PackedFloat32Array()
 	s.resize(n)
 	var fasa: float = 0.0
 	for i in n:
 		var t: float = float(i) / float(KADAR)
-		fasa += TAU * lerpf(640.0, 420.0, clampf(t / 0.16, 0.0, 1.0)) / float(KADAR)
-		var sampul: float = (1.0 - exp(-t * 90.0)) * exp(-t * 22.0)
-		s[i] += sin(fasa) * sampul * 0.55
-		s[i] += sin(fasa * 2.0) * sampul * 0.16
-	# Desir halus yang meluncur turun, macam menu ditutup.
-	var desir := PackedFloat32Array()
-	desir.resize(n)
-	for i in n:
-		var td: float = float(i) / float(KADAR)
-		desir[i] = randf_range(-1.0, 1.0) * (1.0 - exp(-td * 60.0)) * exp(-td * 26.0)
-	_lulus_jalur(desir, 1500.0, 1.4)
-	for i in n:
-		s[i] += desir[i] * 0.5
-	_lulus_rendah(s, 4800.0)
-	_normal(s, 0.85)
-	return _ke_stream(s, false)
+		var idx: int = mini(int(t / tempoh_nota), nota.size() - 1)
+		fasa += TAU * float(nota[idx]) / float(KADAR)
+		var ekor: float = clampf((tempoh - t) / 0.04, 0.0, 1.0)
+		s[i] = _segi(fasa) * ekor * 0.55
+	return _retro(s, 2, 4.0)
