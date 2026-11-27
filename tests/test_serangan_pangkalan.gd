@@ -197,6 +197,22 @@ func _jalan() -> void:
 		"raider pusing ke arah player, bukan menembak sambil duduk")
 	raider_diam.queue_free()
 
+	# --- Sasaran dalam jarak serang: raider berhenti dan tembak dari jauh ---
+	grid.muat_data_save({"tiles": [{"x": 18, "y": 12, "jenis": 1}]})  # dinding 96 px
+	var raider_dekat: Node2D = load("res://scene/Mob/HuskLurkerRaider/HuskLurkerRaider.tscn").instantiate()
+	raider_dekat.masa_teleport = 999.0
+	akar.add_child(raider_dekat)
+	raider_dekat.global_position = Vector2(200, 200)
+	raider_dekat.set("mod_penyerang", true)
+	raider_dekat.set("posisi_pangkalan", Vector2(200, 200))
+	raider_dekat.set("_cooldown_serang", 0.5)  # jangan tembak dulu, uji gerak sahaja
+	var laju_dekat: float = raider_dekat.call("_gerak_penyerang", 0.2, null, 999999.0, false)
+	_semak(is_equal_approx(laju_dekat, 0.0),
+		"sasaran dalam jarak serang: raider berhenti (%.1f), tembak dari jauh" % laju_dekat)
+	_semak(raider_dekat.global_position.is_equal_approx(Vector2(200, 200)),
+		"raider tak bergerak dekat sasaran dalam jarak tembak")
+	raider_dekat.queue_free()
+
 	# --- Player tak boleh tolak husk/raider: dua-dua pejal dan saling mengunci ---
 	var astro: Node2D = load("res://scene/astro/astro2.tscn").instantiate()
 	var husk: Node2D = load("res://scene/Mob/HuskLurker/HuskLurker.tscn").instantiate()

@@ -157,19 +157,26 @@ func _gerak_penyerang(delta: float, player: Node2D, jarak: float, nampak: bool) 
 	var jarak_sasaran: float = global_position.distance_to(posisi)
 	_hala_ke(posisi, delta)
 
-	if not _sasaran.is_empty() and jarak_sasaran <= jarak_serang and _cooldown_serang <= 0.0:
-		_serang_sasaran()
+	# Sasaran sudah dalam jarak tembak: berhenti di tempat dan tembak lendir
+	# dari jauh, tak perlu dekat lagi. Berdiri sambil menembak bukan "tersangkut".
+	if not _sasaran.is_empty() and jarak_sasaran <= jarak_serang:
+		if _cooldown_serang <= 0.0:
+			_serang_sasaran()
+		_pos_terakhir = global_position
+		_masa_tersangkut = 0.0
 		return 0.0
 
-	# Tiada sasaran dalam jarak serang: terus dekati player (sambil menembak),
-	# jangan berdiri diam di satu tempat.
-	if _sasaran.is_empty() and jarak_sasaran <= jarak_serang:
-		if is_instance_valid(player):
-			_hala_ke(player.global_position, delta)
-			return wander_speed
+	# Tiada sasaran struktur tetapi player dalam jarak tembak: tembak saja
+	# dari tempat sekarang.
+	if _sasaran.is_empty() and is_instance_valid(player) \
+		and global_position.distance_to(player.global_position) <= jarak_tembak:
+		_hala_ke(player.global_position, delta)
 		return 0.0
 
-	# Laju macam husk biasa (wander_speed), bukan chase_speed.
+	# Tak ada apa nak dimusnahkan: dekati player (sambil menembak dia),
+	# jangan duduk diam. Laju macam husk biasa (wander_speed), bukan chase_speed.
+	if _sasaran.is_empty() and is_instance_valid(player):
+		_hala_ke(player.global_position, delta)
 	return wander_speed
 
 # Tile grid (dinding/lantai/pintu) paling hampir dengan raider dalam jejari tertentu.
