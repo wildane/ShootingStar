@@ -15,9 +15,26 @@ const KESAN_TELEPORT := preload("res://scene/level_3/build_system/doorway/KesanT
 ## Tempoh animasi teleport sebelum badan benar-benar muncul.
 @export var masa_teleport: float = 0.4
 
+# --- Serangan pangkalan ---
+## Jarak untuk terus menghancurkan sasaran dengan satu serangan.
+@export var jarak_serang: float = 20.0
+## Jarak carian sasaran di sekeliling raider.
+@export var jarak_cari_sasaran: float = 520.0
+## Sela semakan semula sasaran (saat).
+@export var sela_cari_sasaran: float = 0.35
+## Jeda selepas satu sasaran hancur sebelum serang yang seterusnya.
+@export var jeda_serang: float = 0.45
+
+# Kumpulan nod yang boleh dimusnahkan: perabot, pintu, panel solar, inverter.
+const KUMPULAN_SASARAN: Array[String] = ["Furniture", "Pintu", "SolarModule", "PowerInverter"]
+
 var _dalam_teleport: bool = false
 var _layer_asal: int = 128
 var _mask_asal: int = 11
+
+var _sasaran: Dictionary = {}
+var _timer_cari: float = 0.0
+var _cooldown_serang: float = 0.0
 
 func _ready() -> void:
 	super._ready()
@@ -82,3 +99,101 @@ func _keluar_dari_teleport() -> void:
 		sprite.scale = skala_asas
 	set_physics_process(true)
 	print("Raider: muncul dan mula bergerak")
+
+# ==========================================================
+# SERANGAN PANGKALAN
+# Raider menuju pangkalan, kemudian memusnahkan dinding/lantai/pintu dan
+# perabot yang paling hampir. Satu serangan = satu sasaran hancur.
+# ==========================================================
+func _gerak_penyerang(delta: float, player: Node2D, jarak: float, nampak: bool) -> float:
+	if _cooldown_serang > 0.0:
+		_cooldown_serang -= delta
+
+	# Masih tembak player kalau dia nampak, macam husk biasa.
+	if is_instance_valid(player) and nampak and jarak <= jarak_tembak:
+		_tembak_lendir(player)
+
+	_timer_cari -= delta
+	if _timer_cari <= 0.0:
+		_timer_cari = sela_cari_sasaran
+		_sasaran = _cari_sasaran()
+	elif not _sasaran_sah():
+		_sasaran = {}
+
+	# Tiada apa-apa untuk dimusnahkan di sekitar: jalan ke pangkalan macam biasa.
+	if _sasaran.is_empty():
+		return super._gerak_penyerang(delta, player, jarak, nampak)
+
+	var posisi: Vector2 = _sasaran.get("posisi", global_position)
+	var jarak_sasaran: float = global_position.distance_to(posisi)
+	_hala_ke(posisi, delta)
+
+	if jarak_sasaran <= jarak_serang and _cooldown_serang <= 0.0:
+		_serang_sasaran()
+		return 0.0
+	return chase_speed
+
+# Pusing badan ke arah sasaran (logik sama seperti _gerak_penyerang asal).
+func _hala_ke(posisi: Vector2, delta: float) -> void:
+	sedang_kejar = true
+	var ke: Vector2 = posisi - global_position
+	if ke.length() <= 0.5:
+		return
+	var arah_sasaran: Vector2 = ke.normalized()
+	# Lerp antara arah bertentangan tepat (180 darjah) tidak berpusing.
+	if arah.dot(arah_sasaran) < -0.95:
+		arah = arah_sasaran
+	else:
+		arah = arah.lerp(arah_sasaran, 6.0 * delta).normalized()
+
+# Sasaran terdekat: tile grid (lantai/dinding/pintu) atau perabot berhampiran.
+func _cari_sasaran() -> Dictionary:
+	var terbaik: Dictionary = {}
+	var jarak_terbaik: float = jarak_cari_sasaran
+
+	var grid := get_tree().get_first_node_in_group("BuildGrid")
+	if grid != null and grid.has_method("sasaran_terdekat"):
+		var calon: Dictionary = grid.call("sasaran_terdekat", global_position, jarak_terbaik)
+		if not calon.is_empty():
+			terbaik = calon
+			jarak_terbaik = global_position.distance_to(calon.get("posisi", global_position))
+
+	for kumpulan in KUMPULAN_SASARAN:
+		for calon in get_tree().get_nodes_in_group(kumpulan):
+			var nod := calon as Node2D
+			if nod == null or not is_instance_valid(nod) or nod == self:
+				continue
+			var jarak: float = global_position.distance_to(nod.global_position)
+			if jarak < jarak_terbaik:
+				jarak_terbaik = jarak
+				terbaik = {"jenis": "nod", "nod": nod, "posisi": nod.global_position}
+	return terbaik
+
+func _sasaran_sah() -> bool:
+	if _sasaran.is_empty():
+		return false
+	if str(_sasaran.get("jenis", "")) == "grid":
+		var grid := get_tree().get_first_node_in_group("BuildGrid")
+		return grid != null and is_instance_valid(grid)
+	var nod := _sasaran.get("nod") as Node
+	return nod != null and is_instance_valid(nod)
+
+# Satu serangan: sasaran terus hancur.
+func _serang_sasaran() -> void:
+	if _sasaran.is_empty():
+		return
+	_cooldown_serang = jeda_serang
+	var jenis: String = str(_sasaran.get("jenis", ""))
+
+	if jenis == "grid":
+		var grid := get_tree().get_first_node_in_group("BuildGrid")
+		if grid != null and grid.has_method("hancurkan"):
+			grid.call("hancurkan", _sasaran.get("grid", Vector2i.ZERO))
+	else:
+		var nod := _sasaran.get("nod") as Node
+		if nod != null and is_instance_valid(nod):
+			print("Raider: musnahkan ", nod.name)
+			nod.queue_free()
+
+	_sasaran = {}
+	_timer_cari = 0.0

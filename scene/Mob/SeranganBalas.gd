@@ -22,8 +22,10 @@ const JEJARI_TIBA: float = 26.0
 
 # Pusat pangkalan pemain (kawasan bina di atas asteroid).
 @export var posisi_pangkalan: Vector2 = Vector2(141.0, 228.0)
-# Penyerang muncul dalam bulatan mengelilingi player (untuk ujian).
-@export var jejari_spawn: float = 90.0
+# Penyerang muncul di keliling batu asteroid yang pemain guna sebagai pangkalan:
+# sedikit di luar tepi batu, jadi mereka datang dari semua arah.
+@export var tambahan_jarak_spawn: float = 24.0
+@export var jarak_min_spawn: float = 8.0
 @export var jejari_kolider_spawn: float = 10.0
 @export # Penyerang gelombang guna HuskLurker Raider (hijau, lendir kuning, tiada drop).
 var scene_penyerang: PackedScene = preload("res://scene/Mob/HuskLurkerRaider/HuskLurkerRaider.tscn")
@@ -88,28 +90,58 @@ func _lancar_serangan() -> void:
 		StorThreat.masa_serang = 1.0
 		return
 
-	# Untuk ujian: penyerang muncul dekat player, bukan di sekeliling pangkalan.
-	var player: Node2D = _cari_player()
-	var pusat: Vector2 = posisi_pangkalan
-	if is_instance_valid(player):
-		pusat = player.global_position
+	# Penyerang muncul di keliling asteroid yang ada pangkalan pemain, bukan
+	# dekat player. Dari situ mereka menyerang dinding/lantai/pintu/perabot.
+	var kawasan: Dictionary = _kawasan_pangkalan()
+	var pusat_asteroid: Vector2 = kawasan.get("pusat", posisi_pangkalan)
+	var jejari_asteroid: float = float(kawasan.get("jejari", 120.0))
+	var pusat_bina: Vector2 = kawasan.get("pusat_bina", pusat_asteroid)
 
 	for i in range(jumlah):
 		var penyerang := scene_penyerang.instantiate() as Node2D
 		if penyerang == null:
 			continue
-		# Mod penyerang: abaikan sarang/zon dungeon, tuju tempat player berada.
+		# Mod penyerang: abaikan sarang/zon dungeon, tuju pangkalan pemain.
 		penyerang.set("mod_penyerang", true)
-		penyerang.set("posisi_pangkalan", pusat)
+		penyerang.set("posisi_pangkalan", pusat_bina)
 		bekas.add_child(penyerang)
-		penyerang.global_position = _posisi_spawn(i, jumlah, pusat)
-		print("SeranganBalas: penyerang muncul di ", penyerang.global_position, " (player di ", pusat, ")")
+		penyerang.global_position = _posisi_spawn(i, jumlah, pusat_asteroid, jejari_asteroid)
+		print("SeranganBalas: penyerang muncul di ", penyerang.global_position, " (pangkal ", pusat_bina, ")")
 
-	print("SeranganBalas: %d penyerang husk muncul dekat player di %s (threat %d%%)" % [jumlah, pusat, StorThreat.peratus()])
+	print("SeranganBalas: %d penyerang husk muncul di keliling asteroid %s (threat %d%%)" % [jumlah, pusat_asteroid, StorThreat.peratus()])
 	# Gelombang sudah dilancarkan: pemasa berhenti, threat dikekalkan untuk
 	# gelombang seterusnya yang bermula pada bunuhan husk berikutnya.
 	StorThreat.selesai_gelombang()
 	serangan_bermula.emit(jumlah)
+
+# Pusat dan jejari asteroid pangkalan, serta pusat binaan pemain di atasnya.
+# Asteroid dipilih yang paling hampir dengan pusat binaan (atau posisi pangkalan
+# lalai kalau pemain belum membina apa-apa).
+func _kawasan_pangkalan() -> Dictionary:
+	var pusat_bina: Vector2 = posisi_pangkalan
+	var grid := get_tree().get_first_node_in_group("BuildGrid")
+	if grid != null and grid.has_method("pusat_binaan"):
+		var pusat: Vector2 = grid.call("pusat_binaan")
+		if pusat != Vector2.ZERO:
+			pusat_bina = pusat
+
+	var asteroid: Node2D = null
+	var jarak_terbaik := INF
+	for calon in get_tree().get_nodes_in_group("Asteroid"):
+		var nod := calon as Node2D
+		if nod == null or not is_instance_valid(nod):
+			continue
+		var jarak: float = nod.global_position.distance_to(pusat_bina)
+		if jarak < jarak_terbaik:
+			jarak_terbaik = jarak
+			asteroid = nod
+
+	if asteroid == null:
+		return {"pusat": pusat_bina, "jejari": 120.0, "pusat_bina": pusat_bina}
+	var jejari: float = float(asteroid.get("jejari"))
+	if jejari <= 0.0:
+		jejari = 120.0
+	return {"pusat": asteroid.global_position, "jejari": jejari, "pusat_bina": pusat_bina}
 
 # Player pemain (group "Player" atau nod SpaceShip dalam scene semasa).
 func _cari_player() -> Node2D:
@@ -120,19 +152,20 @@ func _cari_player() -> Node2D:
 			player = scene_utama.find_child("SpaceShip", true, false) as Node2D
 	return player
 
-# Titik spawn dalam bulatan sekeliling pusat (player). Jika titik terkena dinding,
-# cuba sudut lain supaya penyerang tidak tersangkut dalam batu.
-func _posisi_spawn(indeks: int, jumlah: int, pusat: Vector2) -> Vector2:
+# Titik spawn rawak di keliling asteroid (sedikit di luar tepi batu) supaya
+# penyerang datang dari semua arah. Jika titik terkena dinding, cuba sudut lain
+# supaya penyerang tidak tersangkut dalam batu.
+func _posisi_spawn(indeks: int, jumlah: int, pusat: Vector2, jejari: float) -> Vector2:
 	var jumlah_selamat: int = maxi(1, jumlah)
-	for _cubaan in range(8):
-		var sudut: float = TAU * float(indeks) / float(jumlah_selamat) + randf_range(-0.25, 0.25)
-		var jarak: float = jejari_spawn + randf_range(-16.0, 16.0)
+	for _cubaan in range(10):
+		var sudut: float = TAU * float(indeks) / float(jumlah_selamat) + randf_range(-0.35, 0.35)
+		var jarak: float = jejari + randf_range(jarak_min_spawn, maxf(jarak_min_spawn, tambahan_jarak_spawn))
 		var calon: Vector2 = pusat + Vector2.RIGHT.rotated(sudut) * jarak
 		if not _dalam_dinding(calon):
 			return calon
 
 	var sudut_asas: float = TAU * float(indeks) / float(jumlah_selamat)
-	return pusat + Vector2.RIGHT.rotated(sudut_asas) * jejari_spawn
+	return pusat + Vector2.RIGHT.rotated(sudut_asas) * (jejari + jarak_min_spawn)
 
 func _dalam_dinding(titik: Vector2) -> bool:
 	var dunia := get_viewport().find_world_2d() if get_viewport() != null else null

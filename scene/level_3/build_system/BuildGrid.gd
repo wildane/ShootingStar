@@ -559,6 +559,43 @@ func ada_struktur_di_kawasan(rect_dunia: Rect2) -> bool:
 				return true
 	return false
 
+# ==========================================
+# SASARAN SERANGAN HUSK (PANGKALAN)
+# ==========================================
+# Titik tengah semua tile yang dibina. Vector2.ZERO jika belum ada binaan.
+func pusat_binaan() -> Vector2:
+	if _tile.is_empty():
+		return Vector2.ZERO
+	var jumlah := Vector2.ZERO
+	for g in _tile:
+		jumlah += to_global(_tengah_sel(g))
+	return jumlah / float(_tile.size())
+
+# Tile siap terdekat dari posisi dunia, dalam jarak_maks.
+# {} jika tiada tile dalam jarak itu.
+func sasaran_terdekat(pos_dunia: Vector2, jarak_maks: float) -> Dictionary:
+	var hasil: Dictionary = {}
+	var jarak_terbaik: float = jarak_maks
+	for g in _tile:
+		var pusat := to_global(_tengah_sel(g))
+		var jarak := pos_dunia.distance_to(pusat)
+		if jarak <= jarak_terbaik:
+			jarak_terbaik = jarak
+			hasil = {"jenis": "grid", "grid": g, "posisi": pusat, "tile": int(_tile[g])}
+	return hasil
+
+# Husk memusnahkan satu tile dengan satu serangan: visual, kolider dinding/pintu
+# dan zon lantai terus dibuang dari grid.
+func hancurkan(g: Vector2i) -> bool:
+	if not _tile.has(g):
+		return false
+	var jenis := int(_tile[g])
+	_buang_tile(g)
+	PowerGrid.tanda_kotor_semua("grid_hancur")
+	queue_redraw()
+	print("BuildGrid: %s di %s musnah diserang husk" % [NAMA_JENIS[jenis], g])
+	return true
+
 func boleh_bina(g: Vector2i) -> bool:
 	if _tile.has(g) or _rancang.has(g):
 		return false
