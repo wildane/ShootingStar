@@ -14,6 +14,9 @@ const TINGGI: float = 4.0
 const JARAK_ATAS: float = 15.0
 const KUNCI_META: String = "bar_hp_struktur"
 
+const SAIZ_TEKS: int = 6
+const WARNA_TEKS: Color = Color(1.0, 1.0, 1.0, 0.95)
+
 const WARNA_LATAR: Color = Color(0.04, 0.05, 0.08, 0.85)
 const WARNA_PENUH: Color = Color(0.45, 1.0, 0.55)
 const WARNA_SEDERHANA: Color = Color(1.0, 0.85, 0.35)
@@ -69,6 +72,10 @@ func _process(_delta: float) -> void:
 	if _sasaran != null and is_instance_valid(_sasaran):
 		global_position = _sasaran.global_position
 
+# Teks baki HP, contoh "1/2" (dipaparkan di tengah bar).
+func teks_hp() -> String:
+	return "%d/%d" % [baki, maksimum]
+
 func _draw() -> void:
 	var nisbah: float = clampf(float(baki) / float(maksimum), 0.0, 1.0)
 	var y: float = -JARAK_ATAS - TINGGI
@@ -81,3 +88,17 @@ func _draw() -> void:
 		warna = WARNA_SEDERHANA
 	if nisbah > 0.0:
 		draw_rect(Rect2(-LEBAR * 0.5, y, LEBAR * nisbah, TINGGI), warna)
+
+	# Baki HP kecil di tengah bar (saiz bar tak berubah).
+	var font: Font = ThemeDB.fallback_font
+	if font == null:
+		return
+	var teks := teks_hp()
+	var saiz: Vector2 = font.get_string_size(teks, HORIZONTAL_ALIGNMENT_LEFT, -1, SAIZ_TEKS)
+	var asas_y: float = y + TINGGI * 0.5 \
+		+ (font.get_ascent(SAIZ_TEKS) - font.get_descent(SAIZ_TEKS)) * 0.5
+	var pos_teks := Vector2(-saiz.x * 0.5, asas_y)
+	# Garis luar gelap supaya angka masih jelas bila bar hijau terang.
+	draw_string_outline(font, pos_teks, teks, HORIZONTAL_ALIGNMENT_LEFT, -1, SAIZ_TEKS, 2,
+		Color(0.03, 0.04, 0.06, 0.9))
+	draw_string(font, pos_teks, teks, HORIZONTAL_ALIGNMENT_LEFT, -1, SAIZ_TEKS, WARNA_TEKS)

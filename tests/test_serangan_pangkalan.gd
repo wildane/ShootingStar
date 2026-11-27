@@ -98,6 +98,8 @@ func _jalan() -> void:
 	var bar_pintu: Variant = badan_pintu.get_meta("bar_hp_struktur", null) if badan_pintu != null else null
 	_semak(bar_pintu != null and int(bar_pintu.get("baki")) == 2 and int(bar_pintu.get("maksimum")) == 3,
 		"bar HP muncul di atas pintu yang kena serangan (2/3)")
+	_semak(bar_pintu != null and str(bar_pintu.call("teks_hp")) == "2/3",
+		"bar HP tulis baki HP di tengah bar (2/3)")
 	if bar_pintu != null:
 		bar_pintu.call("_process", 5.0)
 		_semak(float(bar_pintu.modulate.a) >= 0.99, "bar HP kekal selepas beberapa saat (tak pudar)")
@@ -172,6 +174,8 @@ func _jalan() -> void:
 	var bar_perabot: Variant = perabot.get_meta("bar_hp_struktur", null)
 	_semak(bar_perabot != null and int(bar_perabot.get("baki")) == 1 and int(bar_perabot.get("maksimum")) == 2,
 		"bar HP muncul di atas perabot yang kena lendir (1/2)")
+	_semak(bar_perabot != null and str(bar_perabot.call("teks_hp")) == "1/2",
+		"bar HP perabot tulis 1/2")
 	await create_timer(0.7).timeout
 	_semak(not is_instance_valid(perabot), "perabot kena 2 lendir: baru pecah")
 
