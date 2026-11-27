@@ -32,6 +32,21 @@ func _ready() -> void:
 	# Tetapkan tahap zoom awal kamera dari Inspector
 	zoom = Vector2(zoom_awal, zoom_awal)
 
+# Sentuhan boleh "tersangkut" bila SceneTree dipause (menu) atau tetingkap
+# hilang fokus: event lepas jari tidak sampai ke kamera, jadi index lama kekal
+# dalam `touches`. Jari baharu kemudian disangka jari kedua (pinch palsu) dan
+# bila index hantu bertambah, pinch sebenar pula tersekat. Kosongkan state.
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_PAUSED, NOTIFICATION_UNPAUSED, \
+		NOTIFICATION_WM_WINDOW_FOCUS_OUT, NOTIFICATION_VISIBILITY_CHANGED:
+			_kosongkan_sentuhan()
+
+func _kosongkan_sentuhan() -> void:
+	touches.clear()
+	pinch_mode = false
+	last_pinch_distance = 0.0
+
 func _input(event: InputEvent) -> void:
 	# Pastikan hanya player tempatan sahaja yang boleh kawal kamera zoom
 	if not parent_astro or not parent_astro.get_meta("local", false):
@@ -39,7 +54,9 @@ func _input(event: InputEvent) -> void:
 
 	# DETECT SENTUHAN JARI
 	if event is InputEventScreenTouch:
-		if event.pressed:
+		# Sentuhan yang dibatalkan sistem (touchcancel pelayar) mesti dibuang,
+		# kalau tidak index itu kekal sebagai "jari" selama-lamanya.
+		if event.pressed and not event.canceled:
 			touches[event.index] = event.position
 		else:
 			touches.erase(event.index)
@@ -49,6 +66,9 @@ func _input(event: InputEvent) -> void:
 
 	# DETECT HERETAN JARI (PINCH)
 	if event is InputEventScreenDrag:
+		# Abaikan drag untuk jari yang tiada rekod tekan (jari hantu).
+		if not touches.has(event.index):
+			return
 		touches[event.index] = event.position
 
 		# Jika ada 2 jari serentak pada skrin, aktifkan Pinch Zoom
