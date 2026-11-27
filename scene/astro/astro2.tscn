@@ -17,7 +17,7 @@ height = 14.0
 
 [node name="Astro2" type="CharacterBody2D" unique_id=1307357202 groups=["Player"]]
 y_sort_enabled = true
-collision_mask = 10
+collision_mask = 138
 script = ExtResource("1_qs8qy")
 
 [node name="StateMachine" type="Node2D" parent="." unique_id=1096450177 node_paths=PackedStringArray("state_awal")]

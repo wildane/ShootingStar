@@ -155,5 +155,18 @@ func _jalan() -> void:
 		"raider pusing ke arah player, bukan menembak sambil duduk")
 	raider_diam.queue_free()
 
+	# --- Player tak boleh tolak husk/raider: dua-dua pejal dan saling mengunci ---
+	var astro: Node2D = load("res://scene/astro/astro2.tscn").instantiate()
+	var husk: Node2D = load("res://scene/Mob/HuskLurker/HuskLurker.tscn").instantiate()
+	var raider_uji: Node2D = load("res://scene/Mob/HuskLurkerRaider/HuskLurkerRaider.tscn").instantiate()
+	for musuh in [husk, raider_uji]:
+		_semak((astro.collision_mask & musuh.collision_layer) != 0,
+			"player pejal dengan %s: tak boleh tolak (mask player %d)" % [musuh.name, astro.collision_mask])
+		_semak((musuh.collision_mask & astro.collision_layer) != 0,
+			"%s pejal dengan player" % musuh.name)
+	astro.free()
+	husk.free()
+	raider_uji.free()
+
 	print("LULUS=", lulus)
 	quit()
