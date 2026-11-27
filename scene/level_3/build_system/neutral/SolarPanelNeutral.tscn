@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" uid="uid://ccrv5i42dn76h" path="res://scene/level_3/build_system/SolarModule/Image_43.png" id="1_teks"]
+
+[node name="SolarPanelNeutral" type="Node2D" groups=["PerabotNeutral"]]
+y_sort_enabled = true
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.05, 0.05)
+texture = ExtResource("1_teks")

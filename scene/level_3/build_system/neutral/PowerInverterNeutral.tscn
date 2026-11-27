@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" uid="uid://b63du44vwlasy" path="res://scene/level_3/build_system/PowerInverter/Image_127.png" id="1_teks"]
+
+[node name="PowerInverterNeutral" type="Node2D" groups=["PerabotNeutral"]]
+y_sort_enabled = true
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.05, 0.05)
+texture = ExtResource("1_teks")

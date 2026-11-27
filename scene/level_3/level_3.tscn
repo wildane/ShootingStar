@@ -40,6 +40,12 @@
 [ext_resource type="Script" path="res://scene/ui/CheatMode.gd" id="42_cheat"]
 [ext_resource type="PackedScene" path="res://scene/asteroid/Asteroid.tscn" id="60_ast"]
 [ext_resource type="Script" path="res://scene/level_3/build_system/BuildGrid.gd" id="61_bgrid"]
+[ext_resource type="PackedScene" path="res://scene/level_3/build_system/neutral/PowerInverterNeutral.tscn" id="70_neut_inv"]
+[ext_resource type="PackedScene" path="res://scene/level_3/build_system/neutral/SolarPanelNeutral.tscn" id="71_neut_sun"]
+[ext_resource type="PackedScene" path="res://scene/level_3/build_system/smelter/Smelter_Actual.tscn" id="72_neut_smel"]
+[ext_resource type="Script" path="res://scene/level_3/build_system/neutral/smelter_neutral.gd" id="73_neut_smel_script"]
+[ext_resource type="PackedScene" path="res://scene/level_3/build_system/ChargingStation/ChargingStationActual.tscn" id="74_neut_cas"]
+[ext_resource type="Script" path="res://scene/level_3/build_system/neutral/charging_station_neutral.gd" id="75_neut_cas_script"]
 
 [ext_resource type="Script" path="res://scene/ui/ButangThreat.gd" id="43_butang"]
 [ext_resource type="Texture2D" path="res://scene/ui/threat_icon.png" id="44_threatikon"]
@@ -107,9 +113,6 @@
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_2ojfx"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ad8n0"]
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_q54y3"]
-size = Vector2(94, 75)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_3ucjb"]
 size = Vector2(19, 200)
@@ -406,16 +409,6 @@ metadata/_edit_lock_ = true
 scale = Vector2(0.02, 0.02)
 texture = ExtResource("21_b70sg")
 
-[node name="ZonBuildable" type="Area2D" parent="." unique_id=1693517243 groups=["BuildableZone"]]
-collision_layer = 4
-collision_mask = 7
-metadata/_edit_lock_ = true
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="ZonBuildable" unique_id=2116187895]
-position = Vector2(141, 228)
-shape = SubResource("RectangleShape2D_q54y3")
-metadata/_edit_lock_ = true
-
 [node name="Asteroid" parent="." instance=ExtResource("60_ast")]
 position = Vector2(-260, 380)
 jejari = 150.0
@@ -515,6 +508,26 @@ metadata/_edit_lock_ = true
 [node name="Doorway" parent="Y_Sort_Container" unique_id=433430658 instance=ExtResource("20_nw5os")]
 position = Vector2(141, 186)
 metadata/_edit_lock_ = true
+
+[node name="ChargingStationNeutral" parent="Y_Sort_Container" instance=ExtResource("74_neut_cas")]
+position = Vector2(106, 212)
+script = ExtResource("75_neut_cas_script")
+
+[node name="SmelterNeutral" parent="Y_Sort_Container" instance=ExtResource("72_neut_smel")]
+position = Vector2(178, 205)
+script = ExtResource("73_neut_smel_script")
+
+[node name="PowerInverterNeutral" parent="Y_Sort_Container" instance=ExtResource("70_neut_inv")]
+position = Vector2(178, 242)
+
+[node name="SolarPanelNeutral1" parent="Y_Sort_Container" instance=ExtResource("71_neut_sun")]
+position = Vector2(194, 336)
+
+[node name="SolarPanelNeutral2" parent="Y_Sort_Container" instance=ExtResource("71_neut_sun")]
+position = Vector2(216, 336)
+
+[node name="SolarPanelNeutral3" parent="Y_Sort_Container" instance=ExtResource("71_neut_sun")]
+position = Vector2(238, 336)
 
 [node name="MeteoriteSpawnerContainer" type="Node2D" parent="." unique_id=723250565]
 y_sort_enabled = true
