@@ -1,19 +1,23 @@
 extends Node
 
-## Butang "threat" (logo mata merah) dalam group ikon kiri, di bawah ikon
-## rumah. Bila ditekan, menu gaya perabot terbuka: ikon husk di kiri, info
-## threat di tengah (peratus, bilangan husk dibunuh, anggaran penyerang) dan
-## pemasa serangan balas di kanan.
+## Butang "threat" (logo mata merah) dalam group ikon menegak kiri (Build,
+## Weapon, Home ...). Bila ditekan, menu gaya perabot terbuka: ikon husk di
+## kiri, info threat di tengah (peratus, bilangan husk dibunuh, anggaran
+## penyerang) dan pemasa serangan balas di kanan.
 
 const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
-const IKON_THREAT: Texture2D = preload("res://scene/ui/threat_icon.png")
-const IKON_HUSK: Texture2D = preload("res://scene/Mob/HuskLurker/Image_husk.png")
-# VBox yang menempatkan ikon Build / Inventory / Weapon / Home.
+# Ikon dimuat ketika runtime (bukan preload) supaya skrip ini tidak gagal
+# dikompil jika PNG belum diimport pada peranti lain.
+const LALUAN_IKON_THREAT: String = "res://scene/ui/threat_icon.png"
+const LALUAN_IKON_HUSK: String = "res://scene/Mob/HuskLurker/Image_husk.png"
 const LALUAN_BEKAS: String = "CanvasLayer/MarginContainer/VBoxContainer"
+# Nama butang HUD lain dalam group ikon, untuk mengesan VBox yang betul.
+const TANDA_BEKAS: Array[String] = ["WeaponAttachment", "InventoryButton", "BuildSystem"]
 const SAIZ_BUTANG: float = 32.0
 const LEBAR_MENU: float = 248.0
 # Setiap husk yang dibunuh menaikkan threat sebanyak ini (10 husk = 100%).
 const THREAT_SETIAP_BUNUH: int = 10
+const SELA_CARI_BEKAS: float = 0.25
 const SELA_UI: float = 0.1
 
 var serangan: Node = null
@@ -27,9 +31,17 @@ var _label_bunuh: Label
 var _label_raider: Label
 var _label_timer: Label
 var _tick: float = 0.0
+var _cari_tick: float = 0.0
+var _ikon_threat: Texture2D = null
+var _ikon_husk: Texture2D = null
 
 func pasang(sumber: Node) -> void:
 	serangan = sumber
+	# Sentiasa berjalan supaya butang tetap dicari walaupun pokok scene dipause.
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	_ikon_threat = _muat_ikon(LALUAN_IKON_THREAT)
+	_ikon_husk = _muat_ikon(LALUAN_IKON_HUSK)
+
 	if _kanvas == null or not is_instance_valid(_kanvas):
 		_kanvas = CanvasLayer.new()
 		_kanvas.name = "HudThreat"
@@ -38,10 +50,19 @@ func pasang(sumber: Node) -> void:
 	_sedia_butang()
 	_sedia_menu()
 
-# Dipanggil setiap frame oleh SeranganBalas: butang hilang bila tukar scene,
-# jadi ia dibina semula dan menu dikemas kini.
-func kemas_kini(delta: float = 0.0) -> void:
-	_sedia_butang()
+func _muat_ikon(laluan: String) -> Texture2D:
+	if not ResourceLoader.exists(laluan):
+		return null
+	return load(laluan) as Texture2D
+
+func _process(delta: float) -> void:
+	# Butang hilang bila tukar scene; cari bekasnya semula sekali-sekala.
+	if _butang == null or not is_instance_valid(_butang) or not _butang.is_inside_tree():
+		_cari_tick += delta
+		if _cari_tick >= SELA_CARI_BEKAS:
+			_cari_tick = 0.0
+			_sedia_butang()
+
 	if _menu == null or not is_instance_valid(_menu) or not _menu.visible:
 		return
 	_tick += delta
@@ -50,48 +71,86 @@ func kemas_kini(delta: float = 0.0) -> void:
 	_tick = 0.0
 	_kemas_kini_label()
 
+# Dipanggil SeranganBalas bila kiraan berubah: segarkan menu serta-merta.
+func kemas_kini(_delta: float = 0.0) -> void:
+	_sedia_butang()
+	if _menu != null and is_instance_valid(_menu) and _menu.visible:
+		_kemas_kini_label()
+		_tick = 0.0
+
 # ==========================================================
 # BUTANG DALAM GROUP IKON KIRI
 # ==========================================================
 func _sedia_butang() -> void:
 	if _butang != null and is_instance_valid(_butang) and _butang.is_inside_tree():
 		return
-	var scene_utama := get_tree().current_scene
-	if scene_utama == null:
-		return
-	var bekas := scene_utama.get_node_or_null(LALUAN_BEKAS) as Control
+	var bekas := _cari_bekas_ikon()
 	if bekas == null:
 		return
 
 	_butang = Button.new()
 	_butang.name = "ButangThreat"
-	_butang.icon = IKON_THREAT
-	_butang.expand_icon = true
-	_butang.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_butang.text = ""
 	_butang.tooltip_text = "Husk Threat"
 	_butang.focus_mode = Control.FOCUS_NONE
 	_butang.custom_minimum_size = Vector2(SAIZ_BUTANG, SAIZ_BUTANG)
 	_butang.size = Vector2(SAIZ_BUTANG, SAIZ_BUTANG)
 	_butang.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_butang.theme = _tema_butang()
+	if _ikon_threat != null:
+		_butang.icon = _ikon_threat
+		_butang.expand_icon = true
+		_butang.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	else:
+		# Ikon tidak dapat dimuat (PNG belum diimport): still nampak sebagai "!".
+		_butang.text = "!"
+		_butang.add_theme_font_size_override("font_size", 16)
+		_butang.add_theme_color_override("font_color", Color(1.0, 0.35, 0.3, 1.0))
 	_butang.pressed.connect(_tukar_menu)
-	# Anak terakhir VBox = bawah ikon rumah.
+
+	# Anak terakhir VBox = di bawah ikon rumah.
 	bekas.add_child(_butang)
+	print("ThreatHud: butang threat ditambah ke ", bekas.get_path())
+
+# Cari VBox ikon menegah kiri: utamakan laluan tepat, kemudian VBox yang
+# mengandungi butang HUD yang dikenali.
+func _cari_bekas_ikon() -> Control:
+	var scene_utama := get_tree().current_scene
+	if scene_utama == null:
+		return null
+
+	var lurus := scene_utama.get_node_or_null(LALUAN_BEKAS) as Control
+	if lurus != null:
+		return lurus
+
+	for nod in scene_utama.find_children("*", "VBoxContainer", true, false):  # owned=false: termasuk nod runtime
+		for nama in TANDA_BEKAS:
+			if nod.get_node_or_null(nama) != null:
+				return nod as Control
+
+	# Sandaran terakhir: CanvasLayer dengan butang HUD, cari VBox di dalamnya.
+	for lapis in scene_utama.find_children("*", "CanvasLayer", true, false):
+		for nod in lapis.find_children("*", "VBoxContainer", true, false):
+			for nama in TANDA_BEKAS:
+				if nod.get_node_or_null(nama) != null:
+					return nod as Control
+	return null
 
 func _tema_butang() -> Theme:
-	# Sama gaya dengan ikon HUD lain: latar kosong, hanya ikon PNG nampak.
+	# Latar gelap merah nipis supaya butang sentiasa kelihatan walaupun ikon
+	# gagal dimuatkan.
 	var tema := Theme.new()
-	var kosong := StyleBoxEmpty.new()
-	kosong.set_content_margin_all(4.0)
-	var hover := StyleBoxFlat.new()
-	hover.bg_color = Color(1, 1, 1, 0.08)
-	hover.set_corner_radius_all(4)
-	hover.set_content_margin_all(4.0)
-	var pressed := StyleBoxFlat.new()
-	pressed.bg_color = Color(1.0, 0.4, 0.4, 0.2)
-	pressed.set_corner_radius_all(4)
-	pressed.set_content_margin_all(4.0)
-	tema.set_stylebox("normal", "Button", kosong)
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.35, 0.08, 0.1, 0.55)
+	normal.border_color = Color(0.9, 0.25, 0.25, 0.75)
+	normal.set_border_width_all(1)
+	normal.set_corner_radius_all(4)
+	normal.set_content_margin_all(4.0)
+	var hover := normal.duplicate() as StyleBoxFlat
+	hover.bg_color = Color(0.6, 0.14, 0.17, 0.8)
+	var pressed := normal.duplicate() as StyleBoxFlat
+	pressed.bg_color = Color(0.8, 0.2, 0.2, 0.9)
+	tema.set_stylebox("normal", "Button", normal)
 	tema.set_stylebox("hover", "Button", hover)
 	tema.set_stylebox("pressed", "Button", pressed)
 	tema.set_stylebox("focus", "Button", StyleBoxEmpty.new())
@@ -144,12 +203,12 @@ func _sedia_menu() -> void:
 	isi.add_child(kiri)
 
 	var ikon := TextureRect.new()
-	ikon.texture = IKON_HUSK
+	ikon.texture = _ikon_husk
 	ikon.custom_minimum_size = Vector2(48, 48)
 	ikon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ikon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	ikon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	# Sprite husk asalnya gelap; cerahkan sedikit supaya jelas atas panel gelap.
+	# Sprite husk asalnya gelap; cerahkan supaya jelas atas panel gelap.
 	ikon.modulate = Color(1.9, 1.9, 1.9)
 	kiri.add_child(ikon)
 
