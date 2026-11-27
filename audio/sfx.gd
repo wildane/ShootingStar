@@ -1004,13 +1004,16 @@ func _segi(fasa: float) -> float:
 	return 1.0 if fposmod(fasa, TAU) < PI else -1.0
 
 # Kuantisasi amplitud + pegang sampel (kadar sampel separuh) untuk rasa 8-bit.
+# Bunyi menu sengaja dikecilkan (0.35) supaya tidak menenggelamkan bunyi game.
+const ISIPADU_RETRO: float = 0.35
+
 func _retro(s: PackedFloat32Array, faktor: int = 2, tahap: float = 4.0) -> AudioStreamWAV:
 	for i in s.size():
 		s[i] = roundf(s[i] * tahap) / tahap
 	var keluar := PackedFloat32Array()
 	keluar.resize(ceili(float(s.size()) / float(faktor)))
 	for i in keluar.size():
-		keluar[i] = s[mini(i * faktor, s.size() - 1)]
+		keluar[i] = s[mini(i * faktor, s.size() - 1)] * ISIPADU_RETRO
 	return _ke_stream(keluar, false, int(KADAR / faktor))
 
 # ---- Bunyi klik butang menu: bip pendek gaya konsol lama ----------------
