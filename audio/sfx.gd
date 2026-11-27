@@ -41,6 +41,8 @@ func _ready() -> void:
 	_sedia("bina_siap")
 	_sedia("baiki_siap")
 	_sedia("roboh_siap")
+	_sedia("rancang_ok")
+	_sedia("rancang_gagal")
 	_aliran["teleport"] = _jana_teleport()
 	_mula_ambien()
 	_mula_ambien_kawasan()
@@ -270,6 +272,10 @@ func _jana(nama: String) -> AudioStreamWAV:
 		return _jana_siap(659.25, 987.77, 0.12)
 	if nama == "roboh_siap":
 		return _jana_siap(392.0, 293.66, 0.60)
+	if nama == "rancang_ok":
+		return _jana_rancang_ok()
+	if nama == "rancang_gagal":
+		return _jana_rancang_gagal()
 	push_warning("Sfx: bunyi tidak dikenali - " + nama)
 	return null
 
@@ -798,5 +804,46 @@ func _jana_siap(f1: float, f2: float, amp_dentum: float) -> AudioStreamWAV:
 		s[i] = v1 + v2 + dentum
 	_lulus_rendah(s, 8000.0)
 	_gema(s, 0.06, 0.18)
+	_normal(s, 0.85)
+	return _ke_stream(s, false)
+
+# ---- Bunyi letak rancangan: berjaya / gagal -------------------------
+# Wall, floor dan door kongsi bunyi yang sama supaya pemain kenal isyarat
+# "rancangan diterima" dan "rancangan ditolak" tanpa perlu beza jenis.
+
+func _jana_rancang_ok() -> AudioStreamWAV:
+	var tempoh: float = 0.16
+	var n: int = int(KADAR * tempoh)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var fasa: float = 0.0
+	for i in n:
+		var t: float = float(i) / float(KADAR)
+		# Nada naik pendek: bunyi "ting" tanda rancangan diterima.
+		fasa += TAU * lerpf(680.0, 980.0, clampf(t / tempoh, 0.0, 1.0)) / float(KADAR)
+		var naik: float = 1.0 - exp(-t * 300.0)
+		var nada: float = (sin(fasa) + 0.28 * sin(fasa * 2.0)) * naik * exp(-t * 22.0)
+		# Klik halus di awal supaya terasa seperti tanda diletak.
+		var klik: float = randf_range(-1.0, 1.0) * exp(-t * 400.0) * 0.25
+		s[i] = nada * 0.7 + klik
+	_lulus_rendah(s, 7000.0)
+	_normal(s, 0.85)
+	return _ke_stream(s, false)
+
+func _jana_rancang_gagal() -> AudioStreamWAV:
+	var tempoh: float = 0.20
+	var n: int = int(KADAR * tempoh)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var fasa: float = 0.0
+	for i in n:
+		var t: float = float(i) / float(KADAR)
+		# Dua denyut rendah yang turun: isyarat "tak boleh letak di sini".
+		var f: float = 210.0 if t < 0.07 else 150.0
+		fasa += TAU * f / float(KADAR)
+		var denyut: float = exp(-fmod(t, 0.10) * 34.0)
+		var nada: float = (sin(fasa) + 0.25 * sin(fasa * 2.0)) * denyut
+		s[i] = nada * 0.55
+	_lulus_rendah(s, 2600.0)
 	_normal(s, 0.85)
 	return _ke_stream(s, false)

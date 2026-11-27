@@ -469,12 +469,14 @@ func letak(g: Vector2i) -> bool:
 		return tanda_baiki(g)
 	if not boleh_bina(g):
 		_status("Can't build here: must be on the asteroid and touch your base")
+		_bunyi("rancang_gagal", to_global(_tengah_sel(g)))
 		return false
 
 	var jenis := _mod
 	_rancang[g] = jenis
 	_bina_kemajuan.erase(g)
 	_status(NAMA_JENIS[jenis] + " planned (1 Iron)")
+	_bunyi("rancang_ok", to_global(_tengah_sel(g)))
 	queue_redraw()
 	return true
 
