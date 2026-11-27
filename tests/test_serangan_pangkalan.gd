@@ -141,6 +141,59 @@ func _jalan() -> void:
 			"dinding rosak tetap terbongkar")
 		inv.tolak_item("item_0001", 1)
 
+		# --- Baiki dinding: kos ikut HP hilang, bahan ditolak, HP pulih ---
+		var besi_sandaran: int = int(inv.bilangan_item("item_0001"))
+		inv.tambah_item({"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 3}, true)
+		grid.muat_data_save({"tiles": [{"x": 22, "y": 12, "jenis": 1}]})
+		grid.kena_serangan(Vector2i(22, 12))  # dinding 2/3
+		_semak(grid.kos_repair_tile(Vector2i(22, 12)) == 1, "kos baiki dinding 2/3 = 1 besi")
+		_semak(grid.kos_repair_tile(Vector2i(29, 29)) == 0, "tile kosong tiada kos baiki")
+		var besi_sebelum_baiki: int = int(inv.bilangan_item("item_0001"))
+		_semak(grid.baiki_tile(Vector2i(22, 12)), "baiki dinding berjaya bila besi cukup")
+		_semak(grid.hp_tile(Vector2i(22, 12)) == 3, "HP dinding pulih penuh selepas baiki")
+		_semak(int(inv.bilangan_item("item_0001")) == besi_sebelum_baiki - 1,
+			"1 besi ditolak untuk baiki dinding 2/3")
+		_semak(not grid.baiki_tile(Vector2i(22, 12)), "baiki ditolak bila dinding sudah penuh")
+		_semak(not grid.boleh_baiki(Vector2i(22, 12)), "dinding penuh tiada dalam senarai baiki")
+		_semak(not grid.baiki_tile(Vector2i(9, 9)), "baiki tile kosong ditolak")
+
+		# Mod Repair (butang di menu rumah) guna baiki_tile yang sama.
+		grid.kena_serangan(Vector2i(22, 12))
+		grid._mod = 4  # JENIS_REPAIR
+		_semak(grid.letak(Vector2i(22, 12)), "mod Repair: tap tile rosak membaiki terus")
+		_semak(grid.hp_tile(Vector2i(22, 12)) == 3, "mod Repair: HP dinding pulih penuh")
+		_semak(not grid.letak(Vector2i(30, 30)), "mod Repair: tap tile kosong tak membina apa-apa")
+		grid._mod = -1
+
+		# --- Butang batal merah (nyahbina) dan hijau (rancangan) ---
+		grid.muat_data_save({"tiles": [{"x": 24, "y": 12, "jenis": 1}]})
+		_semak(grid.padam(Vector2i(24, 12)), "tanda nyahbina (merah) diletak")
+		_semak(grid.batal_semua_padam(), "butang batal merah membatalkan tanda nyahbina")
+		_semak(grid.dapatkan_data_save().get("padam_tanda", []).is_empty(),
+			"tanda nyahbina hilang selepas batal merah")
+		_semak(grid._tile.has(Vector2i(24, 12)), "dinding kekal selepas tanda nyahbina dibatalkan")
+		_semak(not grid.batal_semua_padam(), "batal merah kedua ditolak (tiada tanda)")
+
+		grid.muat_data_save({"tiles": [{"x": 12, "y": 12, "jenis": 1}]})
+		grid._mod = 0  # JENIS_LANTAI
+		_semak(grid.letak(Vector2i(13, 12)), "rancangan lantai (hijau) dibuat")
+		_semak(grid.batal_semua_rancang(), "butang batal hijau membatalkan rancangan")
+		_semak(grid.dapatkan_data_save().get("rancang", []).is_empty(),
+			"rancangan hilang selepas batal hijau")
+		_semak(not grid.batal_semua_rancang(), "batal hijau kedua ditolak (tiada rancangan)")
+
+		# Rancangan yang sudah mula dibina memulangkan besi yang sudah ditolak.
+		_semak(grid.letak(Vector2i(13, 12)), "rancangan lantai kedua dibuat")
+		grid._bina_kemajuan[Vector2i(13, 12)] = 0.5
+		var besi_plan: int = int(inv.bilangan_item("item_0001"))
+		_semak(grid.batal_semua_rancang(), "batal hijau membuang rancangan yang sedang dibina")
+		_semak(int(inv.bilangan_item("item_0001")) == besi_plan + 1,
+			"batal hijau pulangkan 1 besi binaan yang sudah bermula")
+		grid._mod = -1
+
+		# Beg pemain dikembalikan seperti sebelum ujian.
+		inv.tolak_item("item_0001", int(inv.bilangan_item("item_0001")) - besi_sandaran)
+
 	# --- Raider tembak dinding dari jauh, tak perlu sentuh dulu ---
 	grid.muat_data_save({"tiles": [{"x": 18, "y": 12, "jenis": 1}]})  # dinding di (296,200)
 	var raider_tembak: Node2D = load("res://scene/Mob/HuskLurkerRaider/HuskLurkerRaider.tscn").instantiate()

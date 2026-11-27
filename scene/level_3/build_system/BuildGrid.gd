@@ -19,7 +19,8 @@ const JENIS_LANTAI: int = 0
 const JENIS_DINDING: int = 1
 const JENIS_PINTU: int = 2
 const JENIS_ERASE: int = 3
-const NAMA_JENIS: Array[String] = ["Floor", "Wall", "Door", "Erase"]
+const JENIS_REPAIR: int = 4
+const NAMA_JENIS: Array[String] = ["Floor", "Wall", "Door", "Erase", "Repair"]
 
 # HP struktur: serangan husk/raider kena beberapa kali barulah tile pecah.
 # Dinding dan pintu 3 kali, lantai 1 kali.
@@ -63,7 +64,11 @@ const IKON_HUD_LANTAI: Texture2D = preload("res://scene/level_3/build_system/ico
 const IKON_HUD_DINDING: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_wall.png")
 const IKON_HUD_PINTU: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_door.png")
 const IKON_HUD_ERASE: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_erase.png")
+const IKON_HUD_REPAIR: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_repair.png")
 const IKON_HUD_BATAL: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_cancel.png")
+# Dua butang batal berwarna: merah = tanda nyahbina, hijau = rancangan binaan.
+const IKON_HUD_BATAL_PADAM: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_batal_padam.png")
+const IKON_HUD_BATAL_RANCANG: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_batal_rancang.png")
 const BAR_HP := preload("res://scene/level_3/build_system/BarHpStruktur.gd")
 
 # Dipakai oleh AstroStateMachine supaya tap semasa mod bina tidak
@@ -177,6 +182,7 @@ func _bina_hud() -> void:
 
 	var ikon_jenis: Array[Texture2D] = [
 		IKON_HUD_LANTAI, IKON_HUD_DINDING, IKON_HUD_PINTU, IKON_HUD_ERASE,
+		IKON_HUD_REPAIR,
 	]
 	for i in range(ikon_jenis.size()):
 		var butang := _buat_butang(ikon_jenis[i], NAMA_JENIS[i], tema)
@@ -190,6 +196,19 @@ func _bina_hud() -> void:
 	batal.position = Vector2(LANGKAH_BUTANG, LANGKAH_BUTANG * float(ikon_jenis.size()))
 	batal.pressed.connect(_batal)
 	_kumpulan.add_child(batal)
+
+	# Butang batal tanda merah (nyahbina) dan hijau (rancangan) duduk di bawah
+	# butang Cancel, satu baris setiap satu, supaya player boleh buang tanda
+	# yang tersalah letak tanpa perlu masuk mod lain.
+	var batal_padam := _buat_butang(IKON_HUD_BATAL_PADAM, "Cancel red marks (deconstruction)", tema)
+	batal_padam.position = Vector2(LANGKAH_BUTANG, LANGKAH_BUTANG * float(ikon_jenis.size() + 1))
+	batal_padam.pressed.connect(batal_semua_padam)
+	_kumpulan.add_child(batal_padam)
+
+	var batal_rancang := _buat_butang(IKON_HUD_BATAL_RANCANG, "Cancel green plans (build)", tema)
+	batal_rancang.position = Vector2(LANGKAH_BUTANG, LANGKAH_BUTANG * float(ikon_jenis.size() + 2))
+	batal_rancang.pressed.connect(batal_semua_rancang)
+	_kumpulan.add_child(batal_rancang)
 
 	# Label status kekal nampak walaupun menu tertutup (menunjukkan mod aktif).
 	# Ia diletak di kanan ikon rumah supaya tidak bertindih dengan menu.
@@ -329,6 +348,8 @@ func _pilih(jenis: int) -> void:
 		_butang[i].set_pressed_no_signal(i == jenis)
 	if jenis == JENIS_ERASE:
 		_label_status.text = "Erase: tap a built tile to mark it. Go near to deconstruct and get 1 Iron back"
+	elif jenis == JENIS_REPAIR:
+		_label_status.text = "Repair: tap a damaged tile (1 Iron per missing HP)"
 	else:
 		_label_status.text = NAMA_JENIS[jenis] + ": tap to plan (1 Iron). Go near to build"
 
@@ -428,6 +449,8 @@ func letak(g: Vector2i) -> bool:
 		return false
 	if _mod == JENIS_ERASE:
 		return padam(g)
+	if _mod == JENIS_REPAIR:
+		return baiki_tile(g)
 	if not boleh_bina(g):
 		_label_status.text = "Can't build here: must be on the asteroid and touch your base"
 		return false
@@ -465,6 +488,81 @@ func padam(g: Vector2i) -> bool:
 		return true
 	_label_status.text = "Nothing to erase here"
 	return false
+
+# ==========================================
+# BAIKI TILE (dinding / pintu / lantai)
+# ==========================================
+# Kos baiki = 1 besi bagi setiap HP yang hilang. Tile penuh tak perlu dibaiki,
+# dan lantai (HP maks 1) terus pecah bila kena serangan jadi ia jarang rosak.
+func kos_repair_tile(g: Vector2i) -> int:
+	if not _tile.has(g):
+		return 0
+	return (hp_maks_tile(int(_tile[g])) - hp_tile(g)) * KOS_BESI
+
+func boleh_baiki(g: Vector2i) -> bool:
+	return _tile.has(g) and hp_tile(g) < hp_maks_tile(int(_tile[g]))
+
+# Baiki satu tile rosak: tolak besi, pulihkan HP penuh dan buang bar HP lama.
+func baiki_tile(g: Vector2i) -> bool:
+	if not _tile.has(g):
+		_label_status.text = "Nothing to repair here"
+		return false
+	var jenis := int(_tile[g])
+	var maks: int = hp_maks_tile(jenis)
+	if hp_tile(g) >= maks:
+		_label_status.text = NAMA_JENIS[jenis] + " is already intact"
+		return false
+	var kos: int = (maks - hp_tile(g)) * KOS_BESI
+	if not _ada_besi(kos) or not _tolak_besi(kos):
+		_label_status.text = "Need %d %s to repair %s" % [kos, NAMA_BESI, NAMA_JENIS[jenis]]
+		return false
+	_hp_tile[g] = maks
+	var nod_tile := _nod_tile(g)
+	if nod_tile != null:
+		BAR_HP.buang(nod_tile)
+	_apung_besi(-kos)
+	_label_status.text = "%s repaired (%d Iron)" % [NAMA_JENIS[jenis], kos]
+	queue_redraw()
+	return true
+
+# ==========================================
+# BATAL TANDA MERAH / HIJAU
+# ==========================================
+# Batalkan semua tanda nyahbina (highlight merah). Tiada bahan terlibat kerana
+# nyahbina belum menolak apa-apa bahan.
+func batal_semua_padam() -> bool:
+	var bil: int = _padam_tanda.size()
+	if bil == 0:
+		_label_status.text = "No deconstruction marks to cancel"
+		return false
+	_padam_tanda.clear()
+	_padam_kemajuan.clear()
+	_label_status.text = "Cancelled %d deconstruction mark(s)" % bil
+	queue_redraw()
+	return true
+
+# Batalkan semua rancangan binaan (highlight hijau). Rancangan yang sudah mula
+# dibina memulangkan 1 besi setiap satu kerana bahan sudah ditolak.
+func batal_semua_rancang() -> bool:
+	var bil: int = _rancang.size()
+	if bil == 0:
+		_label_status.text = "No build plans to cancel"
+		return false
+	var pulang: int = 0
+	for g in _bina_kemajuan:
+		if _rancang.has(g):
+			pulang += 1
+	_rancang.clear()
+	_bina_kemajuan.clear()
+	for _i in pulang:
+		_pulangkan_besi()
+	if pulang > 0:
+		_apung_besi(pulang)
+		_label_status.text = "Cancelled %d plan(s) (+%d Iron)" % [bil, pulang]
+	else:
+		_label_status.text = "Cancelled %d plan(s)" % bil
+	queue_redraw()
+	return true
 
 # Buang semua tile: dipakai sebelum memuat semula grid dari fail simpanan.
 func kosongkan() -> void:
@@ -745,13 +843,13 @@ func _bina_zon_lantai(g: Vector2i) -> void:
 # ==========================================
 # PEMBINAAN / NYAHBINA BERASASKAN JARAK
 # ==========================================
-func _ada_besi() -> bool:
+func _ada_besi(banyak: int = KOS_BESI) -> bool:
 	var inv = get_node_or_null("/root/InventoryManager")
-	return inv != null and inv.bilangan_item(ID_BESI) >= KOS_BESI
+	return inv != null and inv.bilangan_item(ID_BESI) >= banyak
 
-func _tolak_besi() -> bool:
+func _tolak_besi(banyak: int = KOS_BESI) -> bool:
 	var inv = get_node_or_null("/root/InventoryManager")
-	return inv != null and inv.tolak_item(ID_BESI, KOS_BESI)
+	return inv != null and inv.tolak_item(ID_BESI, banyak)
 
 func _pulangkan_besi() -> void:
 	var inv = get_node_or_null("/root/InventoryManager")
@@ -1083,9 +1181,17 @@ func _draw() -> void:
 
 	if _ada_hantu and _mod >= 0:
 		var rect := Rect2(Vector2(_hantu) * SAIZ_SEL, saiz)
-		var sah: bool = _boleh_padam_hantu(_hantu) if _mod == JENIS_ERASE else boleh_bina(_hantu)
+		var sah: bool
+		if _mod == JENIS_ERASE:
+			sah = _boleh_padam_hantu(_hantu)
+		elif _mod == JENIS_REPAIR:
+			sah = boleh_baiki(_hantu)
+		else:
+			sah = boleh_bina(_hantu)
 		var warna := Color(1.0, 0.42, 0.32, 0.35) if _mod == JENIS_ERASE and sah \
 			else (Color(0.4, 1.0, 0.6, 0.30) if sah else Color(1.0, 0.35, 0.35, 0.30))
+		if _mod == JENIS_REPAIR:
+			warna = Color(1.0, 0.86, 0.4, 0.32) if sah else Color(1.0, 0.35, 0.35, 0.30)
 		draw_rect(rect, warna)
 		draw_rect(rect, warna.lightened(0.4), false, 2.0)
 
