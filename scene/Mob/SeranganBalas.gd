@@ -15,8 +15,8 @@ extends Node
 signal serangan_dijadualkan(masa_serang: float)
 signal serangan_bermula(bilangan: int)
 
-# Masa menunggu sebelum serangan balas bermula (5 minit).
-const MASA_SERANGAN: float = 300.0
+# Masa menunggu sebelum serangan balas bermula (1 minit, sementara untuk ujian).
+const MASA_SERANGAN: float = 60.0
 # Jarak penyerang dianggap sudah tiba di pangkalan.
 const JEJARI_TIBA: float = 26.0
 
