@@ -44,6 +44,8 @@
 [ext_resource type="Script" path="res://scene/ui/ButangThreat.gd" id="43_butang"]
 [ext_resource type="Texture2D" path="res://scene/ui/threat_icon.png" id="44_threatikon"]
 
+[ext_resource type="Script" path="res://scene/Mob/SeranganBalas.gd" id="45_serangan"]
+
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_fs2q3"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_jvfsc"]
@@ -417,6 +419,9 @@ metadata/_edit_lock_ = true
 [node name="Asteroid" parent="." instance=ExtResource("60_ast")]
 position = Vector2(-260, 380)
 jejari = 150.0
+
+[node name="SeranganBalas" type="Node" parent="."]
+script = ExtResource("45_serangan")
 
 [node name="BuildGrid" type="Node2D" parent="."]
 script = ExtResource("61_bgrid")

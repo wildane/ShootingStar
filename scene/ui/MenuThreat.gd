@@ -134,6 +134,15 @@ func _bina() -> void:
 	butang_tutup_bawah.pressed.connect(tutup)
 	akar.add_child(butang_tutup_bawah)
 
+# Pemasa/spawn kini nod dalam scene level (bukan autoload).
+func _ada_pemantau() -> bool:
+	if get_node_or_null("/root/SeranganBalas") != null:
+		return true
+	var scene_utama := get_tree().current_scene
+	if scene_utama == null:
+		return false
+	return scene_utama.find_child("SeranganBalas", true, false) != null
+
 func _buat_label(ibu: Node, teks: String, saiz: int, warna: Color) -> Label:
 	var label := Label.new()
 	label.text = teks
@@ -147,7 +156,7 @@ func _kemas_kini() -> void:
 	# walaupun autoload SeranganBalas lambat dimuatkan.
 	var bunuh: int = StorThreat.bunuh
 	var baki: float = StorThreat.masa_serang
-	var ada_spawner: bool = get_node_or_null("/root/SeranganBalas") != null
+	var ada_spawner: bool = _ada_pemantau()
 	var peratus: int = clampi(bunuh * THREAT_SETIAP_BUNUH, 0, 100)
 
 	if _label_threat:
