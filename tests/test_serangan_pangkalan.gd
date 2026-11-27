@@ -94,6 +94,13 @@ func _jalan() -> void:
 	_semak(grid.hp_tile(Vector2i(10, 11)) == 1, "lantai mula dengan HP 1")
 	_semak(not grid.kena_serangan(Vector2i(10, 10)), "pintu kena 1 serangan belum pecah")
 	_semak(grid.hp_tile(Vector2i(10, 10)) == 2, "pintu HP tinggal 2/3 selepas 1 serangan")
+	var badan_pintu: Node = grid.get_node_or_null("Grid_10_10")
+	var bar_pintu: Variant = badan_pintu.get_meta("bar_hp_struktur", null) if badan_pintu != null else null
+	_semak(bar_pintu != null and int(bar_pintu.get("baki")) == 2 and int(bar_pintu.get("maksimum")) == 3,
+		"bar HP muncul di atas pintu yang kena serangan (2/3)")
+	if bar_pintu != null:
+		bar_pintu.call("_process", 5.0)
+		_semak(float(bar_pintu.modulate.a) <= 0.01, "bar HP pudar selepas beberapa saat")
 	grid.muat_data_save(grid.dapatkan_data_save())
 	_semak(grid.hp_tile(Vector2i(10, 10)) == 2, "HP tile pulih dari simpanan")
 	_semak(not grid.kena_serangan(Vector2i(10, 10)), "pintu kena 2 serangan belum pecah")
@@ -155,6 +162,9 @@ func _jalan() -> void:
 	_semak(not bool(raider.get("_dalam_teleport")), "raider keluar dari teleport")
 	_semak(is_instance_valid(perabot) and int(perabot.get_meta("hp_serangan", 2)) == 1,
 		"perabot kena 1 lendir: HP tinggal 1/2, belum pecah")
+	var bar_perabot: Variant = perabot.get_meta("bar_hp_struktur", null)
+	_semak(bar_perabot != null and int(bar_perabot.get("baki")) == 1 and int(bar_perabot.get("maksimum")) == 2,
+		"bar HP muncul di atas perabot yang kena lendir (1/2)")
 	await create_timer(0.7).timeout
 	_semak(not is_instance_valid(perabot), "perabot kena 2 lendir: baru pecah")
 

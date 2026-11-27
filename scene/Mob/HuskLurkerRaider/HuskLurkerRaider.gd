@@ -11,6 +11,7 @@ extends "res://scene/Mob/HuskLurker/HuskLurker.gd"
 # ==========================================================
 
 const KESAN_TELEPORT := preload("res://scene/level_3/build_system/doorway/KesanTeleport.gd")
+const BAR_HP := preload("res://scene/level_3/build_system/BarHpStruktur.gd")
 
 ## Tempoh animasi teleport sebelum badan benar-benar muncul.
 @export var masa_teleport: float = 0.4
@@ -285,4 +286,7 @@ func _serang_nod(nod: Node) -> void:
 		nod.queue_free()
 		return
 	nod.set_meta("hp_serangan", baki)
+	# Player nampak baki HP perabot sebelum ia pecah.
+	if nod is Node2D:
+		BAR_HP.papar(nod as Node2D, baki, hp_perabot)
 	print("Raider: %s kena lendir, HP tinggal %d/%d" % [nod.name, baki, hp_perabot])

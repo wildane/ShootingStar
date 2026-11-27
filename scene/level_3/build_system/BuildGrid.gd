@@ -64,6 +64,7 @@ const IKON_HUD_DINDING: Texture2D = preload("res://scene/level_3/build_system/ic
 const IKON_HUD_PINTU: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_door.png")
 const IKON_HUD_ERASE: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_erase.png")
 const IKON_HUD_BATAL: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_cancel.png")
+const BAR_HP := preload("res://scene/level_3/build_system/BarHpStruktur.gd")
 
 # Dipakai oleh AstroStateMachine supaya tap semasa mod bina tidak
 # menggerakkan pemain.
@@ -619,9 +620,23 @@ func kena_serangan(g: Vector2i) -> bool:
 		return hancurkan(g)
 	_hp_tile[g] = baki
 	queue_redraw()
+	# Player nampak baki HP di atas struktur yang baru kena serangan.
+	var nod_tile := _nod_tile(g)
+	if nod_tile != null:
+		BAR_HP.papar(nod_tile, baki, hp_maks_tile(jenis))
 	print("BuildGrid: %s di %s kena serangan, HP tinggal %d/%d" % [
 		NAMA_JENIS[jenis], g, baki, hp_maks_tile(jenis)])
 	return false
+
+# Nod visual/kolider bagi sesuatu tile (dinding/pintu: StaticBody2D,
+# lantai: zon Area2D). Dipakai untuk meletak bar HP di atasnya.
+func _nod_tile(g: Vector2i) -> Node2D:
+	var badan: Node2D = _badan_pintu.get(g, null) as Node2D
+	if badan == null or not is_instance_valid(badan):
+		badan = get_node_or_null("Grid_%d_%d" % [g.x, g.y]) as Node2D
+	if badan == null:
+		badan = _zon_lantai.get(g, null) as Node2D
+	return badan
 
 # Husk memusnahkan satu tile dengan satu serangan: visual, kolider dinding/pintu
 # dan zon lantai terus dibuang dari grid.
