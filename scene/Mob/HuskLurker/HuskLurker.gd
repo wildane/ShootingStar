@@ -24,6 +24,12 @@ extends CharacterBody2D
 @export var max_radius: float = 520.0
 @export var home_arrival_radius: float = 40.0
 
+@export_group("Serangan Balas Pangkalan")
+# true bila husk ini dihantar sistem serangan balas untuk menyerang pangkalan
+# pemain. Ia abaikan sarang/zon dungeon dan terus menuju pangkalan.
+@export var mod_penyerang: bool = false
+@export var posisi_pangkalan: Vector2 = Vector2(141.0, 228.0)
+
 @export_group("Zon Kurungan (Dungeon)")
 # Kotak kawasan dungeon dalam koordinat dunia. Husk Lurker TIDAK boleh keluar dari sini.
 @export var zona_batas: Rect2 = Rect2(-470, -1530, 880, 1460)
@@ -110,7 +116,8 @@ func _physics_process(delta: float) -> void:
 	# Dah dekat pintu masuk? Patah balik awal, jangan sampai keluar dungeon.
 	var dekat_pintu: bool = global_position.distance_to(pintu_masuk) <= jarak_pintu
 
-	if luar_zona or dekat_sempadan or dekat_pintu or jarak_sarang > max_radius:
+	# Penyerang pangkalan tidak terikat pada sarang atau zon dungeon.
+	if not mod_penyerang and (luar_zona or dekat_sempadan or dekat_pintu or jarak_sarang > max_radius):
 		sedang_balik = true
 		sedang_kejar = false
 
@@ -123,7 +130,7 @@ func _physics_process(delta: float) -> void:
 			pilih_arah_rawak()
 
 	# Kalau tersangkut dalam dinding (sebab apa pun), keluar dulu sebelum normal
-	if not sedang_balik and _dalam_dinding():
+	if not mod_penyerang and not sedang_balik and _dalam_dinding():
 		sedang_balik = true
 		rumah = _cari_titik_selamat(global_position)
 
@@ -149,7 +156,9 @@ func _physics_process(delta: float) -> void:
 
 	var kelajuan_sasaran: float = wander_speed
 
-	if sedang_kejar and is_instance_valid(player):
+	if mod_penyerang:
+		kelajuan_sasaran = _gerak_penyerang(delta, player, jarak, nampak_player)
+	elif sedang_kejar and is_instance_valid(player):
 		var arah_ke_player: Vector2 = (player.global_position - global_position).normalized()
 		arah = arah.lerp(arah_ke_player, 7.0 * delta).normalized()
 
@@ -207,6 +216,35 @@ func _physics_process(delta: float) -> void:
 
 	if arah != Vector2.ZERO and kelajuan_semasa > 0.5:
 		rotation = lerp_angle(rotation, arah.angle(), 6.0 * delta)
+
+# ---------- PENYERANG PANGKALAN ----------
+# Bergerak menuju pangkalan pemain. Bila player kelihatan, tukar sasaran
+# kepadanya supaya serangan terasa hidup, bukan sekadar berbaris di pangkalan.
+func _gerak_penyerang(delta: float, player: Node2D, jarak: float, nampak: bool) -> float:
+	sedang_kejar = true
+
+	var sasaran: Vector2 = posisi_pangkalan
+	var dekat_sasaran: float = global_position.distance_to(posisi_pangkalan)
+
+	if is_instance_valid(player) and nampak and jarak <= detection_radius:
+		sasaran = player.global_position
+		dekat_sasaran = jarak
+		if jarak <= jarak_tembak:
+			_tembak_lendir(player)
+
+	var ke_sasaran: Vector2 = sasaran - global_position
+	if ke_sasaran.length() > 0.5:
+		var arah_sasaran: Vector2 = ke_sasaran.normalized()
+		# lerp antara arah bertentangan tepat (180 darjah) tidak berpusing;
+		# pusing terus bila sudutnya terlalu lebar.
+		if arah.dot(arah_sasaran) < -0.95:
+			arah = arah_sasaran
+		else:
+			arah = arah.lerp(arah_sasaran, 6.0 * delta).normalized()
+
+	if dekat_sasaran <= 26.0:
+		return 0.0
+	return chase_speed
 
 func _boleh_nampak(player: Node2D) -> bool:
 	var dunia := get_world_2d()
@@ -315,6 +353,14 @@ func take_damage(amount: float) -> void:
 func _mati() -> void:
 	sedang_mati = true
 	Sfx.mainkan_di("letupan", global_position, -8.0)
+
+	# Setiap husk yang tumbang di kawasan TheAquaHusk menambah seorang
+	# penyerang untuk serangan balas ke pangkalan pemain. Penyerang yang
+	# dihantar oleh sistem tidak dikira semula.
+	if not mod_penyerang:
+		var serangan := get_node_or_null("/root/SeranganBalas")
+		if serangan != null and serangan.has_method("daftar_bunuh_husk"):
+			serangan.daftar_bunuh_husk(global_position)
 	set_deferred("collision_layer", 0)
 	set_deferred("collision_mask", 0)
 	velocity = Vector2.ZERO
