@@ -23,8 +23,8 @@ const KESAN_TELEPORT := preload("res://scene/level_3/build_system/doorway/KesanT
 @export var jarak_cari_sasaran: float = 520.0
 ## Sela semakan semula sasaran (saat).
 @export var sela_cari_sasaran: float = 0.35
-## Jeda selepas satu sasaran hancur sebelum serang yang seterusnya.
-@export var jeda_serang: float = 0.45
+## Jeda antara dua tembakan lendir ke struktur pangkalan (saat).
+@export var jeda_serang: float = 2.0
 
 # Kumpulan nod yang boleh dimusnahkan: perabot, pintu, panel solar, inverter.
 const KUMPULAN_SASARAN: Array[String] = ["Furniture", "Pintu", "SolarModule", "PowerInverter"]
