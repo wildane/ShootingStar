@@ -15,15 +15,15 @@ extends Node
 signal serangan_dijadualkan(masa_serang: float)
 signal serangan_bermula(bilangan: int)
 
-# Masa menunggu sebelum serangan balas bermula (1 minit, sementara untuk ujian).
-const MASA_SERANGAN: float = 60.0
+# Masa menunggu sebelum serangan balas bermula (5 saat, sementara untuk ujian).
+const MASA_SERANGAN: float = 5.0
 # Jarak penyerang dianggap sudah tiba di pangkalan.
 const JEJARI_TIBA: float = 26.0
 
 # Pusat pangkalan pemain (kawasan bina di atas asteroid).
 @export var posisi_pangkalan: Vector2 = Vector2(141.0, 228.0)
-# Penyerang muncul dalam bulatan mengelilingi pangkalan, di luar skrin.
-@export var jejari_spawn: float = 240.0
+# Penyerang muncul dalam bulatan mengelilingi player (untuk ujian).
+@export var jejari_spawn: float = 90.0
 @export var jejari_kolider_spawn: float = 10.0
 @export var scene_penyerang: PackedScene = preload("res://scene/Mob/HuskLurker/HuskLurker.tscn")
 
@@ -87,33 +87,49 @@ func _lancar_serangan() -> void:
 		baki_masa = 1.0
 		return
 
+	# Untuk ujian: penyerang muncul dekat player, bukan di sekeliling pangkalan.
+	var player: Node2D = _cari_player()
+	var pusat: Vector2 = posisi_pangkalan
+	if is_instance_valid(player):
+		pusat = player.global_position
+
 	for i in range(jumlah):
 		var penyerang := scene_penyerang.instantiate() as Node2D
 		if penyerang == null:
 			continue
-		# Mod penyerang: abaikan sarang/zon dungeon, tuju pangkalan pemain.
+		# Mod penyerang: abaikan sarang/zon dungeon, tuju tempat player berada.
 		penyerang.set("mod_penyerang", true)
-		penyerang.set("posisi_pangkalan", posisi_pangkalan)
+		penyerang.set("posisi_pangkalan", pusat)
 		bekas.add_child(penyerang)
-		penyerang.global_position = _posisi_spawn(i, jumlah)
+		penyerang.global_position = _posisi_spawn(i, jumlah, pusat)
+		print("SeranganBalas: penyerang muncul di ", penyerang.global_position, " (player di ", pusat, ")")
 
-	print("SeranganBalas: %d penyerang husk menyerang pangkalan di %s" % [jumlah, posisi_pangkalan])
+	print("SeranganBalas: %d penyerang husk muncul dekat player di %s" % [jumlah, pusat])
 	serangan_bermula.emit(jumlah)
 	_tunjuk_notis("%d husk attacker%s heading to your base!" % [jumlah, "" if jumlah == 1 else "s"])
 
-# Titik spawn dalam bulatan sekeliling pangkalan. Jika titik terkena dinding,
+# Player pemain (group "Player" atau nod SpaceShip dalam scene semasa).
+func _cari_player() -> Node2D:
+	var player: Node2D = get_tree().get_first_node_in_group("Player") as Node2D
+	if player == null:
+		var scene_utama := get_tree().current_scene
+		if scene_utama != null:
+			player = scene_utama.find_child("SpaceShip", true, false) as Node2D
+	return player
+
+# Titik spawn dalam bulatan sekeliling pusat (player). Jika titik terkena dinding,
 # cuba sudut lain supaya penyerang tidak tersangkut dalam batu.
-func _posisi_spawn(indeks: int, jumlah: int) -> Vector2:
+func _posisi_spawn(indeks: int, jumlah: int, pusat: Vector2) -> Vector2:
 	var jumlah_selamat: int = maxi(1, jumlah)
 	for _cubaan in range(8):
 		var sudut: float = TAU * float(indeks) / float(jumlah_selamat) + randf_range(-0.25, 0.25)
-		var jarak: float = jejari_spawn + randf_range(-24.0, 24.0)
-		var calon: Vector2 = posisi_pangkalan + Vector2.RIGHT.rotated(sudut) * jarak
+		var jarak: float = jejari_spawn + randf_range(-16.0, 16.0)
+		var calon: Vector2 = pusat + Vector2.RIGHT.rotated(sudut) * jarak
 		if not _dalam_dinding(calon):
 			return calon
 
 	var sudut_asas: float = TAU * float(indeks) / float(jumlah_selamat)
-	return posisi_pangkalan + Vector2.RIGHT.rotated(sudut_asas) * jejari_spawn
+	return pusat + Vector2.RIGHT.rotated(sudut_asas) * jejari_spawn
 
 func _dalam_dinding(titik: Vector2) -> bool:
 	var dunia := get_viewport().find_world_2d() if get_viewport() != null else null
