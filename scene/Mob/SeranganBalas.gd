@@ -25,7 +25,8 @@ const JEJARI_TIBA: float = 26.0
 # Penyerang muncul dalam bulatan mengelilingi player (untuk ujian).
 @export var jejari_spawn: float = 90.0
 @export var jejari_kolider_spawn: float = 10.0
-@export var scene_penyerang: PackedScene = preload("res://scene/Mob/HuskLurker/HuskLurker.tscn")
+@export # Penyerang gelombang guna HuskLurker Raider (hijau, lendir kuning, tiada drop).
+var scene_penyerang: PackedScene = preload("res://scene/Mob/HuskLurkerRaider/HuskLurkerRaider.tscn")
 
 var _simpan_tick: float = 2.0
 
