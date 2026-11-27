@@ -13,6 +13,9 @@ var overlay_gelap: ColorRect
 # Panel SAVE/LOAD yang sedang dibuka (null kalau tiada).
 var _menu_simpan: SaveMenu = null
 
+# Nod tutorial pemain baharu (senarai semak + coach mark).
+var tutorial: Tutorial = null
+
 # Kamera khas untuk paparan peta penuh skrin.
 var kamera_peta: Camera2D
 # Overlay peta (CanvasLayer) yang membekukan permainan.
@@ -25,6 +28,7 @@ func _ready() -> void:
 	_bina_peta()
 	_bina_butang_menu()
 	_bina_butang_peta()
+	_bina_tutorial()
 	
 	# 2. Hubungkan isyarat daripada JSON
 	if not SaveManager.semua_data_siap_di_load.is_connected(proses_selesai_load_json):
@@ -207,6 +211,23 @@ func _togol_peta() -> void:
 		return
 	var hud := get_node_or_null("CanvasLayer") as CanvasLayer
 	peta.buka(kamera_peta, kamera_pemain, hud, (pemain as Node2D).global_position)
+
+# ==========================================
+# TUTORIAL PEMAIN BAHARU
+# ==========================================
+# Tutorial memadam dirinya sendiri kalau pemain sudah lepas tutorial
+# (status disimpan dalam user://tutorial.json).
+func _bina_tutorial() -> void:
+	if is_instance_valid(tutorial):
+		return
+	tutorial = Tutorial.new()
+	tutorial.tamat.connect(_tutorial_tamat)
+	add_child(tutorial)
+
+
+func _tutorial_tamat() -> void:
+	tutorial = null
+
 
 # ==========================================
 # MENU SAVE / LOAD / NEW GAME DALAM GAME (game pause)

@@ -183,6 +183,8 @@ func mula_permainan_baru() -> void:
 		inv_manager.inventory_dikemaskini.emit()
 	# Permainan baharu bermula tanpa threat/serangan balas.
 	StorThreat.reset()
+	# Permainan baharu juga bermakna tutorial bermula dari langkah pertama.
+	Tutorial.reset()
 
 # Pilih slot untuk dimuatkan oleh scene seterusnya (level_3 panggil load_game).
 func tetapkan_slot(id: String) -> void:
