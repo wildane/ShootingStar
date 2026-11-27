@@ -19,6 +19,8 @@ signal serangan_bermula(bilangan: int)
 const MASA_SERANGAN: float = 5.0
 # Jarak penyerang dianggap sudah tiba di pangkalan.
 const JEJARI_TIBA: float = 26.0
+# Skrip HUD (butang threat + menu info husk).
+const scene_hud_threat: Script = preload("res://scene/ui/ThreatHud.gd")
 
 # Pusat pangkalan pemain (kawasan bina di atas asteroid).
 @export var posisi_pangkalan: Vector2 = Vector2(141.0, 228.0)
@@ -32,11 +34,8 @@ var bilangan_husk_dibunuh: int = 0
 # Baki masa sehingga serangan; < 0 bermaksud tiada serangan dijadualkan.
 var baki_masa: float = -1.0
 
-var _masa_papar_notis: float = 0.0
-var _kanvas: CanvasLayer
-var _label: Label
-# Label kecil sentiasa nampak - untuk ujian sama ada autoload ini hidup.
-var _label_kira: Label
+# HUD threat: butang dalam group ikon kiri + menu info husk.
+var _hud: Node = null
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -53,28 +52,15 @@ func daftar_bunuh_husk(_posisi: Vector2 = Vector2.ZERO) -> void:
 		print("SeranganBalas: husk tumbang, serangan balas dalam %.0f saat" % MASA_SERANGAN)
 		serangan_dijadualkan.emit(MASA_SERANGAN)
 
-	_sedia_hud()
-	_kemas_kini_label()
-	_kemas_kira()
-	if is_instance_valid(_label):
-		_label.visible = true
+	_kemas_hud(0.0)
 
 func _process(delta: float) -> void:
-	_pastikan_hud()
-
 	if baki_masa >= 0.0:
 		baki_masa -= delta
 		if baki_masa <= 0.0:
 			_lancar_serangan()
-		else:
-			_kemas_kini_label()
 
-	if _masa_papar_notis > 0.0:
-		_masa_papar_notis -= delta
-		if _masa_papar_notis <= 0.0 and is_instance_valid(_label):
-			_label.visible = false
-
-	_kemas_kira()
+	_kemas_hud(delta)
 
 # Hantar semua penyerang terkumpul ke pangkalan.
 func _lancar_serangan() -> void:
@@ -83,7 +69,6 @@ func _lancar_serangan() -> void:
 	bilangan_husk_dibunuh = 0
 
 	if jumlah <= 0:
-		_sembunyi_label()
 		return
 
 	var scene_utama := get_tree().current_scene
@@ -119,7 +104,6 @@ func _lancar_serangan() -> void:
 
 	print("SeranganBalas: %d penyerang husk muncul dekat player di %s" % [jumlah, pusat])
 	serangan_bermula.emit(jumlah)
-	_tunjuk_notis("%d husk attacker%s coming for you!" % [jumlah, "" if jumlah == 1 else "s"])
 
 # Player pemain (group "Player" atau nod SpaceShip dalam scene semasa).
 func _cari_player() -> Node2D:
@@ -158,104 +142,18 @@ func _dalam_dinding(titik: Vector2) -> bool:
 	query.collide_with_bodies = true
 	return not dunia.direct_space_state.intersect_shape(query, 1).is_empty()
 
-# Pastikan label HUD sentiasa wujud dan berada dalam pokok scene.
-# Label milik scene level akan hilang bila tukar scene, jadi bina semula.
-func _pastikan_hud() -> void:
-	if _label_kira != null and is_instance_valid(_label_kira) and _label_kira.is_inside_tree():
-		return
-	if _kanvas != null and not is_instance_valid(_kanvas):
-		_kanvas = null
-	_label = null
-	_label_kira = null
-	_sedia_hud()
-	_kemas_kini_label()
-	_kemas_kira()
-
 # ---------- HUD ----------
+# Butang threat + menu dibina oleh ThreatHud. Ia membina semula butangnya
+# sendiri selepas tukar scene dan mengemas kini menu hanya bila dibuka.
 func _sedia_hud() -> void:
-	# Sudah wujud dan masih dalam scene - jangan bina label berganda.
-	if is_instance_valid(_label_kira) and _label_kira.is_inside_tree():
+	if _hud != null and is_instance_valid(_hud):
 		return
+	_hud = scene_hud_threat.new()
+	_hud.name = "ThreatHud"
+	add_child(_hud)
+	_hud.pasang(self)
 
-	# Utamakan CanvasLayer sedia ada dalam level (UI yang memang sudah nampak
-	# di skrin). Fallback: CanvasLayer sendiri pada layer 95.
-	var induk: Node = null
-	var scene_utama := get_tree().current_scene
-	if scene_utama != null:
-		induk = scene_utama.find_child("CanvasLayer", true, false)
-	if _kanvas != null and is_instance_valid(_kanvas):
-		# Buang kanvas sendiri yang lama supaya label tidak bertindan.
-		_kanvas.queue_free()
-		_kanvas = null
-	if induk == null:
-		_kanvas = CanvasLayer.new()
-		_kanvas.name = "HudSeranganBalas"
-		_kanvas.layer = 95
-		add_child(_kanvas)
-		induk = _kanvas
-
-	_label = Label.new()
-	_label.name = "LabelSeranganBalas"
-	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_label.add_theme_font_size_override("font_size", 10)
-	_label.add_theme_color_override("font_color", Color(1.0, 0.72, 0.45, 1.0))
-	_label.add_theme_color_override("font_outline_color", Color(0.02, 0.06, 0.09, 0.95))
-	_label.add_theme_constant_override("outline_size", 3)
-	# Isi seluruh skrin dan letak teks di tengah-tengah supaya tidak
-	# bertindih UI atas dan tidak terpotong oleh saiz label sifar.
-	_label.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_label.offset_left = 0.0
-	_label.offset_top = 0.0
-	_label.offset_right = 0.0
-	_label.offset_bottom = 0.0
-	_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_label.visible = false
-	induk.add_child(_label)
-
-	# Label kiraan kecil di kiri bawah - sentiasa nampak, tak perlu bunuh husk dulu.
-	_label_kira = Label.new()
-	_label_kira.name = "LabelKiraHusk"
-	_label_kira.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_label_kira.add_theme_font_size_override("font_size", 8)
-	_label_kira.add_theme_color_override("font_color", Color(0.6, 1.0, 0.7, 1.0))
-	_label_kira.add_theme_color_override("font_outline_color", Color(0.02, 0.06, 0.09, 0.95))
-	_label_kira.add_theme_constant_override("outline_size", 3)
-	_label_kira.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	_label_kira.offset_left = 4.0
-	_label_kira.offset_top = -20.0
-	_label_kira.offset_right = 276.0
-	_label_kira.offset_bottom = -4.0
-	_label_kira.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_label_kira.text = "Husk 0"
-	induk.add_child(_label_kira)
-
-func _kemas_kini_label() -> void:
-	if not is_instance_valid(_label):
-		return
-	var saat_baki: int = maxi(0, ceili(baki_masa))
-	var m: int = saat_baki / 60
-	var s: int = saat_baki % 60
-	_label.text = "Husk counterattack in %d:%02d  (%d attacker%s)" % [
-		m, s, bilangan_husk_dibunuh, "" if bilangan_husk_dibunuh == 1 else "s",
-	]
-
-func _kemas_kira() -> void:
-	if not is_instance_valid(_label_kira):
-		return
-	if baki_masa >= 0.0:
-		_label_kira.text = "Husk %d | wave %ds" % [bilangan_husk_dibunuh, maxi(0, ceili(baki_masa))]
-	else:
-		_label_kira.text = "Husk %d | wave off" % bilangan_husk_dibunuh
-
-func _tunjuk_notis(teks: String) -> void:
+func _kemas_hud(delta: float) -> void:
 	_sedia_hud()
-	if not is_instance_valid(_label):
-		return
-	_label.text = teks
-	_label.visible = true
-	_masa_papar_notis = 6.0
-
-func _sembunyi_label() -> void:
-	if is_instance_valid(_label):
-		_label.visible = false
+	if _hud != null and is_instance_valid(_hud):
+		_hud.kemas_kini(delta)
