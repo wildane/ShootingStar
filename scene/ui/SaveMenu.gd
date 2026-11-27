@@ -49,7 +49,7 @@ func _ready() -> void:
 	_bina_ui()
 	Sfx.pasang_klik(self)
 	# Panel ini hanya dicipta bila pemain membuka menu, jadi bunyi buka sesuai.
-	Sfx.mainkan("menu_buka", -9.0)
+	Sfx.mainkan("menu_buka", -7.0)
 	if mod_semasa == MOD_MENU:
 		_tunjuk_hub()
 	else:
@@ -204,7 +204,7 @@ func _tunjuk_hub() -> void:
 	_hub.visible = true
 
 func _buka_senarai(mod: int) -> void:
-	Sfx.mainkan("menu_buka", -9.0)
+	Sfx.mainkan("menu_buka", -7.0)
 	mod_semasa = mod
 	_dari_hub = true
 	_hub.visible = false
@@ -530,15 +530,15 @@ func _pindah_ke_level() -> void:
 
 func _papar_dialog() -> void:
 	_lapis_dialog.visible = true
-	Sfx.mainkan("menu_buka", -9.0)
+	Sfx.mainkan("menu_buka", -7.0)
 
 func _dialog_tidak() -> void:
-	Sfx.mainkan("menu_tutup", -9.0)
+	Sfx.mainkan("menu_tutup", -7.0)
 	_id_sasaran = ""
 	_lapis_dialog.visible = false
 
 func _tutup() -> void:
-	Sfx.mainkan("menu_tutup", -9.0)
+	Sfx.mainkan("menu_tutup", -7.0)
 	if _dari_hub:
 		_tunjuk_hub()
 		return

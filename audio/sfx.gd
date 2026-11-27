@@ -68,7 +68,7 @@ func pasang_klik(akar: Node) -> void:
 		pasang_klik(anak)
 
 func _bunyi_klik() -> void:
-	mainkan("klik", -9.0)
+	mainkan("klik", -7.0)
 
 func mainkan(nama: String, isipadu_db: float = -6.0, pic: float = 1.0) -> void:
 	if not _pemain.has(nama):
@@ -300,13 +300,10 @@ func _jana(nama: String) -> AudioStreamWAV:
 		return _jana_rancang_gagal()
 	if nama == "retak":
 		return _jana_retak()
-	if nama == "klik":
-		return _jana_klik()
-	# Tutup menu perabot: satu bunyi generik, sama untuk semua jenis menu.
-	if nama == "menu_tutup":
-		return _jana_menu_tutup()
-	if nama == "menu_buka":
-		return _jana_menu_buka()
+	# Bunyi UI menu (klik, buka, tutup) guna bunyi yang sama seperti membuka
+	# menu meja dapur, supaya semua menu berbunyi seragam.
+	if nama == "klik" or nama == "menu_buka" or nama == "menu_tutup":
+		return _jana_menu("menu_dapur")
 	# Menu perabot: satu bunyi per jenis (lihat _jana_menu).
 	if nama.begins_with("menu_"):
 		return _jana_menu(nama)
@@ -996,61 +993,6 @@ func _jana_retak() -> AudioStreamWAV:
 	return _ke_stream(s, false)
 
 
-# ---- Bunyi menu gaya game lama (8-bit) -------------------------------
-# Bunyi menu (klik, buka, tutup) sengaja dibuat seperti cip bunyi konsol lama:
-# gelombang segi empat, amplitud 4 tahap dan kadar sampel separuh.
-
-func _segi(fasa: float) -> float:
-	return 1.0 if fposmod(fasa, TAU) < PI else -1.0
-
-# Kuantisasi amplitud + pegang sampel (kadar sampel separuh) untuk rasa 8-bit.
-# Bunyi menu sengaja dikecilkan (0.35) supaya tidak menenggelamkan bunyi game.
-const ISIPADU_RETRO: float = 0.35
-
-func _retro(s: PackedFloat32Array, faktor: int = 2, tahap: float = 4.0) -> AudioStreamWAV:
-	for i in s.size():
-		s[i] = roundf(s[i] * tahap) / tahap
-	var keluar := PackedFloat32Array()
-	keluar.resize(ceili(float(s.size()) / float(faktor)))
-	for i in keluar.size():
-		keluar[i] = s[mini(i * faktor, s.size() - 1)] * ISIPADU_RETRO
-	return _ke_stream(keluar, false, int(KADAR / faktor))
-
-# ---- Bunyi klik butang menu: bip pendek gaya konsol lama ----------------
-# Tiga tahap nada turun (C6-G5-E5) dalam 0.10s, seperti menekan menu NES.
-func _jana_klik() -> AudioStreamWAV:
-	var tempoh: float = 0.10
-	var n: int = int(KADAR * tempoh)
-	var s := PackedFloat32Array()
-	s.resize(n)
-	var nota: Array = [1046.50, 783.99, 659.25]
-	var fasa: float = 0.0
-	for i in n:
-		var t: float = float(i) / float(KADAR)
-		var idx: int = mini(int(t / 0.033), nota.size() - 1)
-		fasa += TAU * float(nota[idx]) / float(KADAR)
-		s[i] = _segi(fasa) * (1.0 - t / tempoh) * 0.6
-	return _retro(s, 2, 4.0)
-
-# ---- Bunyi buka panel menu: arpeggio naik gaya game lama ---------------
-# C5-E5-G5-C6 bergerak, melawan menu_tutup yang turun.
-func _jana_menu_buka() -> AudioStreamWAV:
-	var nota: Array = [523.25, 659.25, 783.99, 1046.50]
-	var tempoh_nota: float = 0.075
-	var tempoh: float = tempoh_nota * float(nota.size())
-	var n: int = int(KADAR * tempoh)
-	var s := PackedFloat32Array()
-	s.resize(n)
-	var fasa: float = 0.0
-	for i in n:
-		var t: float = float(i) / float(KADAR)
-		var idx: int = mini(int(t / tempoh_nota), nota.size() - 1)
-		fasa += TAU * float(nota[idx]) / float(KADAR)
-		# Ekor ditarik pendek supaya tidak terpotong terasa.
-		var ekor: float = clampf((tempoh - t) / 0.05, 0.0, 1.0)
-		s[i] = _segi(fasa) * ekor * 0.55
-	return _retro(s, 2, 4.0)
-
 # ---- Bunyi menu perabot: satu tekstur per jenis -----------------------
 # Pendek (~0.34s) supaya buka/tutup menu berulang kali tidak menggangu.
 
@@ -1130,21 +1072,3 @@ func _jana_menu(nama: String) -> AudioStreamWAV:
 		return null
 	_normal(s, 0.85)
 	return _ke_stream(s, false)
-
-# ---- Bunyi tutup menu: arpeggio turun gaya game lama --------------------
-# G5-E5-C5-G4, satu bunyi generik untuk semua menu supaya konsisten.
-func _jana_menu_tutup() -> AudioStreamWAV:
-	var nota: Array = [783.99, 659.25, 523.25, 392.00]
-	var tempoh_nota: float = 0.07
-	var tempoh: float = tempoh_nota * float(nota.size())
-	var n: int = int(KADAR * tempoh)
-	var s := PackedFloat32Array()
-	s.resize(n)
-	var fasa: float = 0.0
-	for i in n:
-		var t: float = float(i) / float(KADAR)
-		var idx: int = mini(int(t / tempoh_nota), nota.size() - 1)
-		fasa += TAU * float(nota[idx]) / float(KADAR)
-		var ekor: float = clampf((tempoh - t) / 0.04, 0.0, 1.0)
-		s[i] = _segi(fasa) * ekor * 0.55
-	return _retro(s, 2, 4.0)

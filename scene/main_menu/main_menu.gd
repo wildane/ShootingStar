@@ -183,7 +183,7 @@ func _tema_dialog() -> Theme:
 
 # Buka dialog dalam salah satu mod: "pilihan", "nama" atau "hapus".
 func _buka_dialog(modo: String) -> void:
-	Sfx.mainkan("menu_buka", -9.0)
+	Sfx.mainkan("menu_buka", -7.0)
 	_dialog_modo = modo
 	_input_nama.visible = false
 	_butang_tutup.visible = modo == "pilihan"
@@ -233,7 +233,7 @@ func _on_nama_dihantar(_teks: String) -> void:
 		_on_nama_disahkan()
 
 func _tutup_dialog() -> void:
-	Sfx.mainkan("menu_tutup", -9.0)
+	Sfx.mainkan("menu_tutup", -7.0)
 	_dialog_modo = ""
 	_lapis_dialog.visible = false
 
@@ -270,7 +270,7 @@ func _ke_level() -> void:
 # HALAMAN MUAT SIMPANAN
 # ==========================================
 func _tunjuk_halaman_muat() -> void:
-	Sfx.mainkan("menu_buka", -9.0)
+	Sfx.mainkan("menu_buka", -7.0)
 	halaman_menu.visible = false
 	halaman_muat.visible = true
 	_segarkan_senarai()
@@ -278,7 +278,7 @@ func _tunjuk_halaman_muat() -> void:
 func _tunjuk_halaman_menu() -> void:
 	# Bunyi hanya bila kembali dari halaman Muat, bukan semasa scene dibuka.
 	if halaman_muat.visible:
-		Sfx.mainkan("menu_buka", -9.0)
+		Sfx.mainkan("menu_buka", -7.0)
 	halaman_muat.visible = false
 	halaman_menu.visible = true
 	butang_teruskan.disabled = not SaveManager.ada_simpanan()
