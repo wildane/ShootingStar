@@ -746,17 +746,18 @@ func _jana_baiki() -> AudioStreamWAV:
 	_normal(s, 0.85)
 	return _ke_stream(s, false)
 
-# ---- Bunyi roboh: ketukan papan kayu, keriut dan runtuhan -------------
+# ---- Bunyi roboh: runtuhan kayu (siap) + kerja mencungkil -------------
 
 # Tambah satu ketukan papan kayu ke dalam sampel s (dalam saat).
 # Kayu kedengaran "kayu" sebab partial-nya tak harmoni dan desir awal pendek.
-func _tambah_ketuk_kayu(s: PackedFloat32Array, mula: float, kuat: float) -> void:
+func _tambah_ketuk_kayu(s: PackedFloat32Array, mula: float, kuat: float,
+		f_dasar: float = 190.0) -> void:
 	var n: int = s.size()
 	var i0: int = int(mula * float(KADAR))
 	if i0 >= n or kuat <= 0.0:
 		return
 	var panjang: int = int(0.14 * float(KADAR))
-	var f1: float = 190.0 + randf_range(-16.0, 16.0)
+	var f1: float = f_dasar + randf_range(-16.0, 16.0)
 	var f2: float = f1 * 2.43
 	var f3: float = f1 * 3.87
 	var fasa1: float = 0.0
@@ -778,52 +779,77 @@ func _tambah_ketuk_kayu(s: PackedFloat32Array, mula: float, kuat: float) -> void
 
 # Roboh siap: papan jatuh berperingkat, bukan nada chime.
 func _jana_roboh_siap() -> AudioStreamWAV:
-	var tempoh: float = 0.60
+	var tempoh: float = 0.70
 	var n: int = int(KADAR * tempoh)
 	var s := PackedFloat32Array()
 	s.resize(n)
-	# Papan runtuh satu demi satu, makin perlahan dan makin perlahan hilang.
-	var masa_ketuk: Array = [0.0, 0.05, 0.11, 0.17, 0.24, 0.32, 0.41, 0.50]
-	var kuat_ketuk: Array = [1.0, 0.8, 0.9, 0.62, 0.55, 0.42, 0.3, 0.2]
+	# Papan besar patah berderai deras di awal, kemudian serpihan jatuh satu-satu.
+	var masa_ketuk: Array = [0.0, 0.022, 0.045, 0.07, 0.10, 0.13, 0.165, 0.20,
+		0.25, 0.31, 0.38, 0.46, 0.55]
+	var kuat_ketuk: Array = [1.0, 0.95, 0.9, 0.85, 0.8, 0.72, 0.66, 0.6,
+		0.55, 0.45, 0.36, 0.26, 0.18]
+	var besar: Array = [0, 0, 1, 1, 3, 3, 5, 5, 8, 8, 10, 12, 12]
 	for i in masa_ketuk.size():
-		_tambah_ketuk_kayu(s, float(masa_ketuk[i]), float(kuat_ketuk[i]))
-	# Dentuman berat + keriut kayu menegang + habuk yang turun.
+		# Papan yang lebih besar bergetar lebih rendah (bunyi lebih berat).
+		_tambah_ketuk_kayu(s, float(masa_ketuk[i]), float(kuat_ketuk[i]),
+			190.0 - 6.0 * float(besar[i]))
+	# Dua dentuman berat (struktur tumbang), gemuruh kayu dan habuk.
 	var fasa_dentum: float = 0.0
+	var fasa_dentum2: float = 0.0
 	var fasa_keriut: float = 0.0
+	var y_gemuruh: float = 0.0
+	var a_gemuruh: float = clampf(TAU * 320.0 / float(KADAR), 0.0, 1.0)
 	for i in n:
 		var t: float = float(i) / float(KADAR)
-		fasa_dentum += TAU * lerpf(130.0, 52.0, clampf(t / 0.22, 0.0, 1.0)) / float(KADAR)
-		var dentum: float = sin(fasa_dentum) * exp(-t * 12.0) * 0.42
-		# Keriut: nada rendah bergeliat, amplitud bergerigi macam kayu menegang.
-		fasa_keriut += TAU * (165.0 + 35.0 * sin(TAU * 6.0 * t)) / float(KADAR)
-		var gerigi: float = 0.5 + 0.5 * sin(TAU * 23.0 * t)
-		var keriut: float = sin(fasa_keriut) * gerigi * exp(-t * 6.0) * 0.16
-		var habuk: float = randf_range(-1.0, 1.0) * exp(-t * 7.0) * 0.22
-		s[i] += dentum + keriut + habuk
-	_lulus_rendah(s, 6000.0)
-	_gema(s, 0.05, 0.16)
-	_normal(s, 0.94)
+		fasa_dentum += TAU * lerpf(120.0, 46.0, clampf(t / 0.16, 0.0, 1.0)) / float(KADAR)
+		var dentum: float = sin(fasa_dentum) * exp(-t * 10.0) * 0.5
+		var t2: float = t - 0.09
+		var dentum2: float = 0.0
+		if t2 > 0.0:
+			fasa_dentum2 += TAU * lerpf(95.0, 40.0, clampf(t2 / 0.18, 0.0, 1.0)) / float(KADAR)
+			dentum2 = sin(fasa_dentum2) * exp(-t2 * 11.0) * 0.35
+		# Gemuruh kayu patah: desir rendah yang hilang perlahan.
+		y_gemuruh += a_gemuruh * (randf_range(-1.0, 1.0) - y_gemuruh)
+		var gemuruh: float = y_gemuruh * exp(-t * 5.0) * 1.6
+		# Keriut kayu menegang sebelum patah.
+		fasa_keriut += TAU * (150.0 + 40.0 * sin(TAU * 5.0 * t)) / float(KADAR)
+		var gerigi: float = 0.5 + 0.5 * sin(TAU * 21.0 * t)
+		var keriut: float = sin(fasa_keriut) * gerigi * exp(-t * 4.0) * 0.14
+		# Habuk/serpihan yang masih turun di hujung.
+		var habuk: float = randf_range(-1.0, 1.0) * exp(-t * 9.0) * 0.16
+		s[i] += dentum + dentum2 + gemuruh + keriut + habuk
+	_lulus_rendah(s, 7000.0)
+	_gema(s, 0.045, 0.2)
+	_normal(s, 0.96)
 	return _ke_stream(s, false)
 
-# Kerja roboh (diulang setiap JARAK_BUNYI_KERJA): ketukan mencungkil papan.
+# ---- Bunyi kerja roboh: retak dan hancur (kekal macam asal) ----------
+
 func _jana_roboh() -> AudioStreamWAV:
 	var tempoh: float = 0.30
 	var n: int = int(KADAR * tempoh)
 	var s := PackedFloat32Array()
 	s.resize(n)
-	# Dua ketukan pendek: mencungkil/pukul papan, bukan letupan.
-	_tambah_ketuk_kayu(s, 0.0, 0.9)
-	_tambah_ketuk_kayu(s, 0.085, 0.65)
-	# Keriut halus + serpihan kayu di latar.
-	var fasa_keriut: float = 0.0
+	var a_tengah: float = clampf(TAU * 1400.0 / float(KADAR), 0.0, 1.0)
+	var a_rendah: float = clampf(TAU * 220.0 / float(KADAR), 0.0, 1.0)
+	var y_tengah: float = 0.0
+	var y_rendah: float = 0.0
+	var fasa_kerik: float = 0.0
 	for i in n:
 		var t: float = float(i) / float(KADAR)
-		fasa_keriut += TAU * (150.0 + 30.0 * sin(TAU * 8.0 * t)) / float(KADAR)
-		var keriut: float = sin(fasa_keriut) * exp(-t * 10.0) * 0.12
-		var serpihan: float = randf_range(-1.0, 1.0) * exp(-t * 26.0) * 0.16
-		s[i] += keriut + serpihan
-	_lulus_rendah(s, 6200.0)
-	_normal(s, 0.9)
+		var putih: float = randf_range(-1.0, 1.0)
+		y_tengah += a_tengah * (putih - y_tengah)
+		y_rendah += a_rendah * (putih - y_rendah)
+		# Retak: noise pecah pendek.
+		var retak: float = putih * exp(-t * 120.0) * 0.75
+		# Hancur: jalur pertengahan yang reput perlahan.
+		var hancur: float = (y_tengah - y_rendah) * exp(-t * 18.0) * 1.2
+		# Struktur menegang (kayu/logam berderit).
+		fasa_kerik += TAU * (240.0 + 120.0 * sin(TAU * 7.0 * t)) / float(KADAR)
+		var kerik: float = sin(fasa_kerik) * exp(-t * 14.0) * 0.18
+		s[i] = retak + hancur + kerik
+	_lulus_rendah(s, 4800.0)
+	_normal(s, 0.88)
 	return _ke_stream(s, false)
 
 # ---- Bunyi siap bina/baiki: dua nada + dentuman kecil -----------------
