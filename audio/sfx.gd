@@ -1173,53 +1173,76 @@ func _jana_langkah_batu() -> AudioStreamWAV:
 	_normal(s, 0.75)
 	return _ke_stream(s, false)
 
-# Langkah atas plat besi: hentakan but (bunyi putih sangat pendek) + resonans
-# plat berbilang mod bukan harmonik + denyut rendah dek. Dua versi supaya
-# langkah berturut-turut tidak berbunyi sama.
+# Langkah atas plat besi. Ikut model fizikal bunyi langkah (rangsangan pendek
+# + bank resonator), bukan beberapa sinus tulen yang berdering lama — sinus
+# panjang itulah yang membuat bunyi terasa "berharmoni". Rangsangan bunyi putih
+# mengetuk 14 mod plat tak harmonik yang makin rapat pada frekuensi tinggi dan
+# redam lebih cepat pada frekuensi tinggi.
 func _jana_langkah_logam(versi: int = 0) -> AudioStreamWAV:
-	var tempoh: float = 0.34
+	var tempoh: float = 0.26
 	var n: int = int(KADAR * tempoh)
 	var s := PackedFloat32Array()
 	s.resize(n)
-	# Mod resonans plat besi (bukan gandaan bulat = terasa logam, bukan nada).
-	var mod: Array = [1860.0, 2790.0, 4130.0, 5320.0, 6840.0]
-	var amp: Array = [0.42, 0.30, 0.20, 0.13, 0.08]
-	var redam: Array = [8.0, 11.0, 15.0, 21.0, 30.0]
-	# Versi kedua: plat sedikit berbeza (saiz/kualiti kimpalan lain).
-	var ubah: float = 1.0 if versi == 0 else 1.07
-	var masa_dua: float = 0.046 if versi == 0 else 0.053
-	var amp_dua: float = 0.40 if versi == 0 else 0.30
-	var fasa_mod := PackedFloat32Array()
-	fasa_mod.resize(mod.size())
+	# Rangsangan/hentakan: bunyi putih melalui laluan tinggi (tapak kasut).
 	var a_but: float = clampf(TAU * 6500.0 / float(KADAR), 0.0, 1.0)
+	var a_tanah: float = clampf(TAU * 240.0 / float(KADAR), 0.0, 1.0)
 	var y_but: float = 0.0
-	var fasa_badan: float = 0.0
+	var y_tanah: float = 0.0
+	# Mod plat besi: tak harmonik (nisbah 1.25, bukan 2) dan makin rapat.
+	# Detune kecil supaya tiada dua mod sama kekerapan (elak terasa ber-nada).
+	var detune: Array = [1.0, 1.07, 0.94, 1.13, 0.88, 1.02, 1.17,
+		0.91, 1.09, 0.97, 1.15, 0.86, 1.04, 1.11]
+	var f0: float = 700.0 if versi == 0 else 748.0
+	var nisbah: float = 1.235 if versi == 0 else 1.228
+	# Hentakan kedua: hujung kaki/hujung kasut jatuh selepas tumit.
+	var t2: float = 0.043 if versi == 0 else 0.051
+	var amp2: float = 0.45 if versi == 0 else 0.34
+	var bil: int = detune.size()
+	var mod := PackedFloat32Array()
+	var amp := PackedFloat32Array()
+	var susut := PackedFloat32Array()
+	var fasa := PackedFloat32Array()
+	var fasa2 := PackedFloat32Array()
+	var e1 := PackedFloat32Array()
+	var e2 := PackedFloat32Array()
+	for arr in [mod, amp, susut, fasa, fasa2, e1, e2]:
+		arr.resize(bil)
+	for k in bil:
+		var f: float = minf(f0 * pow(nisbah, float(k)) * float(detune[k]), 9600.0)
+		mod[k] = f
+		amp[k] = pow(0.80, float(k))
+		# Mod tinggi kehilangan tenaga lebih cepat (redam ikut frekuensi).
+		susut[k] = exp(-(40.0 + f * 0.014) / float(KADAR))
+		fasa[k] = 0.0
+		fasa2[k] = TAU * f * t2
+		e1[k] = 1.0
+		e2[k] = 0.0
+	var mula2: int = int(KADAR * t2)
 	for i in n:
 		var t: float = float(i) / float(KADAR)
 		var putih: float = randf_range(-1.0, 1.0)
 		y_but += a_but * (putih - y_but)
-		# Dering plat: jumlah beberapa mod yang redam pada kadar berbeza.
+		y_tanah += a_tanah * (putih - y_tanah)
+		# Dering plat: setiap mod redam sendiri, dirangsang oleh hentakan.
 		var dering: float = 0.0
-		for k in mod.size():
-			var f: float = float(mod[k]) * ubah
-			fasa_mod[k] += TAU * f / float(KADAR)
-			dering += sin(fasa_mod[k]) * float(amp[k]) * exp(-t * float(redam[k]))
-		# Hentakan but: hujung kasut mencecah plat (bunyi putih pendek).
-		var but: float = (putih - y_but) * exp(-t * 330.0) * 0.8
-		# Sentuhan kedua: hujung kaki/hujung kasut jatuh selepas tumit.
-		var but_dua: float = 0.0
-		if t > masa_dua:
-			but_dua = (putih - y_but) * exp(-(t - masa_dua) * 430.0) * amp_dua
-		# Denyut rendah: plat/struktur dek bergetar selepas hentakan.
-		fasa_badan += TAU * lerpf(150.0, 92.0, clampf(t / 0.09, 0.0, 1.0)) * ubah / float(KADAR)
-		var badan: float = sin(fasa_badan) * exp(-t * 27.0) * 0.5
-		s[i] = but + but_dua + dering + badan
-	_lulus_rendah(s, 9000.0)
-	# Gema pendek dua lapis: dek besi tertutup, bukan ruang terbuka.
-	_gema(s, 0.034, 0.16)
-	_gema(s, 0.071, 0.09)
-	_pudar_hujung(s, 0.045)
-	_normal(s, 0.8)
+		for k in bil:
+			fasa[k] += TAU * mod[k] / float(KADAR)
+			if i >= mula2:
+				if e2[k] == 0.0:
+					e2[k] = amp2
+				e2[k] *= susut[k]
+			dering += (sin(fasa[k]) * e1[k] + sin(fasa[k] - fasa2[k]) * e2[k]) * amp[k]
+			e1[k] *= susut[k]
+		# Sisa bunyi: hentakan pendek + geseran halus tapak kasut pada plat.
+		var hentak: float = (putih - y_but) * (exp(-t * 520.0) * 0.6 + exp(-t * 70.0) * 0.16)
+		if i >= mula2:
+			hentak += (putih - y_but) * exp(-(t - t2) * 600.0) * amp2 * 0.9
+		# Denyut struktur dek di bawah plat: bunyi putih rendah, bukan nada.
+		var struktur: float = y_tanah * exp(-t * 48.0) * 2.2
+		s[i] = dering * 0.8 + hentak + struktur
+	_lulus_rendah(s, 8500.0)
+	_pudar_hujung(s, 0.03)
+	_normal(s, 0.85)
 	return _ke_stream(s, false)
 
 # ---- Bunyi jet pack: desiran udara + raungan pembakaran + gemuruh ---------
