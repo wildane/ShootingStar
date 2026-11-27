@@ -35,6 +35,8 @@ var baki_masa: float = -1.0
 var _masa_papar_notis: float = 0.0
 var _kanvas: CanvasLayer
 var _label: Label
+# Label kecil sentiasa nampak - untuk ujian sama ada autoload ini hidup.
+var _label_kira: Label
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -53,6 +55,7 @@ func daftar_bunuh_husk(_posisi: Vector2 = Vector2.ZERO) -> void:
 
 	_sedia_hud()
 	_kemas_kini_label()
+	_kemas_kira()
 	if is_instance_valid(_label):
 		_label.visible = true
 
@@ -69,6 +72,8 @@ func _process(delta: float) -> void:
 		if _masa_papar_notis <= 0.0 and is_instance_valid(_label):
 			_label.visible = false
 
+	_kemas_kira()
+
 # Hantar semua penyerang terkumpul ke pangkalan.
 func _lancar_serangan() -> void:
 	baki_masa = -1.0
@@ -80,9 +85,15 @@ func _lancar_serangan() -> void:
 		return
 
 	var scene_utama := get_tree().current_scene
-	var bekas: Node = scene_utama.get_node_or_null("Y_Sort_Container") if scene_utama != null else null
+	var bekas: Node = null
+	if scene_utama != null:
+		bekas = scene_utama.get_node_or_null("Y_Sort_Container")
+		# Kalau scene ini tiada Y_Sort_Container, guna scene utama terus.
+		if bekas == null:
+			bekas = scene_utama
 	if bekas == null or scene_penyerang == null:
 		# Bukan dalam level permainan (contoh: menu) - cuba lagi sekejap lagi.
+		print("SeranganBalas: tiada scene/penyerang, cuba lagi (scene=", scene_utama, ")")
 		bilangan_husk_dibunuh = jumlah
 		baki_masa = 1.0
 		return
@@ -106,7 +117,7 @@ func _lancar_serangan() -> void:
 
 	print("SeranganBalas: %d penyerang husk muncul dekat player di %s" % [jumlah, pusat])
 	serangan_bermula.emit(jumlah)
-	_tunjuk_notis("%d husk attacker%s heading to your base!" % [jumlah, "" if jumlah == 1 else "s"])
+	_tunjuk_notis("%d husk attacker%s coming for you!" % [jumlah, "" if jumlah == 1 else "s"])
 
 # Player pemain (group "Player" atau nod SpaceShip dalam scene semasa).
 func _cari_player() -> Node2D:
@@ -174,6 +185,23 @@ func _sedia_hud() -> void:
 	_label.visible = false
 	_kanvas.add_child(_label)
 
+	# Label kiraan kecil di kiri bawah - sentiasa nampak, tak perlu bunuh husk dulu.
+	_label_kira = Label.new()
+	_label_kira.name = "LabelKiraHusk"
+	_label_kira.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_label_kira.add_theme_font_size_override("font_size", 8)
+	_label_kira.add_theme_color_override("font_color", Color(0.6, 1.0, 0.7, 1.0))
+	_label_kira.add_theme_color_override("font_outline_color", Color(0.02, 0.06, 0.09, 0.95))
+	_label_kira.add_theme_constant_override("outline_size", 3)
+	_label_kira.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_label_kira.offset_left = 4.0
+	_label_kira.offset_top = -20.0
+	_label_kira.offset_right = 276.0
+	_label_kira.offset_bottom = -4.0
+	_label_kira.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_label_kira.text = "Husk 0"
+	_kanvas.add_child(_label_kira)
+
 func _kemas_kini_label() -> void:
 	if not is_instance_valid(_label):
 		return
@@ -183,6 +211,14 @@ func _kemas_kini_label() -> void:
 	_label.text = "Husk counterattack in %d:%02d  (%d attacker%s)" % [
 		m, s, bilangan_husk_dibunuh, "" if bilangan_husk_dibunuh == 1 else "s",
 	]
+
+func _kemas_kira() -> void:
+	if not is_instance_valid(_label_kira):
+		return
+	if baki_masa >= 0.0:
+		_label_kira.text = "Husk %d | wave %ds" % [bilangan_husk_dibunuh, maxi(0, ceili(baki_masa))]
+	else:
+		_label_kira.text = "Husk %d | wave off" % bilangan_husk_dibunuh
 
 func _tunjuk_notis(teks: String) -> void:
 	_sedia_hud()
