@@ -848,8 +848,11 @@ func hancurkan(g: Vector2i) -> bool:
 	if not _tile.has(g):
 		return false
 	var jenis := int(_tile[g])
+	var pos := to_global(_tengah_sel(g))
 	_buang_tile(g)
 	PowerGrid.tanda_kotor_semua("grid_hancur")
+	# Struktur yang runtuh kena serang guna bunyi roboh yang sama macam nyahbina.
+	_bunyi("roboh_siap", pos)
 	queue_redraw()
 	print("BuildGrid: %s di %s musnah diserang husk" % [NAMA_JENIS[jenis], g])
 	return true

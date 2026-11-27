@@ -306,6 +306,11 @@ func _serang_nod(nod: Node) -> void:
 	if baki <= 0:
 		nod.set_meta("hp_serangan", 0)
 		print("Raider: musnahkan ", nod.name)
+		# Perabot/binaan runtuh kena serang: bunyi roboh sama macam nyahbina.
+		var pos := Vector2.ZERO
+		if nod is Node2D:
+			pos = (nod as Node2D).global_position
+		Sfx.mainkan_di("roboh_siap", pos, -7.0)
 		nod.queue_free()
 		return
 	nod.set_meta("hp_serangan", baki)
