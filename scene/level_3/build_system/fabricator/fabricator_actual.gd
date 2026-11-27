@@ -216,6 +216,7 @@ func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int):
 		if menu_ui:
 			if menu_ui.visible:
 				_tutup_menu()
+				Sfx.mainkan("menu_tutup", -7.0)
 			else:
 				# Tiada menu depan - menu terus buka dengan senarai kad resipi.
 				menu_ui.visible = true
@@ -709,6 +710,7 @@ func _tutup_menu() -> void:
 	if menu_ui: menu_ui.hide()
 
 func _on_butang_tutup_pressed(): 
+	Sfx.mainkan("menu_tutup", -7.0)
 	_tutup_menu()
 
 # Kos bina ikut Fabricator_Preview.tscn: 5 Basic Iron Ore.

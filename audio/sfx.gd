@@ -51,6 +51,7 @@ func _ready() -> void:
 	_sedia("menu_solar")
 	_sedia("menu_inverter")
 	_sedia("menu_kajian")
+	_sedia("menu_tutup")
 	_aliran["teleport"] = _jana_teleport()
 	_mula_ambien()
 	_mula_ambien_kawasan()
@@ -286,6 +287,9 @@ func _jana(nama: String) -> AudioStreamWAV:
 		return _jana_rancang_gagal()
 	if nama == "retak":
 		return _jana_retak()
+	# Tutup menu perabot: satu bunyi generik, sama untuk semua jenis menu.
+	if nama == "menu_tutup":
+		return _jana_menu_tutup()
 	# Menu perabot: satu bunyi per jenis (lihat _jana_menu).
 	if nama.begins_with("menu_"):
 		return _jana_menu(nama)
@@ -1052,5 +1056,33 @@ func _jana_menu(nama: String) -> AudioStreamWAV:
 		_lulus_rendah(s, 7000.0)
 	else:
 		return null
+	_normal(s, 0.85)
+	return _ke_stream(s, false)
+
+# ---- Bunyi tutup menu perabot: satu bunyi generik untuk semua menu -------
+# Nada turun lembut + desir pendek (~0.2s), sama untuk semua perabot supaya
+# bunyi "menu ditutup" konsisten.
+func _jana_menu_tutup() -> AudioStreamWAV:
+	var tempoh: float = 0.20
+	var n: int = int(KADAR * tempoh)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var fasa: float = 0.0
+	for i in n:
+		var t: float = float(i) / float(KADAR)
+		fasa += TAU * lerpf(640.0, 420.0, clampf(t / 0.16, 0.0, 1.0)) / float(KADAR)
+		var sampul: float = (1.0 - exp(-t * 90.0)) * exp(-t * 22.0)
+		s[i] += sin(fasa) * sampul * 0.55
+		s[i] += sin(fasa * 2.0) * sampul * 0.16
+	# Desir halus yang meluncur turun, macam menu ditutup.
+	var desir := PackedFloat32Array()
+	desir.resize(n)
+	for i in n:
+		var td: float = float(i) / float(KADAR)
+		desir[i] = randf_range(-1.0, 1.0) * (1.0 - exp(-td * 60.0)) * exp(-td * 26.0)
+	_lulus_jalur(desir, 1500.0, 1.4)
+	for i in n:
+		s[i] += desir[i] * 0.5
+	_lulus_rendah(s, 4800.0)
 	_normal(s, 0.85)
 	return _ke_stream(s, false)

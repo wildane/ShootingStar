@@ -921,6 +921,9 @@ func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -
 		return
 	masa_ketikan_terakhir = masa_sekarang
 	if menu_ui:
+		# Menu yang sedang terbuka akan ditutup: mainkan bunyi tutup generik.
+		if menu_ui.visible:
+			Sfx.mainkan("menu_tutup", -7.0)
 		menu_ui.visible = not menu_ui.visible
 		if menu_ui.visible:
 			Sfx.mainkan("menu_relau", -7.0)
@@ -928,6 +931,7 @@ func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -
 	get_viewport().set_input_as_handled()
 
 func _on_butang_tutup_pressed() -> void:
+	Sfx.mainkan("menu_tutup", -7.0)
 	if menu_ui:
 		menu_ui.hide()
 
