@@ -2,6 +2,8 @@ extends StaticBody2D
 
 const TemaPerabot := preload("res://scene/ui/TemaPerabot.gd")
 const PowerGridRef := preload("res://scene/level_3/build_system/PowerInverter/PowerGrid.gd")
+const REPAIR := preload("res://scene/level_3/build_system/RepairStruktur.gd")
+const PANEL_REPAIR := preload("res://scene/level_3/build_system/PanelRepair.gd")
 
 @onready var sprite = get_node_or_null("Sprite2D")
 @onready var area_penderia = get_node_or_null("Area2D")
@@ -30,6 +32,9 @@ var bacaan_kuasa: Label = null
 var player_dekat: bool = false
 var masa_ketikan_terakhir: float = 0.0
 const SELA_MASA_MINIMUM: float = 0.2
+
+## Panel baiki di atas butang menu (kelihatan hanya bila inverter rosak).
+var _panel_repair = null
 
 var masa_semakan_terakhir: float = 0.0
 const SELA_MASA_SEMAKAN: float = 0.15
@@ -72,6 +77,7 @@ func _ready():
 		TemaPerabot.pasang(menu_ui)
 	if bt_tutup: bt_tutup.pressed.connect(_on_butang_tutup_pressed)
 	if bt_demo: bt_demo.pressed.connect(_on_butang_demolish_pressed)
+	_bina_panel_repair()
 
 	_grid_kotor = true
 	_kemas_kini_paparan_skrin()
@@ -184,11 +190,31 @@ func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int):
 		var menu_ui = get_node_or_null("CanvasLayer/MenuUI")
 		if menu_ui:
 			menu_ui.visible = !menu_ui.visible
+			if menu_ui.visible:
+				_segarkan_repair()
 		get_viewport().set_input_as_handled()
 
 func _on_butang_tutup_pressed():
 	var menu_ui = get_node_or_null("CanvasLayer/MenuUI")
 	if menu_ui: menu_ui.hide()
+
+# Panel baiki: bahan repair + butang Repair di atas butang tutup/demolish.
+func _bina_panel_repair() -> void:
+	var menu_ui = get_node_or_null("CanvasLayer/MenuUI")
+	if menu_ui == null:
+		return
+	var vbox := menu_ui.get_node_or_null("VBoxContainer")
+	if vbox == null:
+		return
+	_panel_repair = PANEL_REPAIR.new()
+	vbox.add_child(_panel_repair)
+	vbox.move_child(_panel_repair, 1)
+	_panel_repair.sediakan(self)
+	_panel_repair.selesai_baiki.connect(_segarkan_repair)
+
+func _segarkan_repair() -> void:
+	if is_instance_valid(_panel_repair):
+		_panel_repair.segarkan()
 
 # Kos bina ikut PowerInverter_Preview.tscn: 2 Meteorite Ice + 3 Basic Iron Ore.
 func kos_bina() -> Array:
@@ -199,7 +225,9 @@ func kos_bina() -> Array:
 
 func _on_butang_demolish_pressed():
 	# Pulangkan bahan bina (popup "+N <nama>") sebelum inverter dibuang.
-	BahanBinaan.pulangkan(self)
+	# Inverter yang rosak dirobohkan tanpa pulangan bahan langsung.
+	if not REPAIR.rosak(self):
+		BahanBinaan.pulangkan(self)
 	_kemas_kini_status_perabot_tiada_kuasa()
 	_bebaskan_semua_solar_milik_saya()
 	player_dekat = false

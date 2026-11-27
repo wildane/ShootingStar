@@ -151,6 +151,28 @@ func _jalan() -> void:
 	meja_rosak.call("_on_butang_demolish_pressed")
 	_semak(inv.senarai_barang.is_empty(), "meja rosak yang dirobohkan tak pulangkan bahan langsung")
 
+	# --- 8b. Solar & inverter: penuh pulangkan bahan, rosak tak pulangkan ---
+	var senarai_kos: Array = [
+		{"nama": "Solar", "laluan": "res://scene/level_3/build_system/SolarModule/SolarModuleActual.tscn", "id": "item_0003", "banyak": 1},
+		{"nama": "Inverter", "laluan": "res://scene/level_3/build_system/PowerInverter/PowerInverterActual.tscn", "id": "item_0002", "banyak": 2},
+	]
+	for data_solar in senarai_kos:
+		inv.senarai_barang.clear()
+		var modul_penuh: Node2D = load(str(data_solar["laluan"])).instantiate()
+		akar.add_child(modul_penuh)
+		modul_penuh.call("_on_butang_demolish_pressed")
+		_semak(inv.bilangan_item(str(data_solar["id"])) == int(data_solar["banyak"]),
+			"%s penuh yang dirobohkan pulangkan semua bahan bina" % str(data_solar["nama"]))
+
+		inv.senarai_barang.clear()
+		var modul_rosak: Node2D = load(str(data_solar["laluan"])).instantiate()
+		akar.add_child(modul_rosak)
+		modul_rosak.set_meta("hp_sasaran_maks", 2)
+		modul_rosak.set_meta("hp_serangan", 1)
+		modul_rosak.call("_on_butang_demolish_pressed")
+		_semak(inv.senarai_barang.is_empty(),
+			"%s rosak yang dirobohkan tak pulangkan bahan langsung" % str(data_solar["nama"]))
+
 	# --- 9. Menu setiap perabot: panel Repair ada, butang craft mati bila rosak ---
 	var senarai_menu: Array = [
 		{"nama": "Kitchen", "laluan": "res://scene/level_3/build_system/kitchen_table/KitchenTable_Actual.tscn", "panel": "CanvasLayer/Pusat/MenuUI/VBoxContainer/PanelRepair", "kemas": "_kemas_kini_ui", "butang": "CanvasLayer/Pusat/MenuUI/VBoxContainer/ButangCraft"},
@@ -158,6 +180,8 @@ func _jalan() -> void:
 		{"nama": "Fabricator", "laluan": "res://scene/level_3/build_system/fabricator/Fabricator_Actual.tscn", "panel": "CanvasLayer/MenuUI/VBoxContainer/PanelRepair", "kemas": "_kemas_kini_craft", "butang": "CanvasLayer/MenuUI/VBoxContainer/KandunganCraftDron/ButangCraft"},
 		{"nama": "Research", "laluan": "res://scene/level_3/build_system/research_table/ResearchTable_Actual.tscn", "panel": "CanvasLayer/MenuUI/VBoxContainer/PanelRepair", "kemas": "_segarkan_repair", "butang": ""},
 		{"nama": "Charging", "laluan": "res://scene/level_3/build_system/ChargingStation/ChargingStationActual.tscn", "panel": "CanvasLayer/MenuUI/VBoxContainer/PanelRepair", "kemas": "_segarkan_repair", "butang": ""},
+		{"nama": "Solar", "laluan": "res://scene/level_3/build_system/SolarModule/SolarModuleActual.tscn", "panel": "CanvasLayer/MenuUI/VBoxContainer/PanelRepair", "kemas": "_segarkan_repair", "butang": ""},
+		{"nama": "Inverter", "laluan": "res://scene/level_3/build_system/PowerInverter/PowerInverterActual.tscn", "panel": "CanvasLayer/MenuUI/VBoxContainer/PanelRepair", "kemas": "_segarkan_repair", "butang": ""},
 	]
 	for ujian in senarai_menu:
 		inv.senarai_barang.clear()
