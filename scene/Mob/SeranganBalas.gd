@@ -148,7 +148,11 @@ func _sedia_hud() -> void:
 	_label.add_theme_color_override("font_outline_color", Color(0.02, 0.06, 0.09, 0.95))
 	_label.add_theme_constant_override("outline_size", 3)
 	_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	# Preset TOP_WIDE memberi tinggi 0; beri tinggi sebenar supaya teks
+	# tidak terpotong (tanpa offset_bottom label jadi tidak nampak langsung).
 	_label.offset_top = 44.0
+	_label.offset_bottom = 62.0
+	_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_label.visible = false
 	_kanvas.add_child(_label)
 
