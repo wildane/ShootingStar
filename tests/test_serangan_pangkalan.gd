@@ -157,11 +157,27 @@ func _jalan() -> void:
 		_semak(not grid.boleh_baiki(Vector2i(22, 12)), "dinding penuh tiada dalam senarai baiki")
 		_semak(not grid.baiki_tile(Vector2i(9, 9)), "baiki tile kosong ditolak")
 
-		# Mod Repair (butang di menu rumah) guna baiki_tile yang sama.
-		grid.kena_serangan(Vector2i(22, 12))
+		# Mod Repair: tap = rancangan biru, kerja jalan bila player dekat sahaja.
+		grid.kena_serangan(Vector2i(22, 12))  # dinding 2/3
 		grid._mod = 4  # JENIS_REPAIR
-		_semak(grid.letak(Vector2i(22, 12)), "mod Repair: tap tile rosak membaiki terus")
-		_semak(grid.hp_tile(Vector2i(22, 12)) == 3, "mod Repair: HP dinding pulih penuh")
+		var besi_sebelum_tanda: int = int(inv.bilangan_item("item_0001"))
+		_semak(grid.letak(Vector2i(22, 12)), "mod Repair: tap tile rosak buat rancangan baiki (biru)")
+		_semak(grid.hp_tile(Vector2i(22, 12)) == 2, "rancangan baiki belum memulihkan HP")
+		_semak(int(inv.bilangan_item("item_0001")) == besi_sebelum_tanda,
+			"besi belum ditolak semasa merancang baiki")
+		var pos_baiki: Vector2 = grid.to_global(grid._tengah_sel(Vector2i(22, 12)))
+		grid._kemas_kini_baiki(2.0, grid.to_global(grid._tengah_sel(Vector2i(30, 30))))
+		_semak(grid.hp_tile(Vector2i(22, 12)) == 2, "player jauh: baiki tak jalan")
+		grid._kemas_kini_baiki(2.0, pos_baiki)
+		_semak(grid.hp_tile(Vector2i(22, 12)) == 3, "player dekat: dinding dibaiki")
+		_semak(int(inv.bilangan_item("item_0001")) == besi_sebelum_tanda - 1,
+			"1 besi ditolak bila kerja baiki bermula")
+		_semak(not grid._baiki_tanda.has(Vector2i(22, 12)),
+			"tanda biru hilang selepas dinding dibaiki")
+		grid.kena_serangan(Vector2i(22, 12))  # dinding 2/3 semula
+		_semak(grid.letak(Vector2i(22, 12)), "tanda biru kedua diletak")
+		_semak(grid.letak(Vector2i(22, 12)), "tap tanda biru lagi membatalkan rancangan")
+		_semak(not grid._baiki_tanda.has(Vector2i(22, 12)), "rancangan baiki hilang selepas dibatalkan")
 		_semak(not grid.letak(Vector2i(30, 30)), "mod Repair: tap tile kosong tak membina apa-apa")
 		grid._mod = -1
 

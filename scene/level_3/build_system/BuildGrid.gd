@@ -65,7 +65,6 @@ const IKON_HUD_DINDING: Texture2D = preload("res://scene/level_3/build_system/ic
 const IKON_HUD_PINTU: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_door.png")
 const IKON_HUD_ERASE: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_erase.png")
 const IKON_HUD_REPAIR: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_repair.png")
-const IKON_HUD_BATAL: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_cancel.png")
 # Dua butang batal berwarna: merah = tanda nyahbina, hijau = rancangan binaan.
 const IKON_HUD_BATAL_PADAM: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_batal_padam.png")
 const IKON_HUD_BATAL_RANCANG: Texture2D = preload("res://scene/level_3/build_system/icons/icon_build_batal_rancang.png")
@@ -87,6 +86,9 @@ var _rancang: Dictionary = {}     # Vector2i -> jenis
 var _bina_kemajuan: Dictionary = {} # Vector2i -> float 0..1 (sedang dibina)
 var _padam_tanda: Dictionary = {} # Vector2i -> true (ditanda untuk nyahbina)
 var _padam_kemajuan: Dictionary = {} # Vector2i -> float 0..1 (sedang nyahbina)
+# Tile rosak yang dirancang untuk dibaiki (highlight biru) dan kemajuannya.
+var _baiki_tanda: Dictionary = {} # Vector2i -> true
+var _baiki_kemajuan: Dictionary = {} # Vector2i -> float 0..1 (sedang dibaiki)
 
 var _mod: int = -1
 var _jari: int = -1
@@ -192,21 +194,16 @@ func _bina_hud() -> void:
 		_kumpulan.add_child(butang)
 		_butang.append(butang)
 
-	var batal := _buat_butang(IKON_HUD_BATAL, "Cancel", tema)
-	batal.position = Vector2(LANGKAH_BUTANG, LANGKAH_BUTANG * float(ikon_jenis.size()))
-	batal.pressed.connect(_batal)
-	_kumpulan.add_child(batal)
-
-	# Butang batal tanda merah (nyahbina) dan hijau (rancangan) duduk di bawah
-	# butang Cancel, satu baris setiap satu, supaya player boleh buang tanda
-	# yang tersalah letak tanpa perlu masuk mod lain.
+	# Tiada butang Cancel umum: tekan ikon rumah sekali lagi untuk tutup menu
+	# dan keluar dari mod. Dua butang batal berwarna duduk betul-betul di bawah
+	# pilihan jenis supaya tanda yang tersalah letak boleh dibuang.
 	var batal_padam := _buat_butang(IKON_HUD_BATAL_PADAM, "Cancel red marks (deconstruction)", tema)
-	batal_padam.position = Vector2(LANGKAH_BUTANG, LANGKAH_BUTANG * float(ikon_jenis.size() + 1))
+	batal_padam.position = Vector2(LANGKAH_BUTANG, LANGKAH_BUTANG * float(ikon_jenis.size()))
 	batal_padam.pressed.connect(batal_semua_padam)
 	_kumpulan.add_child(batal_padam)
 
 	var batal_rancang := _buat_butang(IKON_HUD_BATAL_RANCANG, "Cancel green plans (build)", tema)
-	batal_rancang.position = Vector2(LANGKAH_BUTANG, LANGKAH_BUTANG * float(ikon_jenis.size() + 2))
+	batal_rancang.position = Vector2(LANGKAH_BUTANG, LANGKAH_BUTANG * float(ikon_jenis.size() + 1))
 	batal_rancang.pressed.connect(batal_semua_rancang)
 	_kumpulan.add_child(batal_rancang)
 
@@ -349,7 +346,7 @@ func _pilih(jenis: int) -> void:
 	if jenis == JENIS_ERASE:
 		_label_status.text = "Erase: tap a built tile to mark it. Go near to deconstruct and get 1 Iron back"
 	elif jenis == JENIS_REPAIR:
-		_label_status.text = "Repair: tap a damaged tile (1 Iron per missing HP)"
+		_label_status.text = "Repair: tap a damaged tile to plan (1 Iron per missing HP). Go near to repair"
 	else:
 		_label_status.text = NAMA_JENIS[jenis] + ": tap to plan (1 Iron). Go near to build"
 
@@ -450,7 +447,7 @@ func letak(g: Vector2i) -> bool:
 	if _mod == JENIS_ERASE:
 		return padam(g)
 	if _mod == JENIS_REPAIR:
-		return baiki_tile(g)
+		return tanda_baiki(g)
 	if not boleh_bina(g):
 		_label_status.text = "Can't build here: must be on the asteroid and touch your base"
 		return false
@@ -481,6 +478,9 @@ func padam(g: Vector2i) -> bool:
 		if _padam_tanda.has(g):
 			_label_status.text = "Already marked for deconstruction"
 			return false
+		# Tanda nyahbina membatalkan rancangan baiki pada tile yang sama.
+		_baiki_tanda.erase(g)
+		_baiki_kemajuan.erase(g)
 		_padam_tanda[g] = true
 		_padam_kemajuan.erase(g)
 		_label_status.text = "Marked for deconstruction. Go near to deconstruct (1 Iron only if intact)"
@@ -501,6 +501,30 @@ func kos_repair_tile(g: Vector2i) -> int:
 
 func boleh_baiki(g: Vector2i) -> bool:
 	return _tile.has(g) and hp_tile(g) < hp_maks_tile(int(_tile[g]))
+
+# Rancang baiki (highlight biru), sama seperti rancangan bina dan tanda
+# nyahbina: tiada apa-apa berlaku sehingga pemain cukup dekat. Tap sekali lagi
+# pada tanda yang sama membatalkan rancangan itu.
+func tanda_baiki(g: Vector2i) -> bool:
+	if not boleh_baiki(g):
+		if _tile.has(g):
+			_label_status.text = NAMA_JENIS[int(_tile[g])] + " is already intact"
+		else:
+			_label_status.text = "Nothing to repair here"
+		return false
+	if _baiki_kemajuan.has(g):
+		_label_status.text = "Already repairing " + NAMA_JENIS[int(_tile[g])]
+		return false
+	if _baiki_tanda.has(g):
+		_baiki_tanda.erase(g)
+		_label_status.text = "Repair plan cancelled"
+		queue_redraw()
+		return true
+	_baiki_tanda[g] = true
+	_label_status.text = "%s marked for repair (%d Iron). Go near to repair" % [
+		NAMA_JENIS[int(_tile[g])], kos_repair_tile(g)]
+	queue_redraw()
+	return true
 
 # Baiki satu tile rosak: tolak besi, pulihkan HP penuh dan buang bar HP lama.
 func baiki_tile(g: Vector2i) -> bool:
@@ -573,6 +597,8 @@ func kosongkan() -> void:
 	_bina_kemajuan.clear()
 	_padam_tanda.clear()
 	_padam_kemajuan.clear()
+	_baiki_tanda.clear()
+	_baiki_kemajuan.clear()
 	PowerGrid.tanda_kotor_semua("grid_kosongkan")
 	queue_redraw()
 
@@ -582,6 +608,8 @@ func _buang_tile(g: Vector2i) -> void:
 	_hp_tile.erase(g)
 	_padam_tanda.erase(g)
 	_padam_kemajuan.erase(g)
+	_baiki_tanda.erase(g)
+	_baiki_kemajuan.erase(g)
 	var nod_tile: Node2D = _badan_tile.get(g, null) as Node2D
 	_badan_tile.erase(g)
 	if nod_tile != null and is_instance_valid(nod_tile):
@@ -618,7 +646,16 @@ func dapatkan_data_save() -> Dictionary:
 		if _padam_kemajuan.has(g):
 			entri_padam["kemajuan"] = float(_padam_kemajuan[g])
 		senarai_padam.append(entri_padam)
-	return {"tiles": senarai, "rancang": senarai_rancang, "padam_tanda": senarai_padam}
+	var senarai_baiki: Array = []
+	for g in _baiki_tanda:
+		var entri_baiki: Dictionary = {"x": g.x, "y": g.y}
+		if _baiki_kemajuan.has(g):
+			entri_baiki["kemajuan"] = float(_baiki_kemajuan[g])
+		senarai_baiki.append(entri_baiki)
+	return {
+		"tiles": senarai, "rancang": senarai_rancang,
+		"padam_tanda": senarai_padam, "baiki_tanda": senarai_baiki,
+	}
 
 # Bina semula tile dari fail simpanan. Grid dikosongkan dahulu supaya tiada
 # tile berganda kalau fungsi ini dipanggil dua kali.
@@ -644,6 +681,15 @@ func muat_data_save(data: Dictionary) -> void:
 			_padam_tanda[g] = true
 			if item.has("kemajuan"):
 				_padam_kemajuan[g] = clampf(float(item.get("kemajuan", 0.0)), 0.0, 0.99)
+	# Pulihkan tanda baiki biru (hanya untuk tile rosak yang wujud).
+	for item in data.get("baiki_tanda", []):
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var g := Vector2i(int(item.get("x", 0)), int(item.get("y", 0)))
+		if boleh_baiki(g):
+			_baiki_tanda[g] = true
+			if item.has("kemajuan"):
+				_baiki_kemajuan[g] = clampf(float(item.get("kemajuan", 0.0)), 0.0, 0.99)
 	# Pulihkan rancangan (hanya sel kosong di atas asteroid).
 	for item in data.get("rancang", []):
 		if typeof(item) != TYPE_DICTIONARY:
@@ -1083,6 +1129,67 @@ func _kemas_kini_nyahbina(delta: float, pos_pemain: Vector2) -> void:
 # Pintu terbuka (kolider dimatikan) bila pemain berada dekat. Tile dirancang
 # dibina satu demi satu apabila pemain dekat; tile yang ditanda nyahbina
 # dipadam satu demi satu dan bahan dipulangkan.
+# Baiki tile yang ditanda biru, satu demi satu, hanya bila pemain dekat.
+# Kos ditolak bila kerja bermula (bukan semasa merancang).
+func _kemas_kini_baiki(delta: float, pos_pemain: Vector2) -> void:
+	if _baiki_tanda.is_empty():
+		return
+	var ada_bermula := not _baiki_kemajuan.is_empty()
+	var sasaran: Vector2i = Vector2i.ZERO
+	var ada_sasaran := false
+	var jarak_terbaik := INF
+	var sudah_bermula := false
+
+	for g in _baiki_tanda.keys().duplicate():
+		if not boleh_baiki(g):
+			_baiki_tanda.erase(g)
+			_baiki_kemajuan.erase(g)
+			continue
+		var bermula := _baiki_kemajuan.has(g)
+		if ada_bermula and not bermula:
+			continue
+		if not _pemain_dekat(g, pos_pemain):
+			continue
+		if bermula:
+			sasaran = g
+			ada_sasaran = true
+			sudah_bermula = true
+			break
+		var jarak := pos_pemain.distance_to(to_global(_tengah_sel(g)))
+		if jarak < jarak_terbaik:
+			jarak_terbaik = jarak
+			sasaran = g
+			ada_sasaran = true
+
+	if not ada_sasaran:
+		return
+
+	var jenis := int(_tile.get(sasaran, JENIS_LANTAI))
+	if not sudah_bermula:
+		var kos: int = kos_repair_tile(sasaran)
+		if not _ada_besi(kos) or not _tolak_besi(kos):
+			_label_status.text = "Need %d %s to repair %s" % [kos, NAMA_BESI, NAMA_JENIS[jenis]]
+			return
+		_baiki_kemajuan[sasaran] = 0.0
+		_label_status.text = "Repairing " + NAMA_JENIS[jenis] + "..."
+
+	_baiki_kemajuan[sasaran] = float(_baiki_kemajuan.get(sasaran, 0.0)) + delta / MASA_BINA
+	queue_redraw()
+	if float(_baiki_kemajuan[sasaran]) < 1.0:
+		return
+
+	# Siap dibaiki: pulihkan HP penuh dan buang bar HP lama.
+	var kos_siap: int = kos_repair_tile(sasaran)
+	_hp_tile[sasaran] = hp_maks_tile(jenis)
+	var nod_tile := _nod_tile(sasaran)
+	if nod_tile != null:
+		BAR_HP.buang(nod_tile)
+	_baiki_tanda.erase(sasaran)
+	_baiki_kemajuan.erase(sasaran)
+	_apung_besi(-kos_siap)
+	_label_status.text = "%s repaired (%d Iron)" % [NAMA_JENIS[jenis], kos_siap]
+	queue_redraw()
+
 func _physics_process(delta: float) -> void:
 	var pemain := get_tree().get_first_node_in_group("Player") as Node2D
 	var pos_pemain := Vector2(INF, INF)
@@ -1091,6 +1198,7 @@ func _physics_process(delta: float) -> void:
 
 	_kemas_kini_pembinaan(delta, pos_pemain)
 	_kemas_kini_nyahbina(delta, pos_pemain)
+	_kemas_kini_baiki(delta, pos_pemain)
 
 	if _badan_pintu.is_empty():
 		return
@@ -1148,6 +1256,17 @@ func _draw() -> void:
 				draw_rect(Rect2(rect.position.x + 1, rect.end.y - 4, rect.size.x - 2, 3), Color(0.15, 0.05, 0.05, 0.8))
 				draw_rect(isi, Color(1.0, 0.45, 0.35, 0.95))
 
+	# Tanda baiki (biru) + bar kemajuan: tile rosak menunggu player dekat.
+	for g in _baiki_tanda:
+		var rect := Rect2(Vector2(g) * SAIZ_SEL, saiz)
+		var kemajuan := float(_baiki_kemajuan.get(g, 0.0))
+		draw_rect(rect, Color(0.3, 0.62, 1.0, 0.30))
+		draw_rect(rect, Color(0.5, 0.8, 1.0, 0.9), false, 1.5)
+		if kemajuan > 0.0:
+			draw_rect(Rect2(rect.position.x + 1, rect.end.y - 4, rect.size.x - 2, 3), Color(0.05, 0.08, 0.15, 0.8))
+			var isi := Rect2(rect.position.x + 1, rect.end.y - 4, (rect.size.x - 2) * clampf(kemajuan, 0.0, 1.0), 3)
+			draw_rect(isi, Color(0.5, 0.82, 1.0, 0.95))
+
 	# Tile dirancang (belum dibina): hijau + bar kemajuan pembinaan.
 	for g in _rancang:
 		var rect := Rect2(Vector2(g) * SAIZ_SEL, saiz)
@@ -1191,7 +1310,7 @@ func _draw() -> void:
 		var warna := Color(1.0, 0.42, 0.32, 0.35) if _mod == JENIS_ERASE and sah \
 			else (Color(0.4, 1.0, 0.6, 0.30) if sah else Color(1.0, 0.35, 0.35, 0.30))
 		if _mod == JENIS_REPAIR:
-			warna = Color(1.0, 0.86, 0.4, 0.32) if sah else Color(1.0, 0.35, 0.35, 0.30)
+			warna = Color(0.35, 0.66, 1.0, 0.32) if sah else Color(1.0, 0.35, 0.35, 0.30)
 		draw_rect(rect, warna)
 		draw_rect(rect, warna.lightened(0.4), false, 2.0)
 
