@@ -3,10 +3,10 @@ extends Node
 # ==========================================================
 # SERANGAN BALAS HUSK
 #
-# Setiap HuskLurker yang dibunuh di kawasan TheAquaHusk menambah
-# SATU penyerang. Serangan dijadualkan 5 minit selepas bunuhan
-# pertama; bila tiba masanya, semua penyerang yang terkumpul
-# bergerak menyerang pangkalan pemain.
+# Setiap HuskLurker yang dibunuh di mana-mana menambah SATU
+# penyerang. Serangan dijadualkan 5 minit selepas bunuhan pertama;
+# bila tiba masanya, semua penyerang yang terkumpul bergerak
+# menyerang pangkalan pemain.
 #
 # Komponen ini autoload supaya kiraan tidak hilang bila scene
 # dimuat semula. HuskLurker hanya perlu lapor kematiannya.
@@ -20,8 +20,6 @@ const MASA_SERANGAN: float = 300.0
 # Jarak penyerang dianggap sudah tiba di pangkalan.
 const JEJARI_TIBA: float = 26.0
 
-# Zon TheAquaHusk dalam koordinat dunia (sama dengan zona_batas HuskLurker).
-@export var zona_aquahusk: Rect2 = Rect2(-470.0, -1530.0, 880.0, 1460.0)
 # Pusat pangkalan pemain (kawasan bina di atas asteroid).
 @export var posisi_pangkalan: Vector2 = Vector2(141.0, 228.0)
 # Penyerang muncul dalam bulatan mengelilingi pangkalan, di luar skrin.
@@ -42,12 +40,10 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
 	_sedia_hud()
 
-# Dipanggil oleh HuskLurker yang tumbang. Posisi digunakan untuk memastikan
-# hanya bunuhan di dalam kawasan TheAquaHusk yang dikira.
-func daftar_bunuh_husk(posisi: Vector2) -> void:
-	if not zona_aquahusk.has_point(posisi):
-		return
-
+# Dipanggil oleh HuskLurker yang tumbang. Setiap bunuhan dikira,
+# tidak kira di mana husk itu dibunuh. Posisi dikekalkan dalam
+# tandatangan untuk keserasian pemanggil.
+func daftar_bunuh_husk(_posisi: Vector2 = Vector2.ZERO) -> void:
 	bilangan_husk_dibunuh += 1
 
 	if baki_masa < 0.0:
