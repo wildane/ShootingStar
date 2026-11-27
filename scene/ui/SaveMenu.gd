@@ -48,6 +48,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_bina_ui()
 	Sfx.pasang_klik(self)
+	# Panel ini hanya dicipta bila pemain membuka menu, jadi bunyi buka sesuai.
+	Sfx.mainkan("menu_buka", -9.0)
 	if mod_semasa == MOD_MENU:
 		_tunjuk_hub()
 	else:
@@ -202,6 +204,7 @@ func _tunjuk_hub() -> void:
 	_hub.visible = true
 
 func _buka_senarai(mod: int) -> void:
+	Sfx.mainkan("menu_buka", -9.0)
 	mod_semasa = mod
 	_dari_hub = true
 	_hub.visible = false
@@ -432,7 +435,7 @@ func _tanya_nama() -> void:
 	_butang_tidak.visible = true
 	_input_nama.visible = true
 	_input_nama.text = "Save %d" % (SaveManager.senarai_slot().size() + 1)
-	_lapis_dialog.visible = true
+	_papar_dialog()
 	_input_nama.grab_focus()
 	_input_nama.select_all()
 
@@ -444,7 +447,7 @@ func _tanya_timpa(id: String) -> void:
 	_butang_ya.text = "Overwrite"
 	_butang_tidak.visible = true
 	_input_nama.visible = false
-	_lapis_dialog.visible = true
+	_papar_dialog()
 
 func _tanya_muat(id: String) -> void:
 	_dialog_tindakan = "muat"
@@ -454,7 +457,7 @@ func _tanya_muat(id: String) -> void:
 	_butang_ya.text = "Load"
 	_butang_tidak.visible = true
 	_input_nama.visible = false
-	_lapis_dialog.visible = true
+	_papar_dialog()
 
 func _tanya_baru() -> void:
 	_dialog_tindakan = "baru"
@@ -464,7 +467,7 @@ func _tanya_baru() -> void:
 	_butang_ya.text = "New Game"
 	_butang_tidak.visible = true
 	_input_nama.visible = false
-	_lapis_dialog.visible = true
+	_papar_dialog()
 
 # Mesej berjaya: satu butang OK sahaja.
 func _tunjuk_berjaya(id: String) -> void:
@@ -475,7 +478,7 @@ func _tunjuk_berjaya(id: String) -> void:
 	_butang_ya.text = "OK"
 	_input_nama.visible = false
 	_butang_tidak.visible = false
-	_lapis_dialog.visible = true
+	_papar_dialog()
 	_butang_ya.grab_focus()
 
 func _on_nama_dihantar(_teks: String) -> void:
@@ -525,11 +528,17 @@ func _pindah_ke_level() -> void:
 	ditutup.emit()
 	get_tree().change_scene_to_file("res://scene/level_3/level_3.tscn")
 
+func _papar_dialog() -> void:
+	_lapis_dialog.visible = true
+	Sfx.mainkan("menu_buka", -9.0)
+
 func _dialog_tidak() -> void:
+	Sfx.mainkan("menu_tutup", -9.0)
 	_id_sasaran = ""
 	_lapis_dialog.visible = false
 
 func _tutup() -> void:
+	Sfx.mainkan("menu_tutup", -9.0)
 	if _dari_hub:
 		_tunjuk_hub()
 		return

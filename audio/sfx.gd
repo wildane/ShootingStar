@@ -53,6 +53,7 @@ func _ready() -> void:
 	_sedia("menu_kajian")
 	_sedia("menu_tutup")
 	_sedia("klik")
+	_sedia("menu_buka")
 	_aliran["teleport"] = _jana_teleport()
 	_mula_ambien()
 	_mula_ambien_kawasan()
@@ -304,6 +305,8 @@ func _jana(nama: String) -> AudioStreamWAV:
 	# Tutup menu perabot: satu bunyi generik, sama untuk semua jenis menu.
 	if nama == "menu_tutup":
 		return _jana_menu_tutup()
+	if nama == "menu_buka":
+		return _jana_menu_buka()
 	# Menu perabot: satu bunyi per jenis (lihat _jana_menu).
 	if nama.begins_with("menu_"):
 		return _jana_menu(nama)
@@ -1011,6 +1014,32 @@ func _jana_klik() -> AudioStreamWAV:
 		s[i] = klik + nada
 	_lulus_rendah(s, 6500.0)
 	_normal(s, 0.7)
+	return _ke_stream(s, false)
+
+# ---- Bunyi buka panel menu: nada naik (lawan menu_tutup yang turun) ---
+# Dipakai bila halaman simpanan, hub menu atau dialog dibuka.
+func _jana_menu_buka() -> AudioStreamWAV:
+	var tempoh: float = 0.24
+	var n: int = int(KADAR * tempoh)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var fasa: float = 0.0
+	for i in n:
+		var t: float = float(i) / float(KADAR)
+		fasa += TAU * lerpf(420.0, 760.0, clampf(t / 0.16, 0.0, 1.0)) / float(KADAR)
+		var sampul: float = (1.0 - exp(-t * 110.0)) * exp(-t * 16.0)
+		s[i] += (sin(fasa) + 0.22 * sin(fasa * 2.0)) * sampul * 0.5
+	# Desir naik halus, macam panel meluncur masuk.
+	var desir := PackedFloat32Array()
+	desir.resize(n)
+	for i in n:
+		var td: float = float(i) / float(KADAR)
+		desir[i] = randf_range(-1.0, 1.0) * (1.0 - exp(-td * 90.0)) * exp(-td * 18.0)
+	_lulus_jalur(desir, 2200.0, 1.5)
+	for i in n:
+		s[i] += desir[i] * 0.45
+	_lulus_rendah(s, 6000.0)
+	_normal(s, 0.85)
 	return _ke_stream(s, false)
 
 # ---- Bunyi menu perabot: satu tekstur per jenis -----------------------
