@@ -219,6 +219,7 @@ func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int):
 			else:
 				# Tiada menu depan - menu terus buka dengan senarai kad resipi.
 				menu_ui.visible = true
+				Sfx.mainkan("menu_fabrikasi", -7.0)
 				_kemas_kini_craft()
 		get_viewport().set_input_as_handled()
 

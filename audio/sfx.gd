@@ -44,6 +44,13 @@ func _ready() -> void:
 	_sedia("rancang_ok")
 	_sedia("rancang_gagal")
 	_sedia("retak")
+	_sedia("menu_relau")
+	_sedia("menu_fabrikasi")
+	_sedia("menu_dapur")
+	_sedia("menu_cas")
+	_sedia("menu_solar")
+	_sedia("menu_inverter")
+	_sedia("menu_kajian")
 	_aliran["teleport"] = _jana_teleport()
 	_mula_ambien()
 	_mula_ambien_kawasan()
@@ -279,6 +286,9 @@ func _jana(nama: String) -> AudioStreamWAV:
 		return _jana_rancang_gagal()
 	if nama == "retak":
 		return _jana_retak()
+	# Menu perabot: satu bunyi per jenis (lihat _jana_menu).
+	if nama.begins_with("menu_"):
+		return _jana_menu(nama)
 	push_warning("Sfx: bunyi tidak dikenali - " + nama)
 	return null
 
@@ -962,4 +972,85 @@ func _jana_retak() -> AudioStreamWAV:
 		s[i] = asas[i] * 0.7 + b1[i] * 1.8 + b2[i] * 1.1 + dentum
 	_lulus_rendah(s, 9000.0)
 	_normal(s, 0.9)
+	return _ke_stream(s, false)
+
+
+# ---- Bunyi menu perabot: satu tekstur per jenis -----------------------
+# Pendek (~0.34s) supaya buka/tutup menu berulang kali tidak menggangu.
+
+func _jana_menu(nama: String) -> AudioStreamWAV:
+	var tempoh: float = 0.34
+	var n: int = int(KADAR * tempoh)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	if nama == "menu_relau":
+		# Relau: dentum logam berat + raungan api yang naik perlahan.
+		_tambah_dentum(s, KADAR, 0.0, 150.0, 62.0, 0.30, 0.55, 14.0)
+		var api := PackedFloat32Array()
+		api.resize(n)
+		for i in n:
+			var ta: float = float(i) / float(KADAR)
+			api[i] = randf_range(-1.0, 1.0) * (1.0 - exp(-ta * 26.0)) * exp(-ta * 7.0)
+		_lulus_jalur(api, 650.0, 1.6)
+		for i in n:
+			s[i] += api[i] * 1.5
+		_lulus_rendah(s, 3200.0)
+	elif nama == "menu_fabrikasi":
+		# Fabrikasi: klik geganti + motor servo yang menaik.
+		_tambah_hitam(s, KADAR, 0.0, 0.05, 0.55)
+		var fasa: float = 0.0
+		for i in n:
+			var tm: float = float(i) / float(KADAR)
+			var maju: float = clampf(tm / 0.28, 0.0, 1.0)
+			fasa += TAU * lerpf(170.0, 300.0, maju) / float(KADAR)
+			var gigi: float = fposmod(fasa / TAU, 1.0) * 2.0 - 1.0
+			s[i] += gigi * (1.0 - exp(-tm * 60.0)) * exp(-tm * 9.0) * 0.40
+		_lulus_rendah(s, 5200.0)
+	elif nama == "menu_dapur":
+		# Dapur: dua denting seramik + ketukan kayu lembut.
+		_tambah_dentum(s, KADAR, 0.0, 260.0, 155.0, 0.12, 0.40, 28.0)
+		_tambah_nada(s, KADAR, 0.0, 1180.0, 0.30, 0.48, 15.0)
+		_tambah_nada(s, KADAR, 0.035, 1760.0, 0.26, 0.30, 22.0)
+		_lulus_rendah(s, 6800.0)
+	elif nama == "menu_cas":
+		# Stesen cas: dengung elektrik naik + percikan di hujung.
+		var fasa_c: float = 0.0
+		for i in n:
+			var tc: float = float(i) / float(KADAR)
+			var maju_c: float = clampf(tc / 0.26, 0.0, 1.0)
+			fasa_c += TAU * lerpf(320.0, 520.0, maju_c) / float(KADAR)
+			var getar: float = 0.55 + 0.45 * signf(sin(TAU * 46.0 * tc))
+			s[i] += sin(fasa_c) * getar * (1.0 - exp(-tc * 70.0)) * exp(-tc * 8.0) * 0.45
+		_tambah_hitam(s, KADAR, 0.16, 0.06, 0.35)
+		_lulus_rendah(s, 5200.0)
+	elif nama == "menu_solar":
+		# Solar: kilau kaca tinggi + denyut lembut.
+		var kaca := PackedFloat32Array()
+		kaca.resize(n)
+		for i in n:
+			var tk: float = float(i) / float(KADAR)
+			kaca[i] = randf_range(-1.0, 1.0) * (1.0 - exp(-tk * 80.0)) * exp(-tk * 11.0)
+		_lulus_jalur(kaca, 4200.0, 3.0)
+		for i in n:
+			s[i] += kaca[i] * 1.7
+		_tambah_nada(s, KADAR, 0.02, 1520.0, 0.30, 0.22, 12.0)
+	elif nama == "menu_inverter":
+		# Inverter: dengung kuasa rendah yang pudar + klik geganti.
+		var fasa_i: float = 0.0
+		for i in n:
+			var ti: float = float(i) / float(KADAR)
+			fasa_i += TAU * 98.0 / float(KADAR)
+			var hum: float = sin(fasa_i) + 0.45 * sin(fasa_i * 2.0) + 0.22 * sin(fasa_i * 3.0)
+			s[i] += hum * (1.0 - exp(-ti * 50.0)) * exp(-ti * 6.5) * 0.45
+		_tambah_hitam(s, KADAR, 0.0, 0.04, 0.30)
+		_lulus_rendah(s, 2000.0)
+	elif nama == "menu_kajian":
+		# Meja kajian: tiga bip digital menaik.
+		_tambah_nada(s, KADAR, 0.0, 880.0, 0.10, 0.32, 26.0)
+		_tambah_nada(s, KADAR, 0.06, 1180.0, 0.10, 0.30, 26.0)
+		_tambah_nada(s, KADAR, 0.12, 1560.0, 0.16, 0.28, 20.0)
+		_lulus_rendah(s, 7000.0)
+	else:
+		return null
+	_normal(s, 0.85)
 	return _ke_stream(s, false)

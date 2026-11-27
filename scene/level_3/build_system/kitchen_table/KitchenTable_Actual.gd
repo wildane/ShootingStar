@@ -115,6 +115,7 @@ func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int):
 			print("Sistem Khas: Fabricator ditekan! Status menu -> ", menu_ui.visible) # 🔴 LOG DIKEMAS KINI
 			
 			if menu_ui.visible:
+				Sfx.mainkan("menu_dapur", -7.0)
 				var saiz_skrin = get_viewport_rect().size
 				
 				# Menghapuskan ralat skala global daripada StaticBody2D

@@ -229,6 +229,7 @@ func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int):
 			_kemas_kini_label_status()
 			menu_ui.visible = !menu_ui.visible
 			if menu_ui.visible:
+				Sfx.mainkan("menu_cas", -7.0)
 				_segarkan_repair()
 		get_viewport().set_input_as_handled()
 

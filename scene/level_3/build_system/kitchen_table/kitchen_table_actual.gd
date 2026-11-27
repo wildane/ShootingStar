@@ -793,6 +793,7 @@ func _on_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -
 	if menu_ui:
 		menu_ui.visible = not menu_ui.visible
 		if menu_ui.visible:
+			Sfx.mainkan("menu_dapur", -7.0)
 			_kemas_kini_ui()
 	get_viewport().set_input_as_handled()
 
