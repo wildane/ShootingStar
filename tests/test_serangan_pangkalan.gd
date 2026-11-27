@@ -234,6 +234,16 @@ func _jalan() -> void:
 	player_dekat.queue_free()
 	raider_dekat.queue_free()
 
+	# --- Lendir tersasar (aim player) kena dinding: dinding tetap kena damage ---
+	grid.muat_data_save({"tiles": [{"x": 18, "y": 12, "jenis": 1}]})  # dinding (296,200)
+	var lendir_tersasar: Area2D = load("res://scene/Mob/HuskLurkerRaider/LendirRaider.tscn").instantiate()
+	akar.add_child(lendir_tersasar)
+	lendir_tersasar.global_position = Vector2(272, 200)  # mengarah ke dinding, bukan struktur
+	lendir_tersasar.call("tembak", Vector2.RIGHT, 1)
+	await create_timer(0.4).timeout
+	_semak(grid.hp_tile(Vector2i(18, 12)) == 2,
+		"lendir yang tersasar pada dinding tetap merosakkannya (HP 2/3)")
+
 	# --- Player tak boleh tolak husk/raider: dua-dua pejal dan saling mengunci ---
 	var astro: Node2D = load("res://scene/astro/astro2.tscn").instantiate()
 	var husk: Node2D = load("res://scene/Mob/HuskLurker/HuskLurker.tscn").instantiate()

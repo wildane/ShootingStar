@@ -60,6 +60,14 @@ func _physics_process(delta: float) -> void:
 	if jarak_dilalui >= jarak_maksimum or masa_hidup >= hayat:
 		_pecah()
 
+# Lendir yang terlanggar tile grid binaan (dinding/pintu) merosakkannya.
+func _serang_struktur(body: Node) -> void:
+	if not body.has_meta("grid_sel"):
+		return
+	var grid := get_tree().get_first_node_in_group("BuildGrid")
+	if grid != null and grid.has_method("kena_serangan"):
+		grid.call("kena_serangan", body.get_meta("grid_sel"))
+
 func _on_body_entered(body: Node) -> void:
 	if sudah_pecah or not is_instance_valid(body):
 		return
@@ -71,6 +79,10 @@ func _on_body_entered(body: Node) -> void:
 	# Dinding / objek pejal -> lendir pecah (dan struktur yang kena hancur)
 	if body is StaticBody2D:
 		badan_kena = body
+		# Lendir yang tersasar pada dinding/pintu pangkalan (contoh: player dok
+		# di tepi dinding) tetap merosakkan struktur itu.
+		if not sasaran_hancur.is_valid():
+			_serang_struktur(body)
 		_pecah()
 		return
 
