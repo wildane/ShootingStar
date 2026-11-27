@@ -40,6 +40,7 @@ func _ready() -> void:
 	layer = 100
 	_bina_dialog()
 	_bina_pager()
+	Sfx.pasang_klik(self)
 
 	$UIRoot/HalamanMenu/PanelLatar/Kotak/Teruskan.pressed.connect(_on_teruskan)
 	$UIRoot/HalamanMenu/PanelLatar/Kotak/PermainanBaru.pressed.connect(_on_permainan_baru)
@@ -323,6 +324,8 @@ func _tunjuk_halaman() -> void:
 	var akhir: int = mini(mula + SAIZ_HALAMAN, jumlah)
 	for i in range(mula, akhir):
 		senarai_slot.add_child(_bina_baris_slot(_slot_semua[i]))
+	# Baris slot dibina semula setiap halaman, jadi klik dipasang di sini.
+	Sfx.pasang_klik(senarai_slot)
 
 	_butang_sebelum.disabled = _halaman <= 0
 	_butang_seterusnya.disabled = _halaman >= maks - 1

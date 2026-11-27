@@ -52,10 +52,22 @@ func _ready() -> void:
 	_sedia("menu_inverter")
 	_sedia("menu_kajian")
 	_sedia("menu_tutup")
+	_sedia("klik")
 	_aliran["teleport"] = _jana_teleport()
 	_mula_ambien()
 	_mula_ambien_kawasan()
 	_mula_muzik_bos()
+
+# Pasang bunyi klik pada semua butang di bawah `akar`, termasuk butang yang
+# dibina dalam kod. Panggil semula setiap kali senarai butang dibina semula.
+func pasang_klik(akar: Node) -> void:
+	for anak in akar.get_children():
+		if anak is Button and not anak.pressed.is_connected(_bunyi_klik):
+			anak.pressed.connect(_bunyi_klik)
+		pasang_klik(anak)
+
+func _bunyi_klik() -> void:
+	mainkan("klik", -9.0)
 
 func mainkan(nama: String, isipadu_db: float = -6.0, pic: float = 1.0) -> void:
 	if not _pemain.has(nama):
@@ -287,6 +299,8 @@ func _jana(nama: String) -> AudioStreamWAV:
 		return _jana_rancang_gagal()
 	if nama == "retak":
 		return _jana_retak()
+	if nama == "klik":
+		return _jana_klik()
 	# Tutup menu perabot: satu bunyi generik, sama untuk semua jenis menu.
 	if nama == "menu_tutup":
 		return _jana_menu_tutup()
@@ -978,6 +992,26 @@ func _jana_retak() -> AudioStreamWAV:
 	_normal(s, 0.9)
 	return _ke_stream(s, false)
 
+
+# ---- Bunyi klik butang menu: suis ditekan ----------------------------
+# Sangat pendek (~0.07s) supaya menekan butang berturut-turut tidak bertindih.
+func _jana_klik() -> AudioStreamWAV:
+	var tempoh: float = 0.07
+	var n: int = int(KADAR * tempoh)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var fasa: float = 0.0
+	for i in n:
+		var t: float = float(i) / float(KADAR)
+		# Desir tajam yang reput pantas: rasa suis fizikal ditekan.
+		var klik: float = randf_range(-1.0, 1.0) * exp(-t * 900.0) * 0.55
+		# Nada rendah lembut sebagai badan bunyi.
+		fasa += TAU * lerpf(640.0, 440.0, clampf(t / tempoh, 0.0, 1.0)) / float(KADAR)
+		var nada: float = sin(fasa) * (1.0 - exp(-t * 700.0)) * exp(-t * 60.0) * 0.45
+		s[i] = klik + nada
+	_lulus_rendah(s, 6500.0)
+	_normal(s, 0.7)
+	return _ke_stream(s, false)
 
 # ---- Bunyi menu perabot: satu tekstur per jenis -----------------------
 # Pendek (~0.34s) supaya buka/tutup menu berulang kali tidak menggangu.

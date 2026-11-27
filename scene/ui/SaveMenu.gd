@@ -47,6 +47,7 @@ func _ready() -> void:
 	layer = 101
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_bina_ui()
+	Sfx.pasang_klik(self)
 	if mod_semasa == MOD_MENU:
 		_tunjuk_hub()
 	else:
@@ -370,6 +371,8 @@ func _tunjuk_halaman() -> void:
 	var akhir: int = mini(mula + SAIZ_HALAMAN, jumlah)
 	for i in range(mula, akhir):
 		_senarai.add_child(_bina_baris(_slot_semua[i]))
+	# Baris slot dibina semula setiap halaman, jadi klik dipasang di sini.
+	Sfx.pasang_klik(_senarai)
 
 	if jumlah == 0:
 		var kosong := Label.new()
