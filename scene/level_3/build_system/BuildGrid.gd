@@ -460,7 +460,7 @@ func padam(g: Vector2i) -> bool:
 			return false
 		_padam_tanda[g] = true
 		_padam_kemajuan.erase(g)
-		_label_status.text = "Marked for deconstruction. Go near to recover 1 Iron"
+		_label_status.text = "Marked for deconstruction. Go near to deconstruct (1 Iron only if intact)"
 		queue_redraw()
 		return true
 	_label_status.text = "Nothing to erase here"
@@ -968,12 +968,17 @@ func _kemas_kini_nyahbina(delta: float, pos_pemain: Vector2) -> void:
 	if float(_padam_kemajuan[sasaran]) < 1.0:
 		return
 
-	# Siap nyahbina: buang tile dan pulangkan bahan.
+	# Siap nyahbina: buang tile. Bahan hanya dipulangkan kalau struktur masih
+	# utuh; dinding/pintu yang sudah rosak kena serangan tak beri apa-apa.
 	var jenis := int(_tile.get(sasaran, JENIS_LANTAI))
+	var utuh: bool = hp_tile(sasaran) >= hp_maks_tile(jenis)
 	_buang_tile(sasaran)
-	_pulangkan_besi()
-	_label_status.text = NAMA_JENIS[jenis] + " deconstructed (+1 Iron)"
-	_apung_besi(KOS_BESI)
+	if utuh:
+		_pulangkan_besi()
+		_label_status.text = NAMA_JENIS[jenis] + " deconstructed (+1 Iron)"
+		_apung_besi(KOS_BESI)
+	else:
+		_label_status.text = NAMA_JENIS[jenis] + " deconstructed (damaged, no materials)"
 	PowerGrid.tanda_kotor_semua("grid_roboh")
 	queue_redraw()
 

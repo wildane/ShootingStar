@@ -118,6 +118,29 @@ func _jalan() -> void:
 		"bar HP hilang bersama pintu yang dirobohkan")
 	_semak(grid.kena_serangan(Vector2i(10, 11)), "lantai pecah dengan 1 serangan")
 
+	# --- Nyahbina dinding: utuh pulangkan besi, rosak tak pulangkan apa-apa ---
+	var inv = root.get_node_or_null("InventoryManager")
+	if inv != null:
+		grid.muat_data_save({"tiles": [
+			{"x": 20, "y": 12, "jenis": 1},  # dinding utuh
+			{"x": 21, "y": 12, "jenis": 1},  # dinding rosak 2/3
+		]})
+		grid.kena_serangan(Vector2i(21, 12))
+		var besi_awal: int = int(inv.bilangan_item("item_0001"))
+		var pos_tile: Vector2 = grid.to_global(grid._tengah_sel(Vector2i(20, 12)))
+		grid.padam(Vector2i(20, 12))
+		grid._kemas_kini_nyahbina(2.0, pos_tile)
+		_semak(int(inv.bilangan_item("item_0001")) == besi_awal + 1,
+			"nyahbina dinding utuh pulangkan 1 besi")
+		pos_tile = grid.to_global(grid._tengah_sel(Vector2i(21, 12)))
+		grid.padam(Vector2i(21, 12))
+		grid._kemas_kini_nyahbina(2.0, pos_tile)
+		_semak(int(inv.bilangan_item("item_0001")) == besi_awal + 1,
+			"nyahbina dinding rosak tak pulangkan besi")
+		_semak(not grid._tile.has(Vector2i(21, 12)),
+			"dinding rosak tetap terbongkar")
+		inv.tolak_item("item_0001", 1)
+
 	# --- Raider tembak dinding dari jauh, tak perlu sentuh dulu ---
 	grid.muat_data_save({"tiles": [{"x": 18, "y": 12, "jenis": 1}]})  # dinding di (296,200)
 	var raider_tembak: Node2D = load("res://scene/Mob/HuskLurkerRaider/HuskLurkerRaider.tscn").instantiate()
