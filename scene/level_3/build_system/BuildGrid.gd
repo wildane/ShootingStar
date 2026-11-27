@@ -100,7 +100,7 @@ var _bunyi_kerja_masa: float = 0.0
 # beberapa saat supaya tidak tertinggal di skrin bila menu rumah sudah ditutup
 # dan kerja siap semasa pemain berjalan. Teks panduan mod (pilih Floor / Wall /
 # Door) pula kekal sampai mod dibatalkan.
-const MASA_STATUS_SEMENTARA: float = 2.4
+const MASA_STATUS_SEMENTARA: float = 1.2
 var _status_masa: float = 0.0
 
 var _mod: int = -1
