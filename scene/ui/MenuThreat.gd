@@ -150,7 +150,8 @@ func _tekan_ready() -> void:
 	if pantau != null and pantau.has_method("lancar_sekarang"):
 		var berjaya: bool = pantau.call("lancar_sekarang")
 		print("MenuThreat: butang Ready ditekan, gelombang dilancarkan=", berjaya)
-	_kemas_kini()
+	# Menu terus ditutup supaya player nampak raider muncul di keliling asteroid.
+	tutup()
 
 # Pemasa/spawn kini nod dalam scene level (bukan autoload).
 func _cari_pemantau() -> Node:

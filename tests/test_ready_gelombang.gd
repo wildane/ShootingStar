@@ -81,6 +81,11 @@ func _jalan() -> void:
 		StorThreat.masa_serang = 90.0
 		menu.call("_kemas_kini")
 		_semak(not butang.disabled, "Ready hidup bila gelombang menunggu")
+		# Tekan Ready: menu terus ditutup selepas gelombang dilancarkan.
+		menu.call("buka")
+		_semak(menu.visible, "menu threat terbuka sebelum Ready")
+		butang.pressed.emit()
+		_semak(not menu.visible, "menu threat terus tutup selepas tekan Ready")
 
 	StorThreat.reset()
 	print("LULUS=", lulus)
