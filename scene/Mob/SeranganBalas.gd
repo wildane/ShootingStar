@@ -19,8 +19,6 @@ signal serangan_bermula(bilangan: int)
 const MASA_SERANGAN: float = 5.0
 # Jarak penyerang dianggap sudah tiba di pangkalan.
 const JEJARI_TIBA: float = 26.0
-# Skrip HUD (butang threat + menu info husk).
-const scene_hud_threat: Script = preload("res://scene/ui/ThreatHud.gd")
 
 # Pusat pangkalan pemain (kawasan bina di atas asteroid).
 @export var posisi_pangkalan: Vector2 = Vector2(141.0, 228.0)
@@ -34,12 +32,8 @@ var bilangan_husk_dibunuh: int = 0
 # Baki masa sehingga serangan; < 0 bermaksud tiada serangan dijadualkan.
 var baki_masa: float = -1.0
 
-# HUD threat: butang dalam group ikon kiri + menu info husk.
-var _hud: Node = null
-
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
-	_sedia_hud()
 
 # Dipanggil oleh HuskLurker yang tumbang. Setiap bunuhan dikira,
 # tidak kira di mana husk itu dibunuh. Posisi dikekalkan dalam
@@ -52,15 +46,12 @@ func daftar_bunuh_husk(_posisi: Vector2 = Vector2.ZERO) -> void:
 		print("SeranganBalas: husk tumbang, serangan balas dalam %.0f saat" % MASA_SERANGAN)
 		serangan_dijadualkan.emit(MASA_SERANGAN)
 
-	_kemas_hud(0.0)
 
 func _process(delta: float) -> void:
 	if baki_masa >= 0.0:
 		baki_masa -= delta
 		if baki_masa <= 0.0:
 			_lancar_serangan()
-
-	_kemas_hud(delta)
 
 # Hantar semua penyerang terkumpul ke pangkalan.
 func _lancar_serangan() -> void:
@@ -141,25 +132,3 @@ func _dalam_dinding(titik: Vector2) -> bool:
 	query.collide_with_areas = false
 	query.collide_with_bodies = true
 	return not dunia.direct_space_state.intersect_shape(query, 1).is_empty()
-
-# ---------- HUD ----------
-# Butang threat + menu dibina oleh ThreatHud. Ia membina semula butangnya
-# sendiri selepas tukar scene dan mengemas kini menu hanya bila dibuka.
-func _sedia_hud() -> void:
-	if _hud != null and is_instance_valid(_hud):
-		return
-	_hud = scene_hud_threat.new()
-	_hud.name = "ThreatHud"
-	add_child(_hud)
-	_hud.pasang(self)
-
-# Dipanggil butang threat dalam scene (ButangThreat.gd).
-func buka_menu_threat() -> void:
-	_sedia_hud()
-	if _hud != null and is_instance_valid(_hud) and _hud.has_method("buka_menu"):
-		_hud.buka_menu()
-
-func _kemas_hud(delta: float) -> void:
-	_sedia_hud()
-	if _hud != null and is_instance_valid(_hud):
-		_hud.kemas_kini(delta)

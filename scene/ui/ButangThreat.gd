@@ -1,13 +1,17 @@
 extends Button
 
-## Butang threat dalam group ikon menegak kiri (under ikon rumah).
+## Butang threat dalam group ikon menegak kiri (bawah ikon rumah).
 ##
-## Butang ini memang ada dalam level_3.tscn (bukan dicipta oleh autoload),
-## jadi ia sentiasa kelihatan sama seperti butang Build / Inventory / Drone /
-## Home. Bila ditekan, ia minta autoload SeranganBalas membuka menu husk
-## (menu gaya perabot: ikon husk, peratus threat, kiraan bunuh, pemasa).
+## Butang ini nod sebenar dalam level_3.tscn, jadi ia sentiasa kelihatan sama
+## seperti butang Build / Inventory / Drone / Home. Menu threat juga dibina
+## oleh butang ini sendiri (tidak bergantung pada autoload untuk terbuka).
 
 const IKON: String = "res://scene/ui/threat_icon.png"
+const SkripMenu := preload("res://scene/ui/MenuThreat.gd")
+const LAPIS_LAYER: int = 95
+
+var _lapis: CanvasLayer
+var _menu: PanelContainer
 
 func _ready() -> void:
 	expand_icon = true
@@ -35,8 +39,24 @@ func _ready() -> void:
 		pressed.connect(_tekan)
 
 func _tekan() -> void:
-	var serangan := get_node_or_null("/root/SeranganBalas")
-	if serangan != null and serangan.has_method("buka_menu_threat"):
-		serangan.buka_menu_threat()
-	else:
-		print("ButangThreat: autoload SeranganBalas tidak dijumpai")
+	_pastikan_menu()
+	if _menu != null and is_instance_valid(_menu):
+		_menu.tukar()
+
+func _pastikan_menu() -> void:
+	if _menu != null and is_instance_valid(_menu):
+		return
+	_lapis = CanvasLayer.new()
+	_lapis.name = "LapisMenuThreat"
+	_lapis.layer = LAPIS_LAYER
+	add_child(_lapis)
+	_menu = SkripMenu.new() as PanelContainer
+	_lapis.add_child(_menu)
+
+# Menu ini kekal di dalam scene level, jadi ia hilang bersama scene.
+func tutup_menu_cepat() -> void:
+	if _menu != null and is_instance_valid(_menu):
+		_menu.tutup()
+
+func tutup_menu() -> void:
+	tutup_menu_cepat()
