@@ -40,6 +40,8 @@ var lock_on_comp: LockOnComponent = null
 
 # Jarak terkumpul sejak bunyi langkah terakhir.
 var _jarak_langkah: float = 0.0
+# Selang-seli dua versi bunyi langkah besi supaya tidak sama tiap langkah.
+var _seli_langkah: bool = false
 
 func masuk_state() -> void:
 	print("-> Mengaktifkan Visual BaseState (Guna Sentuhan Tepat Komponen)")
@@ -168,8 +170,11 @@ func _bunyi_langkah(delta: float) -> void:
 	var nama: String = "langkah_batu"
 	var grid := get_tree().get_first_node_in_group("BuildGrid") as BuildGrid
 	if grid != null and grid.jenis_tile_di(astro.global_position) == BuildGrid.JENIS_LANTAI:
-		nama = "langkah_logam"
-	Sfx.mainkan(nama, isipadu_langkah)
+		# Dua versi plat besi berselang-seli: langkah berturut tidak sama bunyi.
+		_seli_langkah = not _seli_langkah
+		nama = "langkah_logam_b" if _seli_langkah else "langkah_logam"
+	# Isipadu berubah sedikit setiap langkah seperti langkah manusia sebenar.
+	Sfx.mainkan(nama, isipadu_langkah + randf_range(-2.0, 1.5))
 
 func _skrin_ke_dunia(pos_skrin: Vector2) -> Vector2:
 	# Tukar posisi skrin (klik) kepada posisi dunia (ikut kamera)

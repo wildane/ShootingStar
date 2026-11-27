@@ -57,6 +57,7 @@ func _ready() -> void:
 	_sedia("menu_tutup")
 	# Langkah pemain: logam (lantai dibina) dan batu (asteroid).
 	_sedia("langkah_logam")
+	_sedia("langkah_logam_b")
 	_sedia("langkah_batu")
 	_aliran["teleport"] = _jana_teleport()
 	_mula_ambien()
@@ -106,7 +107,7 @@ func _mula_jet() -> void:
 		return
 	_jet_pemain = AudioStreamPlayer.new()
 	_jet_pemain.stream = stream
-	_jet_pemain.volume_db = -30.0
+	_jet_pemain.volume_db = -34.0
 	_jet_pemain.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_jet_pemain)
 
@@ -121,8 +122,10 @@ func jet(laju: float, laju_maks: float) -> void:
 		return
 	if not _jet_pemain.playing:
 		_jet_pemain.play()
-	_jet_pemain.pitch_scale = lerpf(0.72, 1.55, _jet_nisbah)
-	_jet_pemain.volume_db = lerpf(-27.0, -13.0, _jet_nisbah)
+	# Bunyi putih lebih terasa kuat daripada nada, jadi julat isipadu lebih rendah
+	# daripada bunyi lain walaupun puncaknya sama.
+	_jet_pemain.pitch_scale = lerpf(0.82, 1.42, _jet_nisbah)
+	_jet_pemain.volume_db = lerpf(-33.0, -17.0, _jet_nisbah)
 
 # Pemain berhenti / masuk mod bina / keluar asteroid: jet terus senyap.
 func jet_berhenti() -> void:
@@ -260,6 +263,15 @@ func _gema(s: PackedFloat32Array, lengah: float, kekuatan: float) -> void:
 	for i in range(d, s.size()):
 		s[i] += s[i - d] * kekuatan
 
+# Redupkan hujung bunyi supaya potongan keras tidak berbunyi "klik".
+func _pudar_hujung(s: PackedFloat32Array, masa: float) -> void:
+	var n: int = int(KADAR * masa)
+	if n <= 1 or n > s.size():
+		return
+	var mula: int = s.size() - n
+	for i in n:
+		s[mula + i] *= 1.0 - float(i) / float(n)
+
 func _normal(s: PackedFloat32Array, sasaran: float) -> void:
 	var puncak: float = 0.0
 	for i in s.size():
@@ -328,7 +340,9 @@ func _jana(nama: String) -> AudioStreamWAV:
 	if nama == "retak":
 		return _jana_retak()
 	if nama == "langkah_logam":
-		return _jana_langkah_logam()
+		return _jana_langkah_logam(0)
+	if nama == "langkah_logam_b":
+		return _jana_langkah_logam(1)
 	if nama == "langkah_batu":
 		return _jana_langkah_batu()
 	# Tutup menu perabot: satu bunyi generik, sama untuk semua jenis menu.
@@ -1134,30 +1148,6 @@ func _jana_menu_tutup() -> AudioStreamWAV:
 
 # ---- Bunyi langkah pemain: logam (lantai dibina) dan batu (asteroid) -----
 
-# Langkah logam: klik tumit + dering plat nipis.
-func _jana_langkah_logam() -> AudioStreamWAV:
-	var tempoh: float = 0.14
-	var n: int = int(KADAR * tempoh)
-	var s := PackedFloat32Array()
-	s.resize(n)
-	var a_klik: float = clampf(TAU * 2600.0 / float(KADAR), 0.0, 1.0)
-	var y_klik: float = 0.0
-	var fasa_plat: float = 0.0
-	var fasa_tumit: float = 0.0
-	for i in n:
-		var t: float = float(i) / float(KADAR)
-		var putih: float = randf_range(-1.0, 1.0)
-		y_klik += a_klik * (putih - y_klik)
-		fasa_plat += TAU * 2350.0 / float(KADAR)
-		fasa_tumit += TAU * lerpf(180.0, 90.0, clampf(t / 0.05, 0.0, 1.0)) / float(KADAR)
-		var klik: float = (putih - y_klik) * exp(-t * 320.0) * 0.8
-		var plat: float = (sin(fasa_plat) + 0.4 * sin(fasa_plat * 1.9)) * exp(-t * 55.0) * 0.28
-		var tumit: float = sin(fasa_tumit) * exp(-t * 38.0) * 0.35
-		s[i] = klik + plat + tumit
-	_lulus_rendah(s, 8000.0)
-	_normal(s, 0.8)
-	return _ke_stream(s, false)
-
 # Langkah batu: kerikil hancur + hentakan rendah (lebih lembut, tiada dering).
 func _jana_langkah_batu() -> AudioStreamWAV:
 	var tempoh: float = 0.16
@@ -1183,34 +1173,104 @@ func _jana_langkah_batu() -> AudioStreamWAV:
 	_normal(s, 0.75)
 	return _ke_stream(s, false)
 
-# ---- Bunyi jet pack: hembusan udara + raungan enjin, gelung licin --------
-# Gelung 0.6s dengan crossfade hujung-ke-kepala supaya tiada "pop" bila
-# bunyi diulang. Pic dinaikkan oleh jet() mengikut kelajuan.
-func _jana_jet() -> AudioStreamWAV:
-	var tempoh: float = 0.6
-	var gelung: int = int(KADAR * tempoh)
-	var silang: int = int(KADAR * 0.08)
-	var n: int = gelung + silang
+# Langkah atas plat besi: hentakan but (bunyi putih sangat pendek) + resonans
+# plat berbilang mod bukan harmonik + denyut rendah dek. Dua versi supaya
+# langkah berturut-turut tidak berbunyi sama.
+func _jana_langkah_logam(versi: int = 0) -> AudioStreamWAV:
+	var tempoh: float = 0.34
+	var n: int = int(KADAR * tempoh)
 	var s := PackedFloat32Array()
 	s.resize(n)
-	var a_badan: float = clampf(TAU * 900.0 / float(KADAR), 0.0, 1.0)
-	var a_udara: float = clampf(TAU * 4200.0 / float(KADAR), 0.0, 1.0)
-	var y_badan: float = 0.0
-	var y_udara: float = 0.0
-	var fasa: float = 0.0
+	# Mod resonans plat besi (bukan gandaan bulat = terasa logam, bukan nada).
+	var mod: Array = [1860.0, 2790.0, 4130.0, 5320.0, 6840.0]
+	var amp: Array = [0.42, 0.30, 0.20, 0.13, 0.08]
+	var redam: Array = [8.0, 11.0, 15.0, 21.0, 30.0]
+	# Versi kedua: plat sedikit berbeza (saiz/kualiti kimpalan lain).
+	var ubah: float = 1.0 if versi == 0 else 1.07
+	var masa_dua: float = 0.046 if versi == 0 else 0.053
+	var amp_dua: float = 0.40 if versi == 0 else 0.30
+	var fasa_mod := PackedFloat32Array()
+	fasa_mod.resize(mod.size())
+	var a_but: float = clampf(TAU * 6500.0 / float(KADAR), 0.0, 1.0)
+	var y_but: float = 0.0
+	var fasa_badan: float = 0.0
 	for i in n:
 		var t: float = float(i) / float(KADAR)
 		var putih: float = randf_range(-1.0, 1.0)
-		y_badan += a_badan * (putih - y_badan)
-		y_udara += a_udara * (putih - y_udara)
-		fasa += TAU * 62.0 / float(KADAR)
-		# Getaran enjin perlahan supaya bunyi tidak rata sepanjang gelung.
-		var getar: float = 0.75 + 0.25 * sin(TAU * 7.0 * t)
-		var hembus: float = (y_udara - y_badan) * 1.2 + y_badan * 0.9
-		var raung: float = sin(fasa) * 0.35 + 0.15 * sin(fasa * 2.0)
-		s[i] = (hembus * getar + raung) * 1.4
-	_lulus_rendah(s, 6000.0)
-	_normal(s, 0.55)
+		y_but += a_but * (putih - y_but)
+		# Dering plat: jumlah beberapa mod yang redam pada kadar berbeza.
+		var dering: float = 0.0
+		for k in mod.size():
+			var f: float = float(mod[k]) * ubah
+			fasa_mod[k] += TAU * f / float(KADAR)
+			dering += sin(fasa_mod[k]) * float(amp[k]) * exp(-t * float(redam[k]))
+		# Hentakan but: hujung kasut mencecah plat (bunyi putih pendek).
+		var but: float = (putih - y_but) * exp(-t * 330.0) * 0.8
+		# Sentuhan kedua: hujung kaki/hujung kasut jatuh selepas tumit.
+		var but_dua: float = 0.0
+		if t > masa_dua:
+			but_dua = (putih - y_but) * exp(-(t - masa_dua) * 430.0) * amp_dua
+		# Denyut rendah: plat/struktur dek bergetar selepas hentakan.
+		fasa_badan += TAU * lerpf(150.0, 92.0, clampf(t / 0.09, 0.0, 1.0)) * ubah / float(KADAR)
+		var badan: float = sin(fasa_badan) * exp(-t * 27.0) * 0.5
+		s[i] = but + but_dua + dering + badan
+	_lulus_rendah(s, 9000.0)
+	# Gema pendek dua lapis: dek besi tertutup, bukan ruang terbuka.
+	_gema(s, 0.034, 0.16)
+	_gema(s, 0.071, 0.09)
+	_pudar_hujung(s, 0.045)
+	_normal(s, 0.8)
+	return _ke_stream(s, false)
+
+# ---- Bunyi jet pack: desiran udara + raungan pembakaran + gemuruh ---------
+# Tiga lapisan bunyi putih ditapis (desiran tinggi, raungan tengah, gemuruh
+# rendah) yang dikuatkan oleh turbulens perlahan supaya bunyi berubah tidak
+# menentu seperti enjin sebenar. Gelung 3s dengan crossfade supaya ulangan
+# tidak kedengaran. Pic dinaikkan oleh jet() mengikut kelajuan.
+func _jana_jet() -> AudioStreamWAV:
+	var tempoh: float = 3.0
+	var gelung: int = int(KADAR * tempoh)
+	var silang: int = int(KADAR * 0.25)
+	var n: int = gelung + silang
+	var habuk := PackedFloat32Array()
+	var badan := PackedFloat32Array()
+	var gemuruh := PackedFloat32Array()
+	var turbulens := PackedFloat32Array()
+	habuk.resize(n)
+	badan.resize(n)
+	gemuruh.resize(n)
+	turbulens.resize(n)
+	# Turbulens pembakaran: bunyi putih yang dilicinkan sangat perlahan.
+	var a_turb: float = clampf(TAU * 2.2 / float(KADAR), 0.0, 1.0)
+	var y_turb: float = 0.0
+	for i in n:
+		var putih: float = randf_range(-1.0, 1.0)
+		habuk[i] = putih
+		badan[i] = putih
+		gemuruh[i] = putih
+		y_turb += a_turb * (putih - y_turb)
+		turbulens[i] = y_turb
+	var habuk_rendah: PackedFloat32Array = habuk.duplicate()
+	_lulus_rendah(habuk_rendah, 3200.0)
+	_lulus_rendah(badan, 780.0)
+	_lulus_rendah(gemuruh, 110.0)
+	_normal(badan, 1.0)
+	_normal(gemuruh, 1.0)
+	_normal(turbulens, 1.0)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	for i in n:
+		# (putih - lolos rendah) = laluan tinggi: desiran udara tekanan tinggi.
+		var desir: float = (habuk[i] - habuk_rendah[i]) * 0.32
+		var raung: float = badan[i] * 0.36
+		var rendah: float = gemuruh[i] * 0.44
+		var amp: float = 0.86 + 0.14 * turbulens[i]
+		s[i] = (desir + raung + rendah) * amp
+	_lulus_rendah(s, 9500.0)
+	# Mampatan lembut: raungan terasa padat seperti enjin sebenar.
+	for i in n:
+		s[i] = tanh(s[i] * 1.8) * 0.62
+	_normal(s, 0.7)
 	# Crossfade hujung ke kepala supaya gelung tidak "pop".
 	for i in silang:
 		var w: float = float(i) / float(silang)
