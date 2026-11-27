@@ -1014,9 +1014,9 @@ func _retro(s: PackedFloat32Array, faktor: int = 2, tahap: float = 4.0) -> Audio
 	return _ke_stream(keluar, false, int(KADAR / faktor))
 
 # ---- Bunyi klik butang menu: bip pendek gaya konsol lama ----------------
-# Tiga tahap nada turun (C6-G5-E5) dalam 0.06s, seperti menekan menu NES.
+# Tiga tahap nada turun (C6-G5-E5) dalam 0.10s, seperti menekan menu NES.
 func _jana_klik() -> AudioStreamWAV:
-	var tempoh: float = 0.06
+	var tempoh: float = 0.10
 	var n: int = int(KADAR * tempoh)
 	var s := PackedFloat32Array()
 	s.resize(n)
@@ -1024,7 +1024,7 @@ func _jana_klik() -> AudioStreamWAV:
 	var fasa: float = 0.0
 	for i in n:
 		var t: float = float(i) / float(KADAR)
-		var idx: int = mini(int(t / 0.02), nota.size() - 1)
+		var idx: int = mini(int(t / 0.033), nota.size() - 1)
 		fasa += TAU * float(nota[idx]) / float(KADAR)
 		s[i] = _segi(fasa) * (1.0 - t / tempoh) * 0.6
 	return _retro(s, 2, 4.0)
@@ -1033,7 +1033,7 @@ func _jana_klik() -> AudioStreamWAV:
 # C5-E5-G5-C6 bergerak, melawan menu_tutup yang turun.
 func _jana_menu_buka() -> AudioStreamWAV:
 	var nota: Array = [523.25, 659.25, 783.99, 1046.50]
-	var tempoh_nota: float = 0.05
+	var tempoh_nota: float = 0.075
 	var tempoh: float = tempoh_nota * float(nota.size())
 	var n: int = int(KADAR * tempoh)
 	var s := PackedFloat32Array()
@@ -1132,7 +1132,7 @@ func _jana_menu(nama: String) -> AudioStreamWAV:
 # G5-E5-C5-G4, satu bunyi generik untuk semua menu supaya konsisten.
 func _jana_menu_tutup() -> AudioStreamWAV:
 	var nota: Array = [783.99, 659.25, 523.25, 392.00]
-	var tempoh_nota: float = 0.045
+	var tempoh_nota: float = 0.07
 	var tempoh: float = tempoh_nota * float(nota.size())
 	var n: int = int(KADAR * tempoh)
 	var s := PackedFloat32Array()
