@@ -96,6 +96,13 @@ var _baiki_kemajuan: Dictionary = {} # Vector2i -> float 0..1 (sedang dibaiki)
 # pada satu masa.
 var _bunyi_kerja_masa: float = 0.0
 
+# Teks status sementara ("Wall built", "Constructing...") hilang sendiri selepas
+# beberapa saat supaya tidak tertinggal di skrin bila menu rumah sudah ditutup
+# dan kerja siap semasa pemain berjalan. Teks panduan mod (pilih Floor / Wall /
+# Door) pula kekal sampai mod dibatalkan.
+const MASA_STATUS_SEMENTARA: float = 2.4
+var _status_masa: float = 0.0
+
 var _mod: int = -1
 var _jari: int = -1
 var _hantu: Vector2i = Vector2i.ZERO
@@ -350,11 +357,17 @@ func _pilih(jenis: int) -> void:
 	for i in range(_butang.size()):
 		_butang[i].set_pressed_no_signal(i == jenis)
 	if jenis == JENIS_ERASE:
-		_label_status.text = "Erase: tap a built tile to mark it. Go near to deconstruct and get 1 Iron back"
+		_status("Erase: tap a built tile to mark it. Go near to deconstruct and get 1 Iron back", true)
 	elif jenis == JENIS_REPAIR:
-		_label_status.text = "Repair: tap a damaged tile to plan (1 Iron per missing HP). Go near to repair"
+		_status("Repair: tap a damaged tile to plan (1 Iron per missing HP). Go near to repair", true)
 	else:
-		_label_status.text = NAMA_JENIS[jenis] + ": tap to plan (1 Iron). Go near to build"
+		_status(NAMA_JENIS[jenis] + ": tap to plan (1 Iron). Go near to build", true)
+
+func _status(teks: String, kekal: bool = false) -> void:
+	if _label_status == null:
+		return
+	_label_status.text = teks
+	_status_masa = 0.0 if kekal or teks.is_empty() else MASA_STATUS_SEMENTARA
 
 func _batal() -> void:
 	_mod = -1
@@ -363,7 +376,7 @@ func _batal() -> void:
 	_ada_hantu = false
 	for butang in _butang:
 		butang.set_pressed_no_signal(false)
-	_label_status.text = ""
+	_status("")
 	_set_buka(false)
 	queue_redraw()
 
@@ -455,13 +468,13 @@ func letak(g: Vector2i) -> bool:
 	if _mod == JENIS_REPAIR:
 		return tanda_baiki(g)
 	if not boleh_bina(g):
-		_label_status.text = "Can't build here: must be on the asteroid and touch your base"
+		_status("Can't build here: must be on the asteroid and touch your base")
 		return false
 
 	var jenis := _mod
 	_rancang[g] = jenis
 	_bina_kemajuan.erase(g)
-	_label_status.text = NAMA_JENIS[jenis] + " planned (1 Iron)"
+	_status(NAMA_JENIS[jenis] + " planned (1 Iron)")
 	queue_redraw()
 	return true
 
@@ -474,25 +487,25 @@ func padam(g: Vector2i) -> bool:
 		_bina_kemajuan.erase(g)
 		if sedang_bina:
 			_pulangkan_besi()
-			_label_status.text = "Plan cancelled (+1 Iron)"
+			_status("Plan cancelled (+1 Iron)")
 		else:
-			_label_status.text = "Plan cancelled"
+			_status("Plan cancelled")
 		queue_redraw()
 		return true
 	# Tanda tile siap untuk nyahbina.
 	if _tile.has(g):
 		if _padam_tanda.has(g):
-			_label_status.text = "Already marked for deconstruction"
+			_status("Already marked for deconstruction")
 			return false
 		# Tanda nyahbina membatalkan rancangan baiki pada tile yang sama.
 		_baiki_tanda.erase(g)
 		_baiki_kemajuan.erase(g)
 		_padam_tanda[g] = true
 		_padam_kemajuan.erase(g)
-		_label_status.text = "Marked for deconstruction. Go near to deconstruct (1 Iron only if intact)"
+		_status("Marked for deconstruction. Go near to deconstruct (1 Iron only if intact)")
 		queue_redraw()
 		return true
-	_label_status.text = "Nothing to erase here"
+	_status("Nothing to erase here")
 	return false
 
 # ==========================================
@@ -514,44 +527,44 @@ func boleh_baiki(g: Vector2i) -> bool:
 func tanda_baiki(g: Vector2i) -> bool:
 	if not boleh_baiki(g):
 		if _tile.has(g):
-			_label_status.text = NAMA_JENIS[int(_tile[g])] + " is already intact"
+			_status(NAMA_JENIS[int(_tile[g])] + " is already intact")
 		else:
-			_label_status.text = "Nothing to repair here"
+			_status("Nothing to repair here")
 		return false
 	if _baiki_kemajuan.has(g):
-		_label_status.text = "Already repairing " + NAMA_JENIS[int(_tile[g])]
+		_status("Already repairing " + NAMA_JENIS[int(_tile[g])])
 		return false
 	if _baiki_tanda.has(g):
 		_baiki_tanda.erase(g)
-		_label_status.text = "Repair plan cancelled"
+		_status("Repair plan cancelled")
 		queue_redraw()
 		return true
 	_baiki_tanda[g] = true
-	_label_status.text = "%s marked for repair (%d Iron). Go near to repair" % [
-		NAMA_JENIS[int(_tile[g])], kos_repair_tile(g)]
+	_status("%s marked for repair (%d Iron). Go near to repair" % [
+		NAMA_JENIS[int(_tile[g])], kos_repair_tile(g)])
 	queue_redraw()
 	return true
 
 # Baiki satu tile rosak: tolak besi, pulihkan HP penuh dan buang bar HP lama.
 func baiki_tile(g: Vector2i) -> bool:
 	if not _tile.has(g):
-		_label_status.text = "Nothing to repair here"
+		_status("Nothing to repair here")
 		return false
 	var jenis := int(_tile[g])
 	var maks: int = hp_maks_tile(jenis)
 	if hp_tile(g) >= maks:
-		_label_status.text = NAMA_JENIS[jenis] + " is already intact"
+		_status(NAMA_JENIS[jenis] + " is already intact")
 		return false
 	var kos: int = (maks - hp_tile(g)) * KOS_BESI
 	if not _ada_besi(kos) or not _tolak_besi(kos):
-		_label_status.text = "Need %d %s to repair %s" % [kos, NAMA_BESI, NAMA_JENIS[jenis]]
+		_status("Need %d %s to repair %s" % [kos, NAMA_BESI, NAMA_JENIS[jenis]])
 		return false
 	_hp_tile[g] = maks
 	var nod_tile := _nod_tile(g)
 	if nod_tile != null:
 		BAR_HP.buang(nod_tile)
 	_apung_besi(-kos)
-	_label_status.text = "%s repaired (%d Iron)" % [NAMA_JENIS[jenis], kos]
+	_status("%s repaired (%d Iron)" % [NAMA_JENIS[jenis], kos])
 	_bunyi("baiki_siap", to_global(_tengah_sel(g)))
 	queue_redraw()
 	return true
@@ -564,11 +577,11 @@ func baiki_tile(g: Vector2i) -> bool:
 func batal_semua_padam() -> bool:
 	var bil: int = _padam_tanda.size()
 	if bil == 0:
-		_label_status.text = "No deconstruction marks to cancel"
+		_status("No deconstruction marks to cancel")
 		return false
 	_padam_tanda.clear()
 	_padam_kemajuan.clear()
-	_label_status.text = "Cancelled %d deconstruction mark(s)" % bil
+	_status("Cancelled %d deconstruction mark(s)" % bil)
 	queue_redraw()
 	return true
 
@@ -577,7 +590,7 @@ func batal_semua_padam() -> bool:
 func batal_semua_rancang() -> bool:
 	var bil: int = _rancang.size()
 	if bil == 0:
-		_label_status.text = "No build plans to cancel"
+		_status("No build plans to cancel")
 		return false
 	var pulang: int = 0
 	for g in _bina_kemajuan:
@@ -589,9 +602,9 @@ func batal_semua_rancang() -> bool:
 		_pulangkan_besi()
 	if pulang > 0:
 		_apung_besi(pulang)
-		_label_status.text = "Cancelled %d plan(s) (+%d Iron)" % [bil, pulang]
+		_status("Cancelled %d plan(s) (+%d Iron)" % [bil, pulang])
 	else:
-		_label_status.text = "Cancelled %d plan(s)" % bil
+		_status("Cancelled %d plan(s)" % bil)
 	queue_redraw()
 	return true
 
@@ -980,6 +993,10 @@ func _apung_besi(banyak: int) -> void:
 
 func _process(delta: float) -> void:
 	_kemas_kini_iklan_besi(delta)
+	if _status_masa > 0.0:
+		_status_masa -= delta
+		if _status_masa <= 0.0 and _label_status != null:
+			_label_status.text = ""
 
 # Animasi iklan dikira sendiri: posisi disemak semula setiap frame dari
 # kedudukan pemain, jadi iklan ikut pemain/kamera sepanjang hayatnya.
@@ -1053,13 +1070,13 @@ func _kemas_kini_pembinaan(delta: float, pos_pemain: Vector2) -> void:
 	# Mula binaan: tolak bahan sekarang.
 	if not sudah_bermula:
 		if not _ada_besi():
-			_label_status.text = "Need 1 Basic Iron to build " + NAMA_JENIS[int(_rancang[sasaran])]
+			_status("Need 1 Basic Iron to build " + NAMA_JENIS[int(_rancang[sasaran])])
 			return
 		if not _tolak_besi():
 			return
 		_bina_kemajuan[sasaran] = 0.0
 		_bunyi_kerja_masa = 0.0
-		_label_status.text = "Constructing " + NAMA_JENIS[int(_rancang[sasaran])] + "..."
+		_status("Constructing " + NAMA_JENIS[int(_rancang[sasaran])] + "...")
 
 	_bina_kemajuan[sasaran] = float(_bina_kemajuan.get(sasaran, 0.0)) + delta / MASA_BINA
 	queue_redraw()
@@ -1074,7 +1091,7 @@ func _kemas_kini_pembinaan(delta: float, pos_pemain: Vector2) -> void:
 	_tile[sasaran] = jenis
 	_hp_tile[sasaran] = hp_maks_tile(jenis)
 	_bina_kolider(sasaran, jenis)
-	_label_status.text = NAMA_JENIS[jenis] + " built"
+	_status(NAMA_JENIS[jenis] + " built")
 	_bunyi("bina_siap", to_global(_tengah_sel(sasaran)))
 	_apung_besi(-KOS_BESI)
 	PowerGrid.tanda_kotor_semua("grid_bina")
@@ -1116,7 +1133,7 @@ func _kemas_kini_nyahbina(delta: float, pos_pemain: Vector2) -> void:
 	if not sudah_bermula:
 		_padam_kemajuan[sasaran] = 0.0
 		_bunyi_kerja_masa = 0.0
-		_label_status.text = "Deconstructing " + NAMA_JENIS[int(_tile[sasaran])] + "..."
+		_status("Deconstructing " + NAMA_JENIS[int(_tile[sasaran])] + "...")
 
 	_padam_kemajuan[sasaran] = float(_padam_kemajuan.get(sasaran, 0.0)) + delta / MASA_BINA
 	queue_redraw()
@@ -1131,10 +1148,10 @@ func _kemas_kini_nyahbina(delta: float, pos_pemain: Vector2) -> void:
 	_buang_tile(sasaran)
 	if utuh:
 		_pulangkan_besi()
-		_label_status.text = NAMA_JENIS[jenis] + " deconstructed (+1 Iron)"
+		_status(NAMA_JENIS[jenis] + " deconstructed (+1 Iron)")
 		_apung_besi(KOS_BESI)
 	else:
-		_label_status.text = NAMA_JENIS[jenis] + " deconstructed (damaged, no materials)"
+		_status(NAMA_JENIS[jenis] + " deconstructed (damaged, no materials)")
 	_bunyi("roboh_siap", to_global(_tengah_sel(sasaran)))
 	PowerGrid.tanda_kotor_semua("grid_roboh")
 	queue_redraw()
@@ -1181,11 +1198,11 @@ func _kemas_kini_baiki(delta: float, pos_pemain: Vector2) -> void:
 	if not sudah_bermula:
 		var kos: int = kos_repair_tile(sasaran)
 		if not _ada_besi(kos) or not _tolak_besi(kos):
-			_label_status.text = "Need %d %s to repair %s" % [kos, NAMA_BESI, NAMA_JENIS[jenis]]
+			_status("Need %d %s to repair %s" % [kos, NAMA_BESI, NAMA_JENIS[jenis]])
 			return
 		_baiki_kemajuan[sasaran] = 0.0
 		_bunyi_kerja_masa = 0.0
-		_label_status.text = "Repairing " + NAMA_JENIS[jenis] + "..."
+		_status("Repairing " + NAMA_JENIS[jenis] + "...")
 
 	_baiki_kemajuan[sasaran] = float(_baiki_kemajuan.get(sasaran, 0.0)) + delta / MASA_BINA
 	queue_redraw()
@@ -1202,7 +1219,7 @@ func _kemas_kini_baiki(delta: float, pos_pemain: Vector2) -> void:
 	_baiki_tanda.erase(sasaran)
 	_baiki_kemajuan.erase(sasaran)
 	_apung_besi(-kos_siap)
-	_label_status.text = "%s repaired (%d Iron)" % [NAMA_JENIS[jenis], kos_siap]
+	_status("%s repaired (%d Iron)" % [NAMA_JENIS[jenis], kos_siap])
 	_bunyi("baiki_siap", to_global(_tengah_sel(sasaran)))
 	queue_redraw()
 
