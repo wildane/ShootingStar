@@ -178,6 +178,8 @@ func mula_permainan_baru() -> void:
 	if inv_manager:
 		inv_manager.senarai_barang.clear()
 		inv_manager.inventory_dikemaskini.emit()
+	# Permainan baharu bermula tanpa threat/serangan balas.
+	StorThreat.reset()
 
 # Pilih slot untuk dimuatkan oleh scene seterusnya (level_3 panggil load_game).
 func tetapkan_slot(id: String) -> void:
@@ -263,6 +265,11 @@ func _kumpul_data_state() -> Dictionary:
 	var grid_bina := get_tree().get_first_node_in_group("BuildGrid")
 	if grid_bina != null and grid_bina.has_method("dapatkan_data_save"):
 		data_keseluruhan["build_grid"] = grid_bina.call("dapatkan_data_save")
+
+	# 2c. Snapshot threat + baki pemasa serangan balas pada masa simpan ini.
+	# Tanpa ini, load slot lama akan guna nilai cakera terkini (contoh: selepas
+	# gelombang selesai) dan pemasa yang disimpan hilang.
+	data_keseluruhan["threat"] = StorThreat.data_simpanan()
 
 	# 3. KEMAS KINI MUTLAK: Mencari MobSpawner DAN MeteoriteSpawner secara automatik
 	if scene_utama:
@@ -453,6 +460,12 @@ func load_game(scene_aktif: Node = null):
 	var grid_bina := get_tree().get_first_node_in_group("BuildGrid")
 	if grid_bina != null and grid_bina.has_method("muat_data_save"):
 		grid_bina.call("muat_data_save", saved_data.get("build_grid", {}))
+
+	# 2c. Pulihkan threat + baki pemasa serangan balas milik slot ini.
+	if saved_data.has("threat"):
+		var data_threat = saved_data.get("threat", {})
+		if data_threat is Dictionary:
+			StorThreat.pakai_data_simpanan(data_threat)
 
 	# 3. KEMAS KINI MUTLAK: Mengagihkan semula data kedudukan kepada MobSpawner dan MeteoriteSpawner
 	if scene_utama and saved_data.has("spawner_data"):

@@ -68,14 +68,27 @@ func _process(delta: float) -> void:
 		_simpan_tick = 2.0
 		StorThreat.simpan()
 
+# Butang Ready di menu threat: lancar gelombang yang menunggu sekarang,
+# tanpa tunggu pemasa 3 minit habis. Pulang true kalau penyerang keluar.
+func lancar_sekarang() -> bool:
+	# Tiada gelombang menunggu (pemasa -1) atau belum ada bunuhan: jangan apa-apa.
+	if StorThreat.masa_serang < 0.0 or StorThreat.bunuh <= 0:
+		return false
+	if StorThreat.bilangan_raider() <= 0:
+		StorThreat.selesai_gelombang()
+		return false
+	print("SeranganBalas: pemain tekan Ready, gelombang dilancarkan lebih awal")
+	return _lancar_serangan()
+
 # Hantar semua penyerang terkumpul ke pangkalan.
 # Bilangan penyerang ikut threat semasa (10% = 1 ... 100% = 6).
-func _lancar_serangan() -> void:
+# Pulang true kalau sekurang-kurangnya satu penyerang benar-benar keluar.
+func _lancar_serangan() -> bool:
 	var jumlah: int = StorThreat.bilangan_raider()
 
 	if jumlah <= 0:
 		StorThreat.selesai_gelombang()
-		return
+		return false
 
 	var scene_utama := get_tree().current_scene
 	var bekas: Node = null
@@ -88,7 +101,7 @@ func _lancar_serangan() -> void:
 		# Bukan dalam level permainan (contoh: menu) - cuba lagi sekejap lagi.
 		print("SeranganBalas: tiada scene/penyerang, cuba lagi (scene=", scene_utama, ")")
 		StorThreat.masa_serang = 1.0
-		return
+		return false
 
 	# Penyerang muncul di keliling asteroid yang ada pangkalan pemain, bukan
 	# dekat player. Dari situ mereka menyerang dinding/lantai/pintu/perabot.
@@ -113,6 +126,7 @@ func _lancar_serangan() -> void:
 	# gelombang seterusnya yang bermula pada bunuhan husk berikutnya.
 	StorThreat.selesai_gelombang()
 	serangan_bermula.emit(jumlah)
+	return true
 
 # Pusat dan jejari asteroid pangkalan, serta pusat binaan pemain di atasnya.
 # Asteroid dipilih yang paling hampir dengan pusat binaan (atau posisi pangkalan

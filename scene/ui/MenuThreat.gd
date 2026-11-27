@@ -19,6 +19,7 @@ var _label_threat: Label
 var _label_bunuh: Label
 var _label_raider: Label
 var _label_timer: Label
+var _butang_ready: Button
 var _tick: float = 0.0
 
 func _ready() -> void:
@@ -129,20 +130,40 @@ func _bina() -> void:
 	_label_timer = _buat_label(kanan, "--:--", 14, Color(1.0, 0.8, 0.45, 1.0))
 	_label_timer.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 
+	# Butang Ready: hantar penyerang serta-merta tanpa tunggu pemasa 3 minit.
+	_butang_ready = Button.new()
+	_butang_ready.text = "Ready - send raiders"
+	_butang_ready.focus_mode = Control.FOCUS_NONE
+	_butang_ready.add_theme_font_size_override("font_size", 8)
+	_butang_ready.pressed.connect(_tekan_ready)
+	akar.add_child(_butang_ready)
+
 	var butang_tutup_bawah := Button.new()
 	butang_tutup_bawah.text = "Close"
 	butang_tutup_bawah.focus_mode = Control.FOCUS_NONE
 	butang_tutup_bawah.pressed.connect(tutup)
 	akar.add_child(butang_tutup_bawah)
 
+# Pemain tekan Ready: gelombang yang sedang menunggu dilancarkan sekarang.
+func _tekan_ready() -> void:
+	var pantau := _cari_pemantau()
+	if pantau != null and pantau.has_method("lancar_sekarang"):
+		var berjaya: bool = pantau.call("lancar_sekarang")
+		print("MenuThreat: butang Ready ditekan, gelombang dilancarkan=", berjaya)
+	_kemas_kini()
+
 # Pemasa/spawn kini nod dalam scene level (bukan autoload).
-func _ada_pemantau() -> bool:
-	if get_node_or_null("/root/SeranganBalas") != null:
-		return true
+func _cari_pemantau() -> Node:
+	var autoload := get_node_or_null("/root/SeranganBalas")
+	if autoload != null:
+		return autoload
 	var scene_utama := get_tree().current_scene
 	if scene_utama == null:
-		return false
-	return scene_utama.find_child("SeranganBalas", true, false) != null
+		return null
+	return scene_utama.find_child("SeranganBalas", true, false)
+
+func _ada_pemantau() -> bool:
+	return _cari_pemantau() != null
 
 func _buat_label(ibu: Node, teks: String, saiz: int, warna: Color) -> Label:
 	var label := Label.new()
@@ -184,6 +205,9 @@ func _kemas_kini() -> void:
 		else:
 			_label_status.text = "No threat"
 			_label_status.add_theme_color_override("font_color", Color(0.62, 0.95, 0.7, 1.0))
+	if _butang_ready:
+		# Hanya boleh tekan bila ada gelombang menunggu dan spawner hidup.
+		_butang_ready.disabled = not (ada_spawner and baki >= 0.0 and bunuh > 0)
 	if _label_timer:
 		if baki >= 0.0:
 			var saat: int = maxi(0, ceili(baki))

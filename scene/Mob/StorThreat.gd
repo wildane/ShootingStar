@@ -75,9 +75,28 @@ static func set_masa(baki: float) -> void:
 static func reset() -> void:
 	bunuh = 0
 	masa_serang = -1.0
+	_dimuat = true
 	simpan()
 
 # ---- simpan / muat ----
+
+# Snapshot untuk fail simpanan slot: threat dan baki masa pada saat itu.
+# Nilai cakera (threat.json) terus berubah selepas pemain bunuh husk atau
+# menunggu, jadi load slot mesti pulihkan salinan slot, bukan cakera.
+static func data_simpanan() -> Dictionary:
+	muat()
+	return {"bunuh": bunuh, "masa": masa_serang}
+
+# Pulihkan threat daripada fail simpanan slot yang dimuatkan.
+static func pakai_data_simpanan(data: Dictionary) -> void:
+	if data.is_empty():
+		return
+	bunuh = maxi(0, int(data.get("bunuh", 0)))
+	var baki: float = float(data.get("masa", -1.0))
+	masa_serang = baki if baki > 0.0 else -1.0
+	_dimuat = true
+	simpan()
+	print("StorThreat: pulih dari simpanan, threat %d%%, baki %.1f saat" % [peratus(), masa_serang])
 
 # Baca nilai tersimpan sekali sahaja (selamat dipanggil berulang kali).
 static func muat() -> void:
