@@ -81,6 +81,8 @@ func _jalan() -> void:
 	var selepas: Dictionary = grid.sasaran_terdekat(Vector2(200, 200), 100.0)
 	_semak(selepas.get("grid", Vector2i(-1, -1)) == Vector2i(13, 12),
 		"tile dinding hilang, lantai jadi sasaran seterusnya")
+	_semak(grid.sasaran_terdekat(Vector2(200, 200), 100.0, true).is_empty(),
+		"raider abaikan lantai: hanya dinding/pintu jadi sasaran")
 	_semak(grid.hancurkan(Vector2i(13, 12)), "hancurkan() buang tile lantai")
 	_semak(grid.sasaran_terdekat(Vector2(200, 200), 100.0).is_empty(),
 		"tiada tile lagi selepas kedua-duanya musnah")

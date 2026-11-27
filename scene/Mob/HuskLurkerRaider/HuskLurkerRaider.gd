@@ -17,8 +17,8 @@ const BAR_HP := preload("res://scene/level_3/build_system/BarHpStruktur.gd")
 @export var masa_teleport: float = 0.4
 
 # --- Serangan pangkalan ---
-## Jarak untuk memusnahkan sasaran: raider tembak struktur (dinding/lantai/pintu/
-## perabot) dari jauh, tak perlu sentuh dulu.
+## Jarak untuk memusnahkan sasaran: raider tembak struktur (dinding/pintu/
+## perabot) dari jauh, tak perlu sentuh dulu. Lantai tidak diserang langsung.
 @export var jarak_serang: float = 120.0
 ## Jarak carian sasaran di sekeliling raider.
 @export var jarak_cari_sasaran: float = 520.0
@@ -111,8 +111,9 @@ func _keluar_dari_teleport() -> void:
 
 # ==========================================================
 # SERANGAN PANGKALAN
-# Raider menuju pangkalan, kemudian memusnahkan dinding/lantai/pintu dan
-# perabot yang paling hampir. Satu serangan = satu sasaran hancur.
+# Raider menuju pangkalan, kemudian memusnahkan dinding/pintu dan perabot yang
+# paling hampir. Lantai diabaikan kerana ia tak menghalang laluan.
+# Satu serangan = satu sasaran hancur.
 # ==========================================================
 func _gerak_penyerang(delta: float, player: Node2D, jarak: float, nampak: bool) -> float:
 	if _cooldown_serang > 0.0:
@@ -180,12 +181,13 @@ func _gerak_penyerang(delta: float, player: Node2D, jarak: float, nampak: bool) 
 		_hala_ke(player.global_position, delta)
 	return wander_speed
 
-# Tile grid (dinding/lantai/pintu) paling hampir dengan raider dalam jejari tertentu.
+# Tile grid (dinding/pintu) paling hampir dengan raider dalam jejari tertentu.
+# Lantai dikecualikan: raider tak pernah menyerang lantai.
 func _sasaran_terdekat_grid(jarak_maks: float) -> Dictionary:
 	var grid := get_tree().get_first_node_in_group("BuildGrid")
 	if grid == null or not grid.has_method("sasaran_terdekat"):
 		return {}
-	return grid.call("sasaran_terdekat", global_position, jarak_maks)
+	return grid.call("sasaran_terdekat", global_position, jarak_maks, true)
 
 # Pusing badan ke arah sasaran (logik sama seperti _gerak_penyerang asal).
 func _hala_ke(posisi: Vector2, delta: float) -> void:
@@ -200,14 +202,15 @@ func _hala_ke(posisi: Vector2, delta: float) -> void:
 	else:
 		arah = arah.lerp(arah_sasaran, 6.0 * delta).normalized()
 
-# Sasaran terdekat: tile grid (lantai/dinding/pintu) atau perabot berhampiran.
+# Sasaran terdekat: tile grid (dinding/pintu, lantai dikecualikan) atau perabot
+# berhampiran.
 func _cari_sasaran() -> Dictionary:
 	var terbaik: Dictionary = {}
 	var jarak_terbaik: float = jarak_cari_sasaran
 
 	var grid := get_tree().get_first_node_in_group("BuildGrid")
 	if grid != null and grid.has_method("sasaran_terdekat"):
-		var calon: Dictionary = grid.call("sasaran_terdekat", global_position, jarak_terbaik)
+		var calon: Dictionary = grid.call("sasaran_terdekat", global_position, jarak_terbaik, true)
 		if not calon.is_empty():
 			terbaik = calon
 			jarak_terbaik = global_position.distance_to(calon.get("posisi", global_position))

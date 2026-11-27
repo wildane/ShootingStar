@@ -601,10 +601,14 @@ func pusat_binaan() -> Vector2:
 
 # Tile siap terdekat dari posisi dunia, dalam jarak_maks.
 # {} jika tiada tile dalam jarak itu.
-func sasaran_terdekat(pos_dunia: Vector2, jarak_maks: float) -> Dictionary:
+# Tile terdekat dengan posisi dunia. `kecuali_lantai = true` mengabaikan tile
+# lantai: raider hanya memusnahkan dinding/pintu, lantai tak menghalang laluan.
+func sasaran_terdekat(pos_dunia: Vector2, jarak_maks: float, kecuali_lantai: bool = false) -> Dictionary:
 	var hasil: Dictionary = {}
 	var jarak_terbaik: float = jarak_maks
 	for g in _tile:
+		if kecuali_lantai and int(_tile[g]) == JENIS_LANTAI:
+			continue
 		var pusat := to_global(_tengah_sel(g))
 		var jarak := pos_dunia.distance_to(pusat)
 		if jarak <= jarak_terbaik:
