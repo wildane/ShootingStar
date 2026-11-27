@@ -57,11 +57,15 @@ func _muat_ikon(laluan: String) -> Texture2D:
 
 func _process(delta: float) -> void:
 	# Butang hilang bila tukar scene; cari bekasnya semula sekali-sekala.
-	if _butang == null or not is_instance_valid(_butang) or not _butang.is_inside_tree():
-		_cari_tick += delta
-		if _cari_tick >= SELA_CARI_BEKAS:
-			_cari_tick = 0.0
+	_cari_tick += delta
+	if _cari_tick >= SELA_CARI_BEKAS:
+		_cari_tick = 0.0
+		if _butang == null or not is_instance_valid(_butang) or not _butang.is_inside_tree():
 			_sedia_butang()
+		else:
+			# BuildGrid menambah ikon rumah kemudian; pastikan butang threat
+			# kekal di bawah sekali dalam group ikon.
+			_susun_bawah_ikon_home()
 
 	if _menu == null or not is_instance_valid(_menu) or not _menu.visible:
 		return
@@ -84,6 +88,16 @@ func kemas_kini(_delta: float = 0.0) -> void:
 func _sedia_butang() -> void:
 	if _butang != null and is_instance_valid(_butang) and _butang.is_inside_tree():
 		return
+
+	# Butang dalam scene (ButangThreat.gd) diutamakan; ia ada dalam level_3.tscn
+	# supaya sentiasa kelihatan macam butang HUD lain.
+	var sedia := _cari_butang_sedia()
+	if sedia != null:
+		# Butang scene sudah sambung isyaratnya sendiri (ButangThreat.gd) ke
+		# buka_menu_threat, jadi jangan sambung di sini (elak toggle berganda).
+		_butang = sedia
+		return
+
 	var bekas := _cari_bekas_ikon()
 	if bekas == null:
 		return
@@ -111,6 +125,22 @@ func _sedia_butang() -> void:
 	# Anak terakhir VBox = di bawah ikon rumah.
 	bekas.add_child(_butang)
 	print("ThreatHud: butang threat ditambah ke ", bekas.get_path())
+
+func _cari_butang_sedia() -> Button:
+	var scene_utama := get_tree().current_scene
+	if scene_utama == null:
+		return null
+	return scene_utama.find_child("ButangThreat", true, false) as Button
+
+# Letak butang threat sebagai anak terakhir group ikon (bawah ikon rumah).
+func _susun_bawah_ikon_home() -> void:
+	if _butang == null or not is_instance_valid(_butang):
+		return
+	var ibu := _butang.get_parent()
+	if ibu == null:
+		return
+	if _butang.get_index() != ibu.get_child_count() - 1:
+		ibu.move_child(_butang, -1)
 
 # Cari VBox ikon menegah kiri: utamakan laluan tepat, kemudian VBox yang
 # mengandungi butang HUD yang dikenali.
@@ -254,10 +284,16 @@ func _buat_label(ibu: Node, teks: String, saiz: int, warna: Color) -> Label:
 	return label
 
 func _tukar_menu() -> void:
-	if _menu == null or not is_instance_valid(_menu):
-		return
-	if _menu.visible:
+	if _menu != null and is_instance_valid(_menu) and _menu.visible:
 		_menu.visible = false
+		return
+	buka_menu()
+
+# Buka menu di tengah skrin (dipanggil butang scene atau butang sendiri).
+func buka_menu() -> void:
+	if _menu == null or not is_instance_valid(_menu):
+		_sedia_menu()
+	if _menu == null or not is_instance_valid(_menu):
 		return
 	_kemas_kini_label()
 	_menu.reset_size()

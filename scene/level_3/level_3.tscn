@@ -41,6 +41,9 @@
 [ext_resource type="PackedScene" path="res://scene/asteroid/Asteroid.tscn" id="60_ast"]
 [ext_resource type="Script" path="res://scene/level_3/build_system/BuildGrid.gd" id="61_bgrid"]
 
+[ext_resource type="Script" path="res://scene/ui/ButangThreat.gd" id="43_butang"]
+[ext_resource type="Texture2D" path="res://scene/ui/threat_icon.png" id="44_threatikon"]
+
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_fs2q3"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_jvfsc"]
@@ -326,6 +329,16 @@ drone_names = Array[String](["Light Drone", "Medium Drone", "Heavy Drone"])
 drone_item_ids = Array[String](["drone_ringan", "drone_sederhana", "drone_berat"])
 spawn_icon = ExtResource("16_hr2ua")
 metadata/_edit_lock_ = true
+
+[node name="ButangThreat" type="Button" parent="CanvasLayer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+mouse_filter = 0
+icon = ExtResource("44_threatikon")
+flat = true
+icon_alignment = 1
+expand_icon = true
+script = ExtResource("43_butang")
 
 [node name="Inventory" parent="CanvasLayer" unique_id=1787922766 instance=ExtResource("9_jlgbs")]
 unique_name_in_owner = true

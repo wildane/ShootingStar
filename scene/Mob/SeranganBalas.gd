@@ -153,6 +153,12 @@ func _sedia_hud() -> void:
 	add_child(_hud)
 	_hud.pasang(self)
 
+# Dipanggil butang threat dalam scene (ButangThreat.gd).
+func buka_menu_threat() -> void:
+	_sedia_hud()
+	if _hud != null and is_instance_valid(_hud) and _hud.has_method("buka_menu"):
+		_hud.buka_menu()
+
 func _kemas_hud(delta: float) -> void:
 	_sedia_hud()
 	if _hud != null and is_instance_valid(_hud):
