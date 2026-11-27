@@ -60,6 +60,8 @@ func daftar_bunuh_husk(_posisi: Vector2 = Vector2.ZERO) -> void:
 		_label.visible = true
 
 func _process(delta: float) -> void:
+	_pastikan_hud()
+
 	if baki_masa >= 0.0:
 		baki_masa -= delta
 		if baki_masa <= 0.0:
@@ -156,15 +158,41 @@ func _dalam_dinding(titik: Vector2) -> bool:
 	query.collide_with_bodies = true
 	return not dunia.direct_space_state.intersect_shape(query, 1).is_empty()
 
+# Pastikan label HUD sentiasa wujud dan berada dalam pokok scene.
+# Label milik scene level akan hilang bila tukar scene, jadi bina semula.
+func _pastikan_hud() -> void:
+	if _label_kira != null and is_instance_valid(_label_kira) and _label_kira.is_inside_tree():
+		return
+	if _kanvas != null and not is_instance_valid(_kanvas):
+		_kanvas = null
+	_label = null
+	_label_kira = null
+	_sedia_hud()
+	_kemas_kini_label()
+	_kemas_kira()
+
 # ---------- HUD ----------
 func _sedia_hud() -> void:
-	if _kanvas != null and is_instance_valid(_kanvas):
+	# Sudah wujud dan masih dalam scene - jangan bina label berganda.
+	if is_instance_valid(_label_kira) and _label_kira.is_inside_tree():
 		return
 
-	_kanvas = CanvasLayer.new()
-	_kanvas.name = "HudSeranganBalas"
-	_kanvas.layer = 95
-	add_child(_kanvas)
+	# Utamakan CanvasLayer sedia ada dalam level (UI yang memang sudah nampak
+	# di skrin). Fallback: CanvasLayer sendiri pada layer 95.
+	var induk: Node = null
+	var scene_utama := get_tree().current_scene
+	if scene_utama != null:
+		induk = scene_utama.find_child("CanvasLayer", true, false)
+	if _kanvas != null and is_instance_valid(_kanvas):
+		# Buang kanvas sendiri yang lama supaya label tidak bertindan.
+		_kanvas.queue_free()
+		_kanvas = null
+	if induk == null:
+		_kanvas = CanvasLayer.new()
+		_kanvas.name = "HudSeranganBalas"
+		_kanvas.layer = 95
+		add_child(_kanvas)
+		induk = _kanvas
 
 	_label = Label.new()
 	_label.name = "LabelSeranganBalas"
@@ -183,7 +211,7 @@ func _sedia_hud() -> void:
 	_label.offset_bottom = 0.0
 	_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_label.visible = false
-	_kanvas.add_child(_label)
+	induk.add_child(_label)
 
 	# Label kiraan kecil di kiri bawah - sentiasa nampak, tak perlu bunuh husk dulu.
 	_label_kira = Label.new()
@@ -200,7 +228,7 @@ func _sedia_hud() -> void:
 	_label_kira.offset_bottom = -4.0
 	_label_kira.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_label_kira.text = "Husk 0"
-	_kanvas.add_child(_label_kira)
+	induk.add_child(_label_kira)
 
 func _kemas_kini_label() -> void:
 	if not is_instance_valid(_label):
