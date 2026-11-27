@@ -88,7 +88,8 @@ func kendalikan_input(event: InputEvent) -> void:
 		return
 
 	if event is InputEventScreenTouch:
-		if event.pressed:
+		# Sentuhan yang dibatalkan sistem (touchcancel pelayar) dikira lepas jari.
+		if event.pressed and not event.canceled:
 			touches[event.index] = event.position
 			
 			if lock_on_comp:
@@ -113,6 +114,10 @@ func kendalikan_input(event: InputEvent) -> void:
 				joystick_dir = Vector2.ZERO
 
 	if event is InputEventScreenDrag:
+		# Abaikan drag untuk jari yang tiada rekod tekan (jari hantu selepas
+		# menu dibuka/ditutup): joystick tidak boleh bergerak sendiri.
+		if not touches.has(event.index):
+			return
 		touches[event.index] = event.position
 
 		if event.index == joystick_id:
@@ -125,6 +130,18 @@ func kendalikan_input(event: InputEvent) -> void:
 			else:
 				joystick_dir = normalized
 				ada_target = false # joystick ambil alih kawalan
+
+# Buang semua state sentuhan: dipanggil bila menu dibuka/ditutup atau bila
+# cubitan zoom dua jari bermula, supaya joystick dan click-to-move berhenti.
+func kosongkan_kawalan_sentuh() -> void:
+	touches.clear()
+	joystick_active = false
+	joystick_id = -1
+	joystick_center = Vector2.ZERO
+	joystick_dir = Vector2.ZERO
+	ada_target = false
+	if astro:
+		astro.velocity = Vector2.ZERO
 
 func mod_bina_aktif() -> bool:
 	return (is_instance_valid(BuildManager) and BuildManager.mod_pembinaan) or BuildGrid.mod_aktif

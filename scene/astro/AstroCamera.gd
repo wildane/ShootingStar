@@ -47,6 +47,18 @@ func _kosongkan_sentuhan() -> void:
 	pinch_mode = false
 	last_pinch_distance = 0.0
 
+# Cubitan dua jari bermula: batalkan joystick/click-to-move dalam state machine
+# supaya player tidak bergerak semasa zoom in / zoom out.
+func _mula_cubit() -> void:
+	if pinch_mode:
+		return
+	pinch_mode = true
+	last_pinch_distance = 0.0
+	if parent_astro:
+		var sm = parent_astro.get_node_or_null("StateMachine")
+		if sm != null and sm.has_method("batal_kawalan_sentuh"):
+			sm.batal_kawalan_sentuh()
+
 func _input(event: InputEvent) -> void:
 	# Pastikan hanya player tempatan sahaja yang boleh kawal kamera zoom
 	if not parent_astro or not parent_astro.get_meta("local", false):
@@ -58,11 +70,18 @@ func _input(event: InputEvent) -> void:
 		# kalau tidak index itu kekal sebagai "jari" selama-lamanya.
 		if event.pressed and not event.canceled:
 			touches[event.index] = event.position
+			if touches.size() >= 2:
+				_mula_cubit()
 		else:
 			touches.erase(event.index)
 			if touches.size() < 2:
-				pinch_mode = false
 				last_pinch_distance = 0.0
+			if touches.is_empty():
+				pinch_mode = false
+
+		# Semasa cubit, telan semua sentuhan supaya joystick tidak terima event.
+		if pinch_mode:
+			get_viewport().set_input_as_handled()
 
 	# DETECT HERETAN JARI (PINCH)
 	if event is InputEventScreenDrag:
@@ -72,9 +91,14 @@ func _input(event: InputEvent) -> void:
 		touches[event.index] = event.position
 
 		# Jika ada 2 jari serentak pada skrin, aktifkan Pinch Zoom
-		if touches.size() == 2:
-			pinch_mode = true
+		if touches.size() >= 2:
+			_mula_cubit()
 			_handle_pinch()
+
+		# Selagi cubit aktif (termasuk selepas satu jari diangkat), zoom tidak
+		# boleh menggerakkan player: telan event drag.
+		if pinch_mode:
+			get_viewport().set_input_as_handled()
 
 	# DETECT SCROLL WHEEL MOUSE (ZOOM DESKTOP)
 	if event is InputEventMouseButton and event.pressed:

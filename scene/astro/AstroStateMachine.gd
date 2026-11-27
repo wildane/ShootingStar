@@ -33,10 +33,44 @@ func _ready() -> void:
 		if get_child_count() > 0:
 			tukar_state(get_child(0))
 
+# Sentuhan boleh "tersangkut" bila SceneTree dipause (menu) atau tetingkap
+# hilang fokus: event lepas jari tidak sampai ke state, jadi index lama kekal.
+# Kosongkan semua rekod sentuhan supaya joystick tidak rosak selepas menu.
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_PAUSED, NOTIFICATION_UNPAUSED, \
+		NOTIFICATION_WM_WINDOW_FOCUS_OUT, CanvasItem.NOTIFICATION_VISIBILITY_CHANGED:
+			_kosongkan_semua_sentuhan()
+
+# Buang semua state sentuhan (state machine + state aktif) dan hentikan player.
+func _kosongkan_semua_sentuhan() -> void:
+	jari_tertekan.clear()
+	pusat_jari.clear()
+	jari_joystick = -1
+	sasaran_lama_ada = false
+	if state_sekarang and state_sekarang.has_method("kosongkan_kawalan_sentuh"):
+		state_sekarang.kosongkan_kawalan_sentuh()
+
+# Dipanggil kamera bila cubitan dua jari bermula: cubitan hanya untuk zoom,
+# jadi joystick dan click-to-move dibatalkan supaya player tidak bergerak.
+func batal_kawalan_sentuh() -> void:
+	_kosongkan_semua_sentuhan()
+	if get_parent() is CharacterBody2D:
+		get_parent().velocity = Vector2.ZERO
+
+# Kamera sedang dalam mod cubit (zoom dua jari).
+func _cubit_aktif() -> bool:
+	var kamera = get_parent().get_node_or_null("Camera2D")
+	return kamera != null and bool(kamera.get("pinch_mode"))
+
 # Guna _unhandled_input supaya sentuhan/klik pada UI (CanvasLayer/Control) tidak
 # mencetuskan gerakan pemain (input UI diproses dahulu oleh fasa GUI).
 func _unhandled_input(event: InputEvent) -> void:
 	if not state_sekarang:
+		return
+
+	# Semasa mencubit untuk zoom, jangan gerakkan player.
+	if _cubit_aktif():
 		return
 
 	# Tap pada pintu/perabot ialah interaksi objek, bukan arahan bergerak.
@@ -50,7 +84,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 
 	var input_state := _input_sentuhan(event)
-	_rekod_sentuhan(input_state)
+	# Heretan jari hantu (tiada rekod tekan) tidak diteruskan ke state.
+	if not _rekod_sentuhan(input_state):
+		return
 	state_sekarang.kendalikan_input(input_state)
 	if input_state != event:
 		get_viewport().set_input_as_handled()
@@ -75,9 +111,12 @@ func _input_sentuhan(event: InputEvent) -> InputEvent:
 	return event
 
 # Simpan jari yang masih menekan skrin untuk state seterusnya.
-func _rekod_sentuhan(event: InputEvent) -> void:
+# Pulangkan false bila event patut diabaikan (drag jari hantu).
+func _rekod_sentuhan(event: InputEvent) -> bool:
 	if event is InputEventScreenTouch:
-		if event.pressed:
+		# Sentuhan yang dibatalkan sistem (touchcancel pelayar) dikira lepas jari,
+		# kalau tidak index itu kekal sebagai "jari" selama-lamanya.
+		if event.pressed and not event.canceled:
 			if jari_joystick == -1:
 				jari_joystick = event.index
 			jari_tertekan[event.index] = event.position
@@ -88,7 +127,11 @@ func _rekod_sentuhan(event: InputEvent) -> void:
 			if event.index == jari_joystick:
 				jari_joystick = -1
 	elif event is InputEventScreenDrag:
+		# Abaikan drag untuk jari yang tiada rekod tekan (jari hantu).
+		if not jari_tertekan.has(event.index):
+			return false
 		jari_tertekan[event.index] = event.position
+	return true
 
 # Adakah titik skrin ini terkena pintu atau perabot interaktif? Semakan guna
 # physics point query kerana physics picking mungkin belum berjalan.
