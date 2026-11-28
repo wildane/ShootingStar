@@ -32,7 +32,7 @@ const JEDA_MULA: float = 1.6
 # Jarak pemain ke stesen cas yang dikira "sudah sampai".
 const JARAK_CAS: float = 34.0
 # Berapa saat pemain mesti kekal dekat stesen cas sebelum langkah tenaga lulus.
-const MASA_CAS: float = 10.0
+const MASA_CAS: float = 3.0
 
 const WARNA_AKSEN: Color = Color(0.40, 0.80, 0.92)
 const WARNA_TEKS: Color = Color(0.86, 0.95, 1.0)
@@ -136,7 +136,7 @@ func _senarai_langkah() -> Array:
 		{
 			"id": "tenaga",
 			"label": "Charge your energy",
-			"teks": "Flying and drone shots drain your energy.\nThe charging station next to the doorway refills it —\nfollow the ring and stay beside it for 10 seconds.",
+			"teks": "Flying and drone shots drain your energy.\nThe charging station next to the doorway refills it —\nfollow the ring and stay beside it for 3 seconds.",
 			"sasaran_dunia": Callable(self, "_pos_dunia_stesen_cas"),
 			"mula": Callable(self, "_rekod_tenaga"),
 			"syarat": Callable(self, "_semak_tenaga"),
