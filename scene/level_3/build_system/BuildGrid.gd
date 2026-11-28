@@ -863,6 +863,16 @@ func hancurkan(g: Vector2i) -> bool:
 	print("BuildGrid: %s di %s musnah diserang husk" % [NAMA_JENIS[jenis], g])
 	return true
 
+# Bilangan tile siap dibina bagi satu jenis (lalai: lantai). Dipakai tutorial
+# untuk mengira kemajuan "bina 4 lantai".
+func bilangan_tile(jenis: int = JENIS_LANTAI) -> int:
+	var jumlah: int = 0
+	for g in _tile:
+		if int(_tile[g]) == jenis:
+			jumlah += 1
+	return jumlah
+
+
 func boleh_bina(g: Vector2i) -> bool:
 	if _tile.has(g) or _rancang.has(g):
 		return false

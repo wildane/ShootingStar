@@ -34,6 +34,8 @@ const JARAK_CAS: float = 34.0
 # Berapa keping Steel yang perlu dilebur dalam langkah relau.
 const ID_KELULI: String = "item_0009"
 const KELULI_PERLU: int = 4
+# Berapa tile lantai yang perlu dibina dalam asteroid.
+const LANTAI_PERLU: int = 4
 # Berapa saat pemain mesti kekal dekat stesen cas sebelum langkah tenaga lulus.
 const MASA_CAS: float = 3.0
 
@@ -67,6 +69,8 @@ var _meteorit_awal: int = 0
 var _masa_dekat_cas: float = 0.0
 # Bilangan Steel dalam beg semasa langkah relau bermula.
 var _keluli_awal: int = 0
+# Bilangan lantai siap semasa langkah bina lantai bermula.
+var _lantai_awal: int = 0
 
 
 # Cincin berdenyut yang menunjuk tempat pemain patut tekan/drag.
@@ -158,6 +162,15 @@ func _senarai_langkah() -> Array:
 			"mula": Callable(self, "_rekod_keluli"),
 			"syarat": Callable(self, "_semak_keluli"),
 			"masa_maks": 180.0,
+		},
+		{
+			"id": "lantai",
+			"label": "Build 4 floors",
+			"teks": "Fly into the asteroid and build 4 floors inside it.\nTap the build button, pick Floor, then tap a tile —\neach floor costs 1 iron ore.",
+			"sasaran_dunia": Callable(self, "_pos_dunia_asteroid"),
+			"mula": Callable(self, "_rekod_lantai"),
+			"syarat": Callable(self, "_semak_lantai"),
+			"masa_maks": 240.0,
 		},
 	]
 
@@ -295,6 +308,30 @@ func _rekod_keluli() -> void:
 # jadi steel yang sudah ada sebelum ini tidak terus meluluskan langkah.
 func _semak_keluli() -> bool:
 	return _bilangan_keluli() - _keluli_awal >= KELULI_PERLU
+
+
+# Asteroid pangkalan (kumpulan "Asteroid") — cincin menunjuk ke batu tempat
+# pemain perlu membina lantai.
+func _pos_dunia_asteroid() -> Vector2:
+	return _pos_dunia_kumpulan("Asteroid", Vector2.ZERO)
+
+
+# Bilangan tile lantai yang sudah siap dibina oleh BuildGrid.
+func _bilangan_lantai() -> int:
+	var grid := get_tree().get_first_node_in_group("BuildGrid")
+	if grid == null or not grid.has_method("bilangan_tile"):
+		return 0
+	return int(grid.bilangan_tile())
+
+
+func _rekod_lantai() -> void:
+	_lantai_awal = _bilangan_lantai()
+
+
+# Lulus bila lantai bertambah LANTAI_PERLU tile sejak langkah mula, jadi lantai
+# yang sudah sedia ada tidak terus meluluskan langkah.
+func _semak_lantai() -> bool:
+	return _bilangan_lantai() - _lantai_awal >= LANTAI_PERLU
 
 
 func _tunggu_pemain() -> void:
