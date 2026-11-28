@@ -31,6 +31,8 @@ const MASA_MAKS_LANGKAH: float = 25.0
 const JEDA_MULA: float = 1.6
 # Jarak pemain ke stesen cas yang dikira "sudah sampai".
 const JARAK_CAS: float = 34.0
+# Berapa saat pemain mesti kekal dekat stesen cas sebelum langkah tenaga lulus.
+const MASA_CAS: float = 10.0
 
 const WARNA_AKSEN: Color = Color(0.40, 0.80, 0.92)
 const WARNA_TEKS: Color = Color(0.86, 0.95, 1.0)
@@ -56,8 +58,8 @@ var _pos_asal: Vector2 = Vector2.ZERO
 # Kiraan penggunaan objek semasa langkah bermula (pintu, meteor).
 var _pintu_awal: int = 0
 var _meteorit_awal: int = 0
-# Tenaga pemain semasa langkah tenaga bermula.
-var _tenaga_awal: float = 0.0
+# Berapa lama pemain sudah berada dekat stesen cas dalam langkah tenaga.
+var _masa_dekat_cas: float = 0.0
 
 
 # Cincin berdenyut yang menunjuk tempat pemain patut tekan/drag.
@@ -134,7 +136,7 @@ func _senarai_langkah() -> Array:
 		{
 			"id": "tenaga",
 			"label": "Charge your energy",
-			"teks": "Flying and drone shots drain your energy.\nThe charging station next to the doorway refills it —\nfollow the ring and stand beside it.",
+			"teks": "Flying and drone shots drain your energy.\nThe charging station next to the doorway refills it —\nfollow the ring and stay beside it for 10 seconds.",
 			"sasaran_dunia": Callable(self, "_pos_dunia_stesen_cas"),
 			"mula": Callable(self, "_rekod_tenaga"),
 			"syarat": Callable(self, "_semak_tenaga"),
@@ -219,27 +221,29 @@ func _pos_dunia_stesen_cas() -> Vector2:
 	return _pos_dunia_kumpulan("StesenCas", Vector2(0.0, -8.0))
 
 
-func _tenaga_pemain() -> float:
+# Adakah pemain berada dalam jarak cas stesen terdekat?
+func _dekat_stesen_cas() -> bool:
 	if not is_instance_valid(_pemain):
-		return 0.0
-	var tenaga: Node = _pemain.get_node_or_null("EnergyComponent")
-	if tenaga == null or not ("tenaga" in tenaga):
-		return 0.0
-	return float(tenaga.get("tenaga"))
+		return false
+	var stesen := _nod_terdekat("StesenCas")
+	if stesen == null:
+		return false
+	return stesen.global_position.distance_to(_pemain.global_position) <= JARAK_CAS
 
 
 func _rekod_tenaga() -> void:
-	_tenaga_awal = _tenaga_pemain()
+	_masa_dekat_cas = 0.0
 
 
-# Cukup apabila pemain sampai ke stesen cas (atau tenaganya sudah bertambah).
+# Lulus hanya bila pemain kekal dekat stesen cas selama MASA_CAS saat.
+# Beralih keluar dari kawasan menetapkan semula kiraan, jadi pemain kena
+# duduk dekat stesen sampai masa habis.
 func _semak_tenaga() -> bool:
-	if _tenaga_pemain() > _tenaga_awal + 0.5:
-		return true
-	var stesen := _nod_terdekat("StesenCas")
-	if stesen != null and is_instance_valid(_pemain):
-		return stesen.global_position.distance_to(_pemain.global_position) <= JARAK_CAS
-	return false
+	if not _dekat_stesen_cas():
+		_masa_dekat_cas = 0.0
+		return false
+	_masa_dekat_cas += get_process_delta_time()
+	return _masa_dekat_cas >= MASA_CAS
 
 
 func _tunggu_pemain() -> void:
