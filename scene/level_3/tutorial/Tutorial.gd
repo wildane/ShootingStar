@@ -166,7 +166,7 @@ func _senarai_langkah() -> Array:
 		{
 			"id": "lantai",
 			"label": "Build 4 floors",
-			"teks": "Fly into the asteroid and build 4 floors inside it.\nTap the build button, pick Floor, then tap a tile —\neach floor costs 1 iron ore.",
+			"teks": "Fly into the asteroid and build 4 floors inside it.\nTap the build button, pick Floor, then tap a tile —\neach floor costs 1 steel.",
 			"sasaran_dunia": Callable(self, "_pos_dunia_asteroid"),
 			"mula": Callable(self, "_rekod_lantai"),
 			"syarat": Callable(self, "_semak_lantai"),

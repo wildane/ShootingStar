@@ -39,17 +39,23 @@ const LAYER_ZON_BINA: int = 4
 const JARAK_BUKA_PINTU: float = 22.0
 
 # Pembinaan / nyahbina: tile dirancang (hijau/merah) dahulu, kemudian dibina
-# atau dinyahbina apabila pemain cukup dekat. Setiap tile kos 1 Basic Iron.
+# atau dinyahbina apabila pemain cukup dekat. Bahan bina ialah Steel: lantai
+# 1 keping, dinding dan pintu 3 keping.
 const JARAK_BINA: float = 28.0
 const MASA_BINA: float = 0.9
 # Bunyi kerja (tukul/sepana/retak) diulang setiap JARAK_BUNYI_KERJA saat
 # selagi kemajuan naik, supaya kedengaran seperti kerja sedang berjalan.
 const JARAK_BUNYI_KERJA: float = 0.26
-const ID_BESI: String = "item_0001"
-const NAMA_BESI: String = "Basic Iron Ore"
-const IKON_BESI: String = "res://scene/Item/0001BasicIronOre/Image_959.png"
-const LALUAN_BESI: String = "res://scene/Item/0001BasicIronOre/0001BasicIronOre.tscn"
-const KOS_BESI: int = 1
+const ID_KELULI: String = "item_0009"
+const NAMA_KELULI: String = "Steel"
+const IKON_KELULI: String = "res://scene/Item/0009Steel/Image_steel.png"
+const LALUAN_KELULI: String = "res://scene/Item/0009Steel/Steel.tscn"
+# Kos bina tile dalam keping Steel.
+const KOS_LANTAI: int = 1
+const KOS_DINDING: int = 3
+const KOS_PINTU: int = 3
+# Kos baiki: 1 Steel bagi setiap HP yang hilang, bagi semua jenis tile.
+const KOS_BAIKI: int = 1
 
 # Aset tile: lantai, dinding dan pintu.
 const TEKSTUR_LANTAI: Texture2D = preload("res://scene/level_3/build_system/tile_floor.png")
@@ -123,25 +129,25 @@ const SAIZ_BUTANG: float = 32.0   # sama dengan butang Inventory / Weapon Attach
 const SAIZ_PILIHAN: float = 34.0
 const LANGKAH_BUTANG: float = 38.0
 const MASA_BUKA: float = 0.18
-# Lapisan HUD untuk iklan terapung "-1" / "+1" besi dekat pemain.
+# Lapisan HUD untuk iklan terapung "-1" / "+1" Steel dekat pemain.
 var _lapis_terapung: CanvasLayer
-const WARNA_BESI_KELUAR: Color = Color(1.0, 0.42, 0.36)
-const WARNA_BESI_MASUK: Color = Color(0.45, 1.0, 0.55)
+const WARNA_KELULI_KELUAR: Color = Color(1.0, 0.42, 0.36)
+const WARNA_KELULI_MASUK: Color = Color(0.45, 1.0, 0.55)
 
-# Animasi iklan besi dikira sendiri tiap frame (tanpa Tween) dan Control
+# Animasi iklan Steel dikira sendiri tiap frame (tanpa Tween) dan Control
 # dibina sekali sahaja lalu diguna semula: naik laju tetap, pudar smoothstep
 # sampai habis. Tiada Control baru, tiada queue_free, tiada spike layout.
-const MASA_IKLAN_BESI: float = 0.65
-const JARAK_IKLAN_BESI: float = 14.0
-const OFFSET_IKLAN_BESI: float = 22.0
-const IKLAN_BESI_MULA_PUDAR: float = 0.35
-const BIL_IKLAN_BESI: int = 2 # 0 = kos bina (merah), 1 = besi masuk (hijau)
-var _iklan_besi: Array[HBoxContainer] = []
-var _iklan_besi_label: Array[Label] = []
-var _iklan_besi_masa: Array[float] = []
-var _iklan_besi_goyang: Array[float] = []
-var _iklan_besi_pemain: Node2D = null
-var _ada_iklan_besi: bool = false
+const MASA_IKLAN_KELULI: float = 0.65
+const JARAK_IKLAN_KELULI: float = 14.0
+const OFFSET_IKLAN_KELULI: float = 22.0
+const IKLAN_KELULI_MULA_PUDAR: float = 0.35
+const BIL_IKLAN_KELULI: int = 2 # 0 = kos bina (merah), 1 = Steel masuk (hijau)
+var _iklan_keluli: Array[HBoxContainer] = []
+var _iklan_keluli_label: Array[Label] = []
+var _iklan_keluli_masa: Array[float] = []
+var _iklan_keluli_goyang: Array[float] = []
+var _iklan_keluli_pemain: Node2D = null
+var _ada_iklan_keluli: bool = false
 
 func _ready() -> void:
 	add_to_group("BuildGrid")
@@ -235,7 +241,7 @@ func _bina_hud() -> void:
 	_label_status.top_level = true
 	_kanvas_hud.add_child(_label_status)
 
-	_bina_iklan_besi()
+	_bina_iklan_keluli()
 	_susun_hud()
 	_set_buka(false)
 
@@ -361,11 +367,11 @@ func _pilih(jenis: int) -> void:
 	for i in range(_butang.size()):
 		_butang[i].set_pressed_no_signal(i == jenis)
 	if jenis == JENIS_ERASE:
-		_status("Erase: tap a built tile to mark it. Go near to deconstruct and get 1 Iron back", true)
+		_status("Erase: tap a built tile to mark it. Go near to deconstruct and get the Steel back", true)
 	elif jenis == JENIS_REPAIR:
-		_status("Repair: tap a damaged tile to plan (1 Iron per missing HP). Go near to repair", true)
+		_status("Repair: tap a damaged tile to plan (1 Steel per missing HP). Go near to repair", true)
 	else:
-		_status(NAMA_JENIS[jenis] + ": tap to plan (1 Iron). Go near to build", true)
+		_status("%s: tap to plan (%d Steel). Go near to build" % [NAMA_JENIS[jenis], kos_tile(jenis)], true)
 
 func _status(teks: String, kekal: bool = false) -> void:
 	if _label_status == null:
@@ -479,7 +485,7 @@ func letak(g: Vector2i) -> bool:
 	var jenis := _mod
 	_rancang[g] = jenis
 	_bina_kemajuan.erase(g)
-	_status(NAMA_JENIS[jenis] + " planned (1 Iron)")
+	_status("%s planned (%d Steel)" % [NAMA_JENIS[jenis], kos_tile(jenis)])
 	_bunyi("rancang_ok", to_global(_tengah_sel(g)))
 	queue_redraw()
 	return true
@@ -489,11 +495,12 @@ func padam(g: Vector2i) -> bool:
 	# Batal rancangan: jika pembinaan sudah bermula, pulangkan bahan.
 	if _rancang.has(g):
 		var sedang_bina := _bina_kemajuan.has(g)
+		var kos_rancang: int = kos_tile(int(_rancang[g]))
 		_rancang.erase(g)
 		_bina_kemajuan.erase(g)
 		if sedang_bina:
-			_pulangkan_besi()
-			_status("Plan cancelled (+1 Iron)")
+			_pulangkan_keluli(kos_rancang)
+			_status("Plan cancelled (+%d Steel)" % kos_rancang)
 		else:
 			_status("Plan cancelled")
 		_bunyi("rancang_ok", to_global(_tengah_sel(g)))
@@ -510,7 +517,7 @@ func padam(g: Vector2i) -> bool:
 		_baiki_kemajuan.erase(g)
 		_padam_tanda[g] = true
 		_padam_kemajuan.erase(g)
-		_status("Marked for deconstruction. Go near to deconstruct (1 Iron only if intact)")
+		_status("Marked for deconstruction. Go near to deconstruct (materials back only if intact)")
 		_bunyi("rancang_ok", to_global(_tengah_sel(g)))
 		queue_redraw()
 		return true
@@ -521,12 +528,12 @@ func padam(g: Vector2i) -> bool:
 # ==========================================
 # BAIKI TILE (dinding / pintu / lantai)
 # ==========================================
-# Kos baiki = 1 besi bagi setiap HP yang hilang. Tile penuh tak perlu dibaiki,
+# Kos baiki = 1 Steel bagi setiap HP yang hilang. Tile penuh tak perlu dibaiki,
 # dan lantai (HP maks 1) terus pecah bila kena serangan jadi ia jarang rosak.
 func kos_repair_tile(g: Vector2i) -> int:
 	if not _tile.has(g):
 		return 0
-	return (hp_maks_tile(int(_tile[g])) - hp_tile(g)) * KOS_BESI
+	return (hp_maks_tile(int(_tile[g])) - hp_tile(g)) * KOS_BAIKI
 
 func boleh_baiki(g: Vector2i) -> bool:
 	return _tile.has(g) and hp_tile(g) < hp_maks_tile(int(_tile[g]))
@@ -553,13 +560,13 @@ func tanda_baiki(g: Vector2i) -> bool:
 		queue_redraw()
 		return true
 	_baiki_tanda[g] = true
-	_status("%s marked for repair (%d Iron). Go near to repair" % [
+	_status("%s marked for repair (%d Steel). Go near to repair" % [
 		NAMA_JENIS[int(_tile[g])], kos_repair_tile(g)])
 	_bunyi("rancang_ok", to_global(_tengah_sel(g)))
 	queue_redraw()
 	return true
 
-# Baiki satu tile rosak: tolak besi, pulihkan HP penuh dan buang bar HP lama.
+# Baiki satu tile rosak: tolak Steel, pulihkan HP penuh dan buang bar HP lama.
 func baiki_tile(g: Vector2i) -> bool:
 	if not _tile.has(g):
 		_status("Nothing to repair here")
@@ -569,16 +576,16 @@ func baiki_tile(g: Vector2i) -> bool:
 	if hp_tile(g) >= maks:
 		_status(NAMA_JENIS[jenis] + " is already intact")
 		return false
-	var kos: int = (maks - hp_tile(g)) * KOS_BESI
-	if not _ada_besi(kos) or not _tolak_besi(kos):
-		_status("Need %d %s to repair %s" % [kos, NAMA_BESI, NAMA_JENIS[jenis]])
+	var kos: int = (maks - hp_tile(g)) * KOS_BAIKI
+	if not _ada_keluli(kos) or not _tolak_keluli(kos):
+		_status("Need %d %s to repair %s" % [kos, NAMA_KELULI, NAMA_JENIS[jenis]])
 		return false
 	_hp_tile[g] = maks
 	var nod_tile := _nod_tile(g)
 	if nod_tile != null:
 		BAR_HP.buang(nod_tile)
-	_apung_besi(-kos)
-	_status("%s repaired (%d Iron)" % [NAMA_JENIS[jenis], kos])
+	_apung_keluli(-kos)
+	_status("%s repaired (%d Steel)" % [NAMA_JENIS[jenis], kos])
 	_bunyi("baiki_siap", to_global(_tengah_sel(g)), ISIPADU_BUNYI_SIAP)
 	queue_redraw()
 	return true
@@ -600,7 +607,7 @@ func batal_semua_padam() -> bool:
 	return true
 
 # Batalkan semua rancangan binaan (highlight hijau). Rancangan yang sudah mula
-# dibina memulangkan 1 besi setiap satu kerana bahan sudah ditolak.
+# dibina memulangkan Steel ikut jenis tile kerana bahan sudah ditolak.
 func batal_semua_rancang() -> bool:
 	var bil: int = _rancang.size()
 	if bil == 0:
@@ -609,14 +616,13 @@ func batal_semua_rancang() -> bool:
 	var pulang: int = 0
 	for g in _bina_kemajuan:
 		if _rancang.has(g):
-			pulang += 1
+			pulang += kos_tile(int(_rancang[g]))
 	_rancang.clear()
 	_bina_kemajuan.clear()
-	for _i in pulang:
-		_pulangkan_besi()
+	_pulangkan_keluli(pulang)
 	if pulang > 0:
-		_apung_besi(pulang)
-		_status("Cancelled %d plan(s) (+%d Iron)" % [bil, pulang])
+		_apung_keluli(pulang)
+		_status("Cancelled %d plan(s) (+%d Steel)" % [bil, pulang])
 	else:
 		_status("Cancelled %d plan(s)" % bil)
 	queue_redraw()
@@ -803,6 +809,15 @@ func hp_maks_tile(jenis: int) -> int:
 			return HP_PINTU
 	return HP_LANTAI
 
+# Kos bina sesuatu jenis tile dalam keping Steel (lantai 1, dinding & pintu 3).
+func kos_tile(jenis: int) -> int:
+	match jenis:
+		JENIS_DINDING:
+			return KOS_DINDING
+		JENIS_PINTU:
+			return KOS_PINTU
+	return KOS_LANTAI
+
 # HP semasa tile (0 jika tile tiada).
 func hp_tile(g: Vector2i) -> int:
 	if not _tile.has(g):
@@ -938,37 +953,42 @@ func _bina_zon_lantai(g: Vector2i) -> void:
 # ==========================================
 # PEMBINAAN / NYAHBINA BERASASKAN JARAK
 # ==========================================
-func _ada_besi(banyak: int = KOS_BESI) -> bool:
+func _ada_keluli(banyak: int = 1) -> bool:
 	var inv = get_node_or_null("/root/InventoryManager")
-	return inv != null and inv.bilangan_item(ID_BESI) >= banyak
+	return inv != null and inv.bilangan_item(ID_KELULI) >= banyak
 
-func _tolak_besi(banyak: int = KOS_BESI) -> bool:
+func _tolak_keluli(banyak: int = 1) -> bool:
 	var inv = get_node_or_null("/root/InventoryManager")
-	return inv != null and inv.tolak_item(ID_BESI, banyak)
+	return inv != null and inv.tolak_item(ID_KELULI, banyak)
 
-func _pulangkan_besi() -> void:
+# Pulangkan Steel ke beg. tambah_item hanya menambah 1 keping setiap panggilan,
+# jadi keping yang dipulangkan diulang satu demi satu.
+func _pulangkan_keluli(banyak: int = 1) -> void:
+	if banyak <= 0:
+		return
 	var inv = get_node_or_null("/root/InventoryManager")
 	if inv == null:
 		return
 	var ikon_tex: Texture2D = null
-	if ResourceLoader.exists(IKON_BESI):
-		ikon_tex = load(IKON_BESI)
-	inv.tambah_item({
-		"id": ID_BESI,
-		"nama": NAMA_BESI,
-		"ikon": ikon_tex,
-		"scene_path": LALUAN_BESI,
-	})
+	if ResourceLoader.exists(IKON_KELULI):
+		ikon_tex = load(IKON_KELULI)
+	for _i in banyak:
+		inv.tambah_item({
+			"id": ID_KELULI,
+			"nama": NAMA_KELULI,
+			"ikon": ikon_tex,
+			"scene_path": LALUAN_KELULI,
+		})
 
-# Dua iklan besi dibina SEKALI di sini (merah kos bina, hijau besi masuk)
+# Dua iklan Steel dibina SEKALI di sini (merah kos bina, hijau Steel masuk)
 # supaya tidak ada Control baru / susun atur / rasterisasi fon setiap tile.
-func _bina_iklan_besi() -> void:
+func _bina_iklan_keluli() -> void:
 	if _lapis_terapung == null:
 		return
 	var ikon_tex: Texture2D = null
-	if ResourceLoader.exists(IKON_BESI):
-		ikon_tex = load(IKON_BESI)
-	for i in BIL_IKLAN_BESI:
+	if ResourceLoader.exists(IKON_KELULI):
+		ikon_tex = load(IKON_KELULI)
+	for i in BIL_IKLAN_KELULI:
 		var baris := HBoxContainer.new()
 		baris.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		# Saiz ikon/fon sama dengan popup "+1 <nama>" smelter dan popup drop,
@@ -983,45 +1003,45 @@ func _bina_iklan_besi() -> void:
 			ikon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 			baris.add_child(ikon)
 		var teks := Label.new()
-		teks.text = ("-%d %s" if i == 0 else "+%d %s") % [KOS_BESI, NAMA_BESI]
+		teks.text = ("-%d %s" if i == 0 else "+%d %s") % [KOS_LANTAI, NAMA_KELULI]
 		teks.add_theme_font_size_override("font_size", 7)
-		teks.add_theme_color_override("font_color", WARNA_BESI_KELUAR if i == 0 else WARNA_BESI_MASUK)
+		teks.add_theme_color_override("font_color", WARNA_KELULI_KELUAR if i == 0 else WARNA_KELULI_MASUK)
 		teks.add_theme_color_override("font_outline_color", Color(0.02, 0.06, 0.09, 0.95))
 		teks.add_theme_constant_override("outline_size", 3)
 		baris.add_child(teks)
 		_lapis_terapung.add_child(baris)
 		baris.reset_size()
 		baris.visible = false
-		_iklan_besi.append(baris)
-		_iklan_besi_label.append(teks)
-		_iklan_besi_masa.append(-1.0)
-		_iklan_besi_goyang.append(0.0)
+		_iklan_keluli.append(baris)
+		_iklan_keluli_label.append(teks)
+		_iklan_keluli_masa.append(-1.0)
+		_iklan_keluli_goyang.append(0.0)
 
-# Iklan terapung ikon besi dekat pemain: negatif = kos bina (merah),
+# Iklan terapung ikon Steel dekat pemain: negatif = kos bina (merah),
 # positif = binaan dinyahbina (hijau). Naik sedikit lalu pudar.
-func _apung_besi(banyak: int) -> void:
-	if _iklan_besi.is_empty():
+func _apung_keluli(banyak: int) -> void:
+	if _iklan_keluli.is_empty():
 		return
 	var pemain := get_tree().get_first_node_in_group("Player") as Node2D
 	if pemain == null or not is_instance_valid(pemain):
 		return
 
 	var i: int = 0 if banyak < 0 else 1
-	var teks: String = ("+%d %s" if banyak > 0 else "-%d %s") % [absi(banyak), NAMA_BESI]
+	var teks: String = ("+%d %s" if banyak > 0 else "-%d %s") % [absi(banyak), NAMA_KELULI]
 	# Teks sama tidak diukur semula; hanya berubah bila jumlah kos berubah.
-	if _iklan_besi_label[i].text != teks:
-		_iklan_besi_label[i].text = teks
-		_iklan_besi[i].reset_size()
-	_iklan_besi_pemain = pemain
-	_iklan_besi_masa[i] = 0.0
-	_iklan_besi_goyang[i] = randf_range(-4.0, 4.0)
-	_iklan_besi[i].modulate.a = 1.0
-	_ada_iklan_besi = true
+	if _iklan_keluli_label[i].text != teks:
+		_iklan_keluli_label[i].text = teks
+		_iklan_keluli[i].reset_size()
+	_iklan_keluli_pemain = pemain
+	_iklan_keluli_masa[i] = 0.0
+	_iklan_keluli_goyang[i] = randf_range(-4.0, 4.0)
+	_iklan_keluli[i].modulate.a = 1.0
+	_ada_iklan_keluli = true
 	# Letak posisi serta-merta supaya tiada frame pertama tersasar.
-	_kemas_kini_iklan_besi(0.0)
+	_kemas_kini_iklan_keluli(0.0)
 
 func _process(delta: float) -> void:
-	_kemas_kini_iklan_besi(delta)
+	_kemas_kini_iklan_keluli(delta)
 	if _status_masa > 0.0:
 		_status_masa -= delta
 		if _status_masa <= 0.0 and _label_status != null:
@@ -1029,36 +1049,36 @@ func _process(delta: float) -> void:
 
 # Animasi iklan dikira sendiri: posisi disemak semula setiap frame dari
 # kedudukan pemain, jadi iklan ikut pemain/kamera sepanjang hayatnya.
-func _kemas_kini_iklan_besi(delta: float) -> void:
-	if not _ada_iklan_besi:
+func _kemas_kini_iklan_keluli(delta: float) -> void:
+	if not _ada_iklan_keluli:
 		return
-	_ada_iklan_besi = false
-	var pemain := _iklan_besi_pemain
+	_ada_iklan_keluli = false
+	var pemain := _iklan_keluli_pemain
 	var ada_pemain: bool = pemain != null and is_instance_valid(pemain)
 	var pos_skrin := Vector2.ZERO
 	if ada_pemain:
 		pos_skrin = get_viewport().get_canvas_transform() * pemain.global_position
-	for i in _iklan_besi.size():
-		if _iklan_besi_masa[i] < 0.0:
+	for i in _iklan_keluli.size():
+		if _iklan_keluli_masa[i] < 0.0:
 			continue
-		var baris: HBoxContainer = _iklan_besi[i]
+		var baris: HBoxContainer = _iklan_keluli[i]
 		if not ada_pemain:
-			_iklan_besi_masa[i] = -1.0
+			_iklan_keluli_masa[i] = -1.0
 			baris.visible = false
 			continue
-		_iklan_besi_masa[i] += delta
-		var t: float = _iklan_besi_masa[i] / MASA_IKLAN_BESI
+		_iklan_keluli_masa[i] += delta
+		var t: float = _iklan_keluli_masa[i] / MASA_IKLAN_KELULI
 		if t >= 1.0:
-			_iklan_besi_masa[i] = -1.0
+			_iklan_keluli_masa[i] = -1.0
 			baris.modulate.a = 0.0
 			baris.visible = false
 			continue
-		_ada_iklan_besi = true
+		_ada_iklan_keluli = true
 		baris.visible = true
 		baris.position = pos_skrin + Vector2(
-			-baris.size.x * 0.5 + _iklan_besi_goyang[i],
-			-OFFSET_IKLAN_BESI - JARAK_IKLAN_BESI * t)
-		var p: float = clampf((t - IKLAN_BESI_MULA_PUDAR) / (1.0 - IKLAN_BESI_MULA_PUDAR), 0.0, 1.0)
+			-baris.size.x * 0.5 + _iklan_keluli_goyang[i],
+			-OFFSET_IKLAN_KELULI - JARAK_IKLAN_KELULI * t)
+		var p: float = clampf((t - IKLAN_KELULI_MULA_PUDAR) / (1.0 - IKLAN_KELULI_MULA_PUDAR), 0.0, 1.0)
 		baris.modulate.a = 1.0 - (p * p * (3.0 - 2.0 * p))
 
 func _pemain_dekat(g: Vector2i, pos_pemain: Vector2) -> bool:
@@ -1096,12 +1116,13 @@ func _kemas_kini_pembinaan(delta: float, pos_pemain: Vector2) -> void:
 		# Tiada yang dalam jarak / binaan bermula sedang menunggu pemain kembali.
 		return
 
-	# Mula binaan: tolak bahan sekarang.
+	# Mula binaan: tolak Steel ikut jenis tile sekarang.
+	var kos_bina: int = kos_tile(int(_rancang[sasaran]))
 	if not sudah_bermula:
-		if not _ada_besi():
-			_status("Need 1 Basic Iron to build " + NAMA_JENIS[int(_rancang[sasaran])])
+		if not _ada_keluli(kos_bina):
+			_status("Need %d %s to build %s" % [kos_bina, NAMA_KELULI, NAMA_JENIS[int(_rancang[sasaran])]])
 			return
-		if not _tolak_besi():
+		if not _tolak_keluli(kos_bina):
 			return
 		_bina_kemajuan[sasaran] = 0.0
 		_bunyi_kerja_masa = 0.0
@@ -1122,7 +1143,7 @@ func _kemas_kini_pembinaan(delta: float, pos_pemain: Vector2) -> void:
 	_bina_kolider(sasaran, jenis)
 	_status(NAMA_JENIS[jenis] + " built")
 	_bunyi("bina_siap", to_global(_tengah_sel(sasaran)), ISIPADU_BUNYI_SIAP)
-	_apung_besi(-KOS_BESI)
+	_apung_keluli(-kos_bina)
 	PowerGrid.tanda_kotor_semua("grid_bina")
 	queue_redraw()
 
@@ -1173,12 +1194,13 @@ func _kemas_kini_nyahbina(delta: float, pos_pemain: Vector2) -> void:
 	# Siap nyahbina: buang tile. Bahan hanya dipulangkan kalau struktur masih
 	# utuh; dinding/pintu yang sudah rosak kena serangan tak beri apa-apa.
 	var jenis := int(_tile.get(sasaran, JENIS_LANTAI))
+	var kos_jenis: int = kos_tile(jenis)
 	var utuh: bool = hp_tile(sasaran) >= hp_maks_tile(jenis)
 	_buang_tile(sasaran)
 	if utuh:
-		_pulangkan_besi()
-		_status(NAMA_JENIS[jenis] + " deconstructed (+1 Iron)")
-		_apung_besi(KOS_BESI)
+		_pulangkan_keluli(kos_jenis)
+		_status("%s deconstructed (+%d Steel)" % [NAMA_JENIS[jenis], kos_jenis])
+		_apung_keluli(kos_jenis)
 	else:
 		_status(NAMA_JENIS[jenis] + " deconstructed (damaged, no materials)")
 	_bunyi("roboh_siap", to_global(_tengah_sel(sasaran)), ISIPADU_BUNYI_SIAP)
@@ -1226,8 +1248,8 @@ func _kemas_kini_baiki(delta: float, pos_pemain: Vector2) -> void:
 	var jenis := int(_tile.get(sasaran, JENIS_LANTAI))
 	if not sudah_bermula:
 		var kos: int = kos_repair_tile(sasaran)
-		if not _ada_besi(kos) or not _tolak_besi(kos):
-			_status("Need %d %s to repair %s" % [kos, NAMA_BESI, NAMA_JENIS[jenis]])
+		if not _ada_keluli(kos) or not _tolak_keluli(kos):
+			_status("Need %d %s to repair %s" % [kos, NAMA_KELULI, NAMA_JENIS[jenis]])
 			return
 		_baiki_kemajuan[sasaran] = 0.0
 		_bunyi_kerja_masa = 0.0
@@ -1247,8 +1269,8 @@ func _kemas_kini_baiki(delta: float, pos_pemain: Vector2) -> void:
 		BAR_HP.buang(nod_tile)
 	_baiki_tanda.erase(sasaran)
 	_baiki_kemajuan.erase(sasaran)
-	_apung_besi(-kos_siap)
-	_status("%s repaired (%d Iron)" % [NAMA_JENIS[jenis], kos_siap])
+	_apung_keluli(-kos_siap)
+	_status("%s repaired (%d Steel)" % [NAMA_JENIS[jenis], kos_siap])
 	_bunyi("baiki_siap", to_global(_tengah_sel(sasaran)), ISIPADU_BUNYI_SIAP)
 	queue_redraw()
 

@@ -126,33 +126,33 @@ func _jalan() -> void:
 			{"x": 21, "y": 12, "jenis": 1},  # dinding rosak 2/3
 		]})
 		grid.kena_serangan(Vector2i(21, 12))
-		var besi_awal: int = int(inv.bilangan_item("item_0001"))
+		var besi_awal: int = int(inv.bilangan_item("item_0009"))
 		var pos_tile: Vector2 = grid.to_global(grid._tengah_sel(Vector2i(20, 12)))
 		grid.padam(Vector2i(20, 12))
 		grid._kemas_kini_nyahbina(2.0, pos_tile)
-		_semak(int(inv.bilangan_item("item_0001")) == besi_awal + 1,
-			"nyahbina dinding utuh pulangkan 1 besi")
+		_semak(int(inv.bilangan_item("item_0009")) == besi_awal + 3,
+			"nyahbina dinding utuh pulangkan 3 Steel")
 		pos_tile = grid.to_global(grid._tengah_sel(Vector2i(21, 12)))
 		grid.padam(Vector2i(21, 12))
 		grid._kemas_kini_nyahbina(2.0, pos_tile)
-		_semak(int(inv.bilangan_item("item_0001")) == besi_awal + 1,
-			"nyahbina dinding rosak tak pulangkan besi")
+		_semak(int(inv.bilangan_item("item_0009")) == besi_awal + 3,
+			"nyahbina dinding rosak tak pulangkan Steel")
 		_semak(not grid._tile.has(Vector2i(21, 12)),
 			"dinding rosak tetap terbongkar")
-		inv.tolak_item("item_0001", 1)
+		inv.tolak_item("item_0009", 3)
 
 		# --- Baiki dinding: kos ikut HP hilang, bahan ditolak, HP pulih ---
-		var besi_sandaran: int = int(inv.bilangan_item("item_0001"))
-		inv.tambah_item({"id": "item_0001", "nama": "Basic Iron Ore", "kuantiti": 3}, true)
+		var besi_sandaran: int = int(inv.bilangan_item("item_0009"))
+		inv.tambah_item({"id": "item_0009", "nama": "Steel", "kuantiti": 3}, true)
 		grid.muat_data_save({"tiles": [{"x": 22, "y": 12, "jenis": 1}]})
 		grid.kena_serangan(Vector2i(22, 12))  # dinding 2/3
-		_semak(grid.kos_repair_tile(Vector2i(22, 12)) == 1, "kos baiki dinding 2/3 = 1 besi")
+		_semak(grid.kos_repair_tile(Vector2i(22, 12)) == 1, "kos baiki dinding 2/3 = 1 Steel")
 		_semak(grid.kos_repair_tile(Vector2i(29, 29)) == 0, "tile kosong tiada kos baiki")
-		var besi_sebelum_baiki: int = int(inv.bilangan_item("item_0001"))
-		_semak(grid.baiki_tile(Vector2i(22, 12)), "baiki dinding berjaya bila besi cukup")
+		var besi_sebelum_baiki: int = int(inv.bilangan_item("item_0009"))
+		_semak(grid.baiki_tile(Vector2i(22, 12)), "baiki dinding berjaya bila Steel cukup")
 		_semak(grid.hp_tile(Vector2i(22, 12)) == 3, "HP dinding pulih penuh selepas baiki")
-		_semak(int(inv.bilangan_item("item_0001")) == besi_sebelum_baiki - 1,
-			"1 besi ditolak untuk baiki dinding 2/3")
+		_semak(int(inv.bilangan_item("item_0009")) == besi_sebelum_baiki - 1,
+			"1 Steel ditolak untuk baiki dinding 2/3")
 		_semak(not grid.baiki_tile(Vector2i(22, 12)), "baiki ditolak bila dinding sudah penuh")
 		_semak(not grid.boleh_baiki(Vector2i(22, 12)), "dinding penuh tiada dalam senarai baiki")
 		_semak(not grid.baiki_tile(Vector2i(9, 9)), "baiki tile kosong ditolak")
@@ -160,18 +160,18 @@ func _jalan() -> void:
 		# Mod Repair: tap = rancangan biru, kerja jalan bila player dekat sahaja.
 		grid.kena_serangan(Vector2i(22, 12))  # dinding 2/3
 		grid._mod = 4  # JENIS_REPAIR
-		var besi_sebelum_tanda: int = int(inv.bilangan_item("item_0001"))
+		var besi_sebelum_tanda: int = int(inv.bilangan_item("item_0009"))
 		_semak(grid.letak(Vector2i(22, 12)), "mod Repair: tap tile rosak buat rancangan baiki (biru)")
 		_semak(grid.hp_tile(Vector2i(22, 12)) == 2, "rancangan baiki belum memulihkan HP")
-		_semak(int(inv.bilangan_item("item_0001")) == besi_sebelum_tanda,
-			"besi belum ditolak semasa merancang baiki")
+		_semak(int(inv.bilangan_item("item_0009")) == besi_sebelum_tanda,
+			"Steel belum ditolak semasa merancang baiki")
 		var pos_baiki: Vector2 = grid.to_global(grid._tengah_sel(Vector2i(22, 12)))
 		grid._kemas_kini_baiki(2.0, grid.to_global(grid._tengah_sel(Vector2i(30, 30))))
 		_semak(grid.hp_tile(Vector2i(22, 12)) == 2, "player jauh: baiki tak jalan")
 		grid._kemas_kini_baiki(2.0, pos_baiki)
 		_semak(grid.hp_tile(Vector2i(22, 12)) == 3, "player dekat: dinding dibaiki")
-		_semak(int(inv.bilangan_item("item_0001")) == besi_sebelum_tanda - 1,
-			"1 besi ditolak bila kerja baiki bermula")
+		_semak(int(inv.bilangan_item("item_0009")) == besi_sebelum_tanda - 1,
+			"1 Steel ditolak bila kerja baiki bermula")
 		_semak(not grid._baiki_tanda.has(Vector2i(22, 12)),
 			"tanda biru hilang selepas dinding dibaiki")
 		grid.kena_serangan(Vector2i(22, 12))  # dinding 2/3 semula
@@ -201,14 +201,14 @@ func _jalan() -> void:
 		# Rancangan yang sudah mula dibina memulangkan besi yang sudah ditolak.
 		_semak(grid.letak(Vector2i(13, 12)), "rancangan lantai kedua dibuat")
 		grid._bina_kemajuan[Vector2i(13, 12)] = 0.5
-		var besi_plan: int = int(inv.bilangan_item("item_0001"))
+		var besi_plan: int = int(inv.bilangan_item("item_0009"))
 		_semak(grid.batal_semua_rancang(), "batal hijau membuang rancangan yang sedang dibina")
-		_semak(int(inv.bilangan_item("item_0001")) == besi_plan + 1,
-			"batal hijau pulangkan 1 besi binaan yang sudah bermula")
+		_semak(int(inv.bilangan_item("item_0009")) == besi_plan + 1,
+			"batal hijau pulangkan 1 Steel binaan yang sudah bermula")
 		grid._mod = -1
 
 		# Beg pemain dikembalikan seperti sebelum ujian.
-		inv.tolak_item("item_0001", int(inv.bilangan_item("item_0001")) - besi_sandaran)
+		inv.tolak_item("item_0009", int(inv.bilangan_item("item_0009")) - besi_sandaran)
 
 	# --- Raider tembak dinding dari jauh, tak perlu sentuh dulu ---
 	grid.muat_data_save({"tiles": [{"x": 18, "y": 12, "jenis": 1}]})  # dinding di (296,200)
