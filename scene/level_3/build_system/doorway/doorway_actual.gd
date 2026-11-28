@@ -20,6 +20,9 @@ const INSIDE_POS := Vector2(144, 128)
 
 func _ready():
 	add_to_group("Pintu")
+	# Pintu ini perabot neutral: kekal dalam "Pintu" untuk tutorial dan klik
+	# pemain, tetapi ditanda PerabotNeutral supaya raider mengabaikannya.
+	add_to_group("PerabotNeutral")
 	area.input_pickable = true
 	area.body_entered.connect(_on_enter)
 	area.body_exited.connect(_on_exit)

@@ -221,6 +221,10 @@ func _cari_sasaran() -> Dictionary:
 			var nod := calon as Node2D
 			if nod == null or not is_instance_valid(nod) or nod == self:
 				continue
+			# Perabot neutral (contoh: pintu masuk pangkalan) tak diserang raider,
+			# walaupun ia berada dalam kumpulan sasaran seperti "Pintu".
+			if nod.is_in_group("PerabotNeutral"):
+				continue
 			var jarak: float = global_position.distance_to(nod.global_position)
 			if jarak < jarak_terbaik:
 				jarak_terbaik = jarak
