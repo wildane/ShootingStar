@@ -31,6 +31,9 @@ const MASA_MAKS_LANGKAH: float = 25.0
 const JEDA_MULA: float = 1.6
 # Jarak pemain ke stesen cas yang dikira "sudah sampai".
 const JARAK_CAS: float = 34.0
+# Berapa keping Steel yang perlu dilebur dalam langkah relau.
+const ID_KELULI: String = "item_0009"
+const KELULI_PERLU: int = 4
 # Berapa saat pemain mesti kekal dekat stesen cas sebelum langkah tenaga lulus.
 const MASA_CAS: float = 3.0
 
@@ -62,6 +65,8 @@ var _pintu_awal: int = 0
 var _meteorit_awal: int = 0
 # Berapa lama pemain sudah berada dekat stesen cas dalam langkah tenaga.
 var _masa_dekat_cas: float = 0.0
+# Bilangan Steel dalam beg semasa langkah relau bermula.
+var _keluli_awal: int = 0
 
 
 # Cincin berdenyut yang menunjuk tempat pemain patut tekan/drag.
@@ -144,6 +149,15 @@ func _senarai_langkah() -> Array:
 			"mula": Callable(self, "_rekod_tenaga"),
 			"syarat": Callable(self, "_semak_tenaga"),
 			"masa_maks": 60.0,
+		},
+		{
+			"id": "keluli",
+			"label": "Smelt 4 steel",
+			"teks": "Smelt 4 steel at the smelter.\nEach steel = 2 iron ore + 1 meteorite ice.",
+			"sasaran_dunia": Callable(self, "_pos_dunia_relau"),
+			"mula": Callable(self, "_rekod_keluli"),
+			"syarat": Callable(self, "_semak_keluli"),
+			"masa_maks": 180.0,
 		},
 	]
 
@@ -259,6 +273,28 @@ func _semak_tenaga() -> bool:
 		return false
 	_masa_dekat_cas += get_process_delta_time()
 	return _masa_dekat_cas >= MASA_CAS
+
+
+# Sprite relau lebih kurang 20 unit tinggi, jadi cincin dinaikkan sedikit.
+func _pos_dunia_relau() -> Vector2:
+	return _pos_dunia_kumpulan("Relau", Vector2(0.0, -8.0))
+
+
+func _bilangan_keluli() -> int:
+	var inv := get_node_or_null("/root/InventoryManager")
+	if inv == null or not inv.has_method("bilangan_item"):
+		return 0
+	return int(inv.bilangan_item(ID_KELULI))
+
+
+func _rekod_keluli() -> void:
+	_keluli_awal = _bilangan_keluli()
+
+
+# Lulus bila Steel dalam beg bertambah KELULI_PERLU keping sejak langkah mula,
+# jadi steel yang sudah ada sebelum ini tidak terus meluluskan langkah.
+func _semak_keluli() -> bool:
+	return _bilangan_keluli() - _keluli_awal >= KELULI_PERLU
 
 
 func _tunggu_pemain() -> void:

@@ -37,6 +37,8 @@ func _ready() -> void:
 func _jadikan_neutral() -> void:
 	remove_from_group("Furniture")
 	add_to_group(KUMPULAN_NEUTRAL)
+	# Kumpulan berasingan supaya tutorial boleh menunjuk relau ini.
+	add_to_group("Relau")
 	# Jangan simpan ke slot simpanan: perabot ini sudah ada dalam scene level,
 	# jadi menyimpannya akan mencipta pendua selepas load.
 	var simpan := get_node_or_null("SaveComponent")
