@@ -43,6 +43,8 @@ var _akar: Control
 var _kad: PanelContainer
 var _label_teks: Label
 var _cincin: Control
+# Cincin kedua untuk ikon tenaga pada HUD (langkah tenaga sahaja).
+var _cincin_hud: Control
 var _senarai_semak: PanelContainer
 var _butang_langkau: Button
 var _baris: Array[Label] = []
@@ -138,6 +140,7 @@ func _senarai_langkah() -> Array:
 			"label": "Charge your energy",
 			"teks": "Flying and drone shots drain your energy.\nThe charging station next to the doorway refills it —\nfollow the ring and stay beside it for 3 seconds.",
 			"sasaran_dunia": Callable(self, "_pos_dunia_stesen_cas"),
+			"cincin_hud": Callable(self, "_pos_hud_tenaga"),
 			"mula": Callable(self, "_rekod_tenaga"),
 			"syarat": Callable(self, "_semak_tenaga"),
 			"masa_maks": 60.0,
@@ -221,6 +224,18 @@ func _pos_dunia_stesen_cas() -> Vector2:
 	return _pos_dunia_kumpulan("StesenCas", Vector2(0.0, -8.0))
 
 
+# Pusat bar tenaga di HUD (kumpulan "HudTenaga") supaya pemain nampak bar
+# mana yang sedang diisi. Vector2.INF bermakna HUD tiada/tersembunyi.
+func _pos_hud_tenaga() -> Vector2:
+	var nod := get_tree().get_first_node_in_group("HudTenaga")
+	if not (nod is Control):
+		return Vector2.INF
+	var kawalan := nod as Control
+	if not kawalan.is_visible_in_tree():
+		return Vector2.INF
+	return kawalan.get_global_rect().get_center()
+
+
 # Adakah pemain berada dalam jarak cas stesen terdekat?
 func _dekat_stesen_cas() -> bool:
 	if not is_instance_valid(_pemain):
@@ -299,6 +314,9 @@ func _process(delta: float) -> void:
 	if sasaran.is_valid():
 		_letak_cincin_dunia(sasaran.call())
 
+	# Cincin pada ikon tenaga HUD (kalau langkah ini ada sasaran HUD).
+	_letak_cincin_hud(_langkah_semua[_langkah].get("cincin_hud", Callable()))
+
 	var syarat: Callable = _langkah_semua[_langkah].get("syarat", Callable())
 	var lulus: bool = syarat.is_valid() and bool(syarat.call())
 	var masa_maks: float = float(_langkah_semua[_langkah].get("masa_maks", MASA_MAKS_LANGKAH))
@@ -352,6 +370,10 @@ func _bina_ui() -> void:
 	_cincin = CincinTunjuk.new()
 	_cincin.visible = false
 	_akar.add_child(_cincin)
+
+	_cincin_hud = CincinTunjuk.new()
+	_cincin_hud.visible = false
+	_akar.add_child(_cincin_hud)
 
 
 # Kotak gaya gelap berbingkai biru, sama rupa dengan peta dan panel menu.
@@ -467,6 +489,19 @@ func _letak_cincin(indeks: int) -> void:
 	_cincin.size = Vector2(72.0, 72.0)
 	_cincin.position = pusat - _cincin.size * 0.5
 	_cincin.visible = true
+
+
+# Cincin skrin pada elemen HUD; laluan kosong menyembunyikannya.
+func _letak_cincin_hud(pautan: Callable) -> void:
+	if not is_instance_valid(_cincin_hud):
+		return
+	var pusat = pautan.call() if pautan.is_valid() else Vector2.INF
+	if not (pusat is Vector2) or pusat == Vector2.INF:
+		_cincin_hud.visible = false
+		return
+	_cincin_hud.size = Vector2(64.0, 64.0)
+	_cincin_hud.position = pusat - _cincin_hud.size * 0.5
+	_cincin_hud.visible = true
 
 
 # Tukar posisi dunia ke posisi skrin, dan rapatkan ke tepi skrin bila sasaran

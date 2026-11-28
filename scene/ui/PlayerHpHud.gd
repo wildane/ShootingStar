@@ -23,6 +23,8 @@ func _ready() -> void:
 	susunan.add_child(_bar_hp)
 
 	_bar_tenaga = HpBar.cipta(HpBar.SAIZ_MENEGAK, HpBar.FON_MENEGAK, "energi", true)
+	# Kumpulan supaya tutorial boleh menunjuk ikon tenaga dengan cincin.
+	_bar_tenaga.add_to_group("HudTenaga")
 	susunan.add_child(_bar_tenaga)
 
 func _process(_delta: float) -> void:
